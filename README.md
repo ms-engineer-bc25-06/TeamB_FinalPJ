@@ -2,47 +2,47 @@
 
 ### PRD・要件定義
 
-- [PRD](docs/PRD_v0.md)
-- [Requirements Definition](docs/RequirementsDefinition_v0.md)
+- [PRD](docs/PRD.md)
+- [Requirements Definition](docs/requirements.md)
 
 ### 技術選定
 
-- [Tech Stack Selection](docs/TechStackSelection_v0.md)
+- [Tech Stack Selection](docs/techStack.md)
 
 ### 画面設計
 
-- [UI Design](docs/UI_Design_v0.md)
+- [UI Design](docs/UIDesign.md)
 
 ### DB設計
 
-- [Database Design (draw.io)](docs/DatabaseDesign_v0.drawio)
+- [Database Design (draw.io)](docs/databaseDesign.md)
 
 ### API設計
 
-- [API Specification (OpenAPI/Swagger)](docs/APISpecification_v0.yaml)
+- [API Specification (OpenAPI/Swagger)](docs/APISpecification.md)
 
 ### テスト設計
 
-- [Test Plan](docs/TestPlan_v0.md)
+- [Test Plan](docs/testPlan.md)
 
 ### 非機能設計
 
 ## 運用設計
 
-- [Operations Plan](docs/OperationsPlan_v0.md)
+- [Operations Plan](docs/operationsPlan.md)
 
 ## 性能設計
 
-- [Performance Design](docs/PerformanceDesign_v0.md)
+- [Performance Design](docs/performanceDesign.md)
 
 ## ログ設計
 
-- [Logging Design](docs/LoggingDesign_v0.md)
+- [Logging Design](docs/loggingDesign.md)
 
 ## 可用性設計
 
-- [Availability Design](docs/AvailabilityDesign_v0.md)
+- [Availability Design](docs/availabilityDesign.md)
 
 ## セキュリティ設計
 
-- [Security Design](docs/SecurityDesign_v0.md)
+- [Security Design](docs/securityDesign.md)
