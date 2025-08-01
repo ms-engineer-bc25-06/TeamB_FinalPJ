@@ -1,0 +1,7 @@
+# 本番環境ではこのファイルは使用しない（ローカル開発用）
+# CI/CDではrequirements.txt のみを使用すること
+-r requirements.txt
+
+black==25.1.0
+pytest==8.4.1
+pylint==3.3.7
