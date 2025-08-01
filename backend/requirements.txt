@@ -1,18 +1,17 @@
-# Webフレームワーク
 fastapi==0.111.0
 # ASGIサーバー
-uvicorn[standard]==0.29.0
+uvicorn[standard]==0.35.0
 # データバリデーション
 pydantic==2.7.4
 # ORM (データベース操作)
-SQLAlchemy==2.0.30
+SQLAlchemy==2.0.42
 # PostgreSQLデータベースドライバ
-psycopg2-binary==2.9.9
+psycopg[binary]==3.2.1
 # .envファイル読み込み
-python-dotenv==1.0.1
+python-dotenv==1.1.1
 
 # 開発用ツール
 # TODO: 本番の際、以下を削除し、本番用の内容に整理する必要あり。
-black==24.4.2
-pylint==3.2.2
-pytest==8.2.1
+black==25.1.0
+pytest==8.4.1
+pylint==3.3.7
