@@ -1,4 +1,10 @@
-## 📚 Documentation
+## 1. 💗 プロジェクト概要
+
+- [PRD](docs/PRD.md)を参照ください。
+
+## 2. 👷 開発ガイドライン（dev-guidelines.md）
+
+## 3. 📚 Documentation
 
 ### PRD・要件定義
 
@@ -13,11 +19,11 @@
 
 - [UI Design](docs/UIDesign.md)
 
-### DB設計
+### DB 設計
 
 - [Database Design (draw.io)](docs/databaseDesign.md)
 
-### API設計
+### API 設計
 
 - [API Specification (OpenAPI/Swagger)](docs/APISpecification.md)
 
