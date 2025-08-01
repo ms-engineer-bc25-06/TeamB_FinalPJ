@@ -1,0 +1,11 @@
+fastapi==0.111.0
+# ASGIサーバー
+uvicorn[standard]==0.35.0
+# データバリデーション
+pydantic==2.7.4
+# ORM (データベース操作)
+SQLAlchemy==2.0.42
+# PostgreSQLデータベースドライバ
+psycopg[binary]==3.2.1
+# .envファイル読み込み
+python-dotenv==1.1.1
