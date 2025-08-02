@@ -4,6 +4,8 @@
 
 ## 2. 👷 開発ガイドライン（dev-guidelines.md）
 
+- [PRD](docs/devGuideline.md)
+
 ## 3. 📚 Documentation
 
 ### PRD・要件定義
