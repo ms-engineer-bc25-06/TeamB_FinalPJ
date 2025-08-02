@@ -4,7 +4,18 @@
 
 ## 2. 👷 開発ガイドライン（dev-guidelines.md）
 
-## 3. 📚 Documentation
+- [PRD](docs/devGuideline.md)
+
+## 3. 🚀 Getting Started
+
+TODO: こちらの内容を環境構築完了後、完成させること！
+
+```
+1. `.env.example` を `.env.local` にコピー
+2. 必要な値を設定(値についてはNotionに記載)
+```
+
+## 4. 📚 Documentation
 
 ### PRD・要件定義
 
