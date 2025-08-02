@@ -1,3 +1,5 @@
+<!-- TODO:本READMEはNext.jsインストールの際、自動生成されたもの。プロジェクトが安定したら自分たち用に書き換えること。 -->
+
 This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
 
 ## Getting Started
