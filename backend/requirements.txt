@@ -9,3 +9,7 @@ SQLAlchemy==2.0.42
 psycopg[binary]==3.2.1
 # .envファイル読み込み
 python-dotenv==1.1.1
+# AWS S3
+boto3==1.34.0
+# ファイルアップロード
+python-multipart==0.0.7

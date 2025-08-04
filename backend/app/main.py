@@ -7,6 +7,8 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
+from voice_api import router as voice_router
+
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -27,6 +29,9 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# 入力音声から作られたファイルを管理するAPIを追加
+app.include_router(voice_router)
 
 # DBセッションを依存関係として定義
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
