@@ -16,6 +16,7 @@ router = APIRouter(prefix="/voice", tags=["voice"])
 class UploadRequest(BaseModel):
     user_id: int
     file_type: str  # "audio" or "text"
+    file_format: Optional[str] = "webm"  # "webm", "wav", "mp3" など。今回はwebmを使用。
 
 class SaveRecordRequest(BaseModel):
     user_id: int
@@ -38,8 +39,22 @@ async def get_upload_url(
         unique_id = str(uuid.uuid4())[:8]
         
         if request.file_type == "audio":
-            file_path = f"audio/{request.user_id}/audio_{timestamp}_{unique_id}.wav"
-            content_type = "audio/wav"
+            # ファイル形式に応じて拡張子とContent-Typeを設定
+            if request.file_format == "webm":
+                file_extension = "webm"
+                content_type = "audio/webm"
+            elif request.file_format == "wav":
+                file_extension = "wav"
+                content_type = "audio/wav"
+            elif request.file_format == "mp3":
+                file_extension = "mp3"
+                content_type = "audio/mpeg"
+            else:
+                # デフォルトはWebMでいく
+                file_extension = "webm"
+                content_type = "audio/webm"
+            
+            file_path = f"audio/{request.user_id}/audio_{timestamp}_{unique_id}.{file_extension}"
         elif request.file_type == "text":
             file_path = f"text/{request.user_id}/text_{timestamp}_{unique_id}.txt"
             content_type = "text/plain"
@@ -55,7 +70,8 @@ async def get_upload_url(
             "success": True,
             "upload_url": presigned_url,
             "file_path": file_path,
-            "s3_url": s3_service.get_file_url(file_path)
+            "s3_url": s3_service.get_file_url(file_path),
+            "content_type": content_type
         }
         
     except Exception as e:

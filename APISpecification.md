@@ -26,7 +26,8 @@ S3に直接アップロードするための署名付きURLを発行するAPI
 ```json
 {
   "user_id": 1,
-  "file_type": "audio"  // "audio" または "text"
+  "file_type": "audio",  // "audio" または "text"
+  "file_format": "webm"  // "webm", "wav", "mp3" など（オプション、デフォルト: "webm"）
 }
 ```
 
@@ -35,28 +36,42 @@ S3に直接アップロードするための署名付きURLを発行するAPI
 {
   "success": true,
   "upload_url": "https://bucket-name.s3.ap-northeast-1.amazonaws.com/...",
-  "file_path": "audio/1/audio_20241201_143022_abc123.wav",
-  "s3_url": "s3://bucket-name/audio/1/audio_20241201_143022_abc123.wav"
+  "file_path": "audio/1/audio_20241201_143022_abc123.webm",
+  "s3_url": "s3://bucket-name/audio/1/audio_20241201_143022_abc123.webm",
+  "content_type": "audio/webm"
 }
 ```
 
-### 使用例
+### 使用例（MediaRecorder API）
 ```javascript
 // 1. アップロードURLを取得
 const response = await fetch('/voice/get-upload-url', {
   method: 'POST',
   headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ user_id: 1, file_type: 'audio' })
+  body: JSON.stringify({ 
+    user_id: 1, 
+    file_type: 'audio',
+    file_format: 'webm'  // MediaRecorderでWebM形式を使用
+  })
 });
 
-const { upload_url, s3_url } = await response.json();
+const { upload_url, content_type } = await response.json();
 
-// 2. 直接S3にアップロード
-await fetch(upload_url, {
-  method: 'PUT',
-  body: audioFile,
-  headers: { 'Content-Type': 'audio/wav' }
+// 2. MediaRecorderで録音
+const mediaRecorder = new MediaRecorder(stream, {
+  mimeType: 'audio/webm;codecs=opus'
 });
+
+mediaRecorder.ondataavailable = async (event) => {
+  const audioBlob = event.data;
+  
+  // 3. 直接S3にアップロード
+  await fetch(upload_url, {
+    method: 'PUT',
+    body: audioBlob,
+    headers: { 'Content-Type': content_type }
+  });
+};
 ```
 
 ---
@@ -75,7 +90,7 @@ POST /voice/save-record
 ```json
 {
   "user_id": 1,
-  "audio_file_path": "s3://bucket-name/audio/1/audio_20241201_143022_abc123.wav",
+  "audio_file_path": "s3://bucket-name/audio/1/audio_20241201_143022_abc123.webm",
   "text_file_path": "s3://bucket-name/text/1/text_20241201_143022_abc123.txt"
 }
 ```
@@ -111,7 +126,7 @@ GET /voice/records/{user_id}
   "records": [
     {
       "id": 123,
-      "audio_path": "s3://bucket-name/audio/1/audio_20241201_143022_abc123.wav",
+      "audio_path": "s3://bucket-name/audio/1/audio_20241201_143022_abc123.webm",
       "text_path": "s3://bucket-name/text/1/text_20241201_143022_abc123.txt",
       "audio_download_url": "https://bucket-name.s3.ap-northeast-1.amazonaws.com/...",
       "text_download_url": "https://bucket-name.s3.ap-northeast-1.amazonaws.com/...",
@@ -125,9 +140,9 @@ GET /voice/records/{user_id}
 
 ## ファイルパス形式
 
-### 音声ファイル
+### 音声ファイル（WebM対応）
 ```
-s3://{bucket-name}/audio/{user_id}/audio_{YYYYMMDD}_{HHMMSS}_{unique_id}.wav
+s3://{bucket-name}/audio/{user_id}/audio_{YYYYMMDD}_{HHMMSS}_{unique_id}.webm
 ```
 
 ### テキストファイル
@@ -135,8 +150,13 @@ s3://{bucket-name}/audio/{user_id}/audio_{YYYYMMDD}_{HHMMSS}_{unique_id}.wav
 s3://{bucket-name}/text/{user_id}/text_{YYYYMMDD}_{HHMMSS}_{unique_id}.txt
 ```
 
+### 対応ファイル形式
+- **WebM**: `audio/webm` (MediaRecorder API推奨)
+- **WAV**: `audio/wav`
+- **MP3**: `audio/mpeg`
+
 ### 日時情報
-- ファイル名に作成日時を含む（例: `audio_20241201_143022_abc123.wav`）
+- ファイル名に作成日時を含む（例: `audio_20241201_143022_abc123.webm`）
 - データベースには別途日時カラムを保存しない
 
 ---
