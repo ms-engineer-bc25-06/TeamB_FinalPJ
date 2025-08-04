@@ -6,9 +6,9 @@ import uuid
 from typing import Optional
 from pydantic import BaseModel
 
-from .main import get_db
-from .models import VoiceRecord
-from .s3_service import S3Service
+from main import get_db
+from models import VoiceRecord
+from s3_service import S3Service
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 

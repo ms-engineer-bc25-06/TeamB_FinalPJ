@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 
-from .voice_api import router as voice_router
+from voice_api import router as voice_router
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
