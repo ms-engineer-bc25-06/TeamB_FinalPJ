@@ -5,4 +5,4 @@ RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir -r requirements.txt
 COPY ./app /app
 # TODO: 本番環境のときは --reload を外すこと
-CMD ["uvicorn", "main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
