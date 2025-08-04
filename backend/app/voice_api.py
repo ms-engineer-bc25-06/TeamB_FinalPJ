@@ -6,7 +6,18 @@ import uuid
 from typing import Optional
 from pydantic import BaseModel
 
-from main import get_db
+import os
+from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
+
+# データベース接続を直接定義
+DATABASE_URL = os.getenv("DATABASE_URL")
+engine = create_async_engine(DATABASE_URL, echo=True)
+async_session_local = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+async def get_db():
+    async with async_session_local() as session:
+        yield session
+
 from models import VoiceRecord
 from s3_service import S3Service
 
