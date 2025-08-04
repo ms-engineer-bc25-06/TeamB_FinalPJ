@@ -1,51 +1,38 @@
 'use client';
 
-import useSWR from 'swr';
-import { fetcher } from '@/lib/fetcher';
-import type { ApiResponse } from '@/types/api';
-import { CircularProgress, Typography, Alert, Box, Paper } from '@mui/material';
+import { Button, Typography, Box, Paper } from '@mui/material';
+import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
+import { auth } from '@/lib/firebase';
 
 export default function Home() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  const { data, error, isLoading } = useSWR<ApiResponse>(apiUrl, fetcher);
+  const handleGoogleLogin = async () => {
+    const provider = new GoogleAuthProvider();
+    try {
+      const result = await signInWithPopup(auth, provider);
+      const user = result.user;
 
-  if (isLoading) {
-    return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <CircularProgress />
-      </Box>
-    );
-  }
+      const idToken = await user.getIdToken();
 
-  if (error) {
-    return (
-      <Box p={4}>
-        <Alert severity="error">
-          データの取得に失敗しました😭: {error.message}
-        </Alert>
-      </Box>
-    );
-  }
+      console.log('ログイン成功！');
+      console.log('ユーザー情報:', user);
+      console.log('IDトークン:', idToken);
+
+      // TODO: ここでバックエンドにIDトークンを送信する処理を後で追加
+    } catch (error) {
+      console.error('ログインエラー', error);
+    }
+  };
 
   return (
     <Box p={4}>
-      <Paper elevation={3} sx={{ p: 3 }}>
+      <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
         <Typography variant="h4" gutterBottom>
-          バックエンド連携テスト
+          ようこそ！
         </Typography>
-        <Alert severity={data?.db_status === 'ok' ? 'success' : 'warning'}>
-          <Typography>
-            <b>
-              やったね！フロントエンドとバックエンドの連携テスト、成功です！🙌:
-            </b>{' '}
-            {data?.message}
-          </Typography>
-        </Alert>
+        <Typography sx={{ mb: 2 }}>続けるにはログインしてください。</Typography>
+        <Button variant="contained" onClick={handleGoogleLogin}>
+          Googleでログイン
+        </Button>
       </Paper>
     </Box>
   );
