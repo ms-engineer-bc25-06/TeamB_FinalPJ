@@ -5,10 +5,10 @@ from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
-from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 import firebase_admin
 from firebase_admin import credentials, auth
-from . import crud, schemas
+import crud, schemas
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")

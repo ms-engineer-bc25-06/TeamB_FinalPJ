@@ -1,0 +1,18 @@
+# .dockerignore
+
+# Python cache
+__pycache__/
+*.pyc
+
+# VSCode settings
+.vscode/
+
+# Local environment files
+.env
+
+# Git
+.git/
+.gitignore
+
+# Docker
+Dockerfile
