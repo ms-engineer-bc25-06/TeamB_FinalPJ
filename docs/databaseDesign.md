@@ -1,10 +1,12 @@
 # データベース設計
-
-## 音声記録テーブル (voice_records)
+![ER図](./images/teamb_db.png)
+## usersテーブル、childrenテーブル、emotion_logsテーブル
 
 ### テーブル概要
-子供の音声入力と文字起こしテキストのファイルパスを保存するテーブル
+Firebase認証でログインする保護者データを格納するテーブル、兄弟それぞれのプロフィールを格納するテーブル、感情記録を格納するテーブル
 
+
+---------以下、のちほどアップデート予定---------
 ### テーブル定義
 
 | カラム名 | データ型 | NULL | 説明 |
@@ -38,3 +40,4 @@ SELECT * FROM voice_records ORDER BY id DESC LIMIT 1;
 ### 関連API
 - `POST /voice/upload` - ファイルアップロードとDB保存
 - `GET /voice/records/{user_id}` - ユーザーの記録一覧取得
+

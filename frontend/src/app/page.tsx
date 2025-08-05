@@ -1,13 +1,16 @@
 'use client';
 
-import useSWR from 'swr';
-import { fetcher } from '@/lib/fetcher';
-import type { ApiResponse } from '@/types/api';
-import { CircularProgress, Typography, Alert, Box, Paper } from '@mui/material';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  Button,
+  Typography,
+  Box,
+  Paper,
+  CircularProgress,
+} from '@mui/material';
 
 export default function Home() {
-  const apiUrl = process.env.NEXT_PUBLIC_API_BASE_URL;
-  const { data, error, isLoading } = useSWR<ApiResponse>(apiUrl, fetcher);
+  const { user, login, logout, isLoading } = useAuth();
 
   if (isLoading) {
     return (
@@ -22,30 +25,34 @@ export default function Home() {
     );
   }
 
-  if (error) {
-    return (
-      <Box p={4}>
-        <Alert severity="error">
-          データの取得に失敗しました😭: {error.message}
-        </Alert>
-      </Box>
-    );
-  }
-
   return (
     <Box p={4}>
-      <Paper elevation={3} sx={{ p: 3 }}>
-        <Typography variant="h4" gutterBottom>
-          バックエンド連携テスト
-        </Typography>
-        <Alert severity={data?.db_status === 'ok' ? 'success' : 'warning'}>
-          <Typography>
-            <b>
-              やったね！フロントエンドとバックエンドの連携テスト、成功です！🙌:
-            </b>{' '}
-            {data?.message}
-          </Typography>
-        </Alert>
+      <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
+        {user ? (
+          // --- ログイン後の表示 ---
+          <>
+            <Typography variant="h4" gutterBottom>
+              ようこそ、{user.nickname}さん！
+            </Typography>
+            <Typography sx={{ mb: 2 }}>ログインに成功しました。</Typography>
+            <Button variant="outlined" onClick={logout}>
+              ログアウト
+            </Button>
+          </>
+        ) : (
+          // --- ログアウト時の表示 ---
+          <>
+            <Typography variant="h4" gutterBottom>
+              ようこそ！
+            </Typography>
+            <Typography sx={{ mb: 2 }}>
+              続けるにはログインしてください。
+            </Typography>
+            <Button variant="contained" onClick={login}>
+              Googleでログイン
+            </Button>
+          </>
+        )}
       </Paper>
     </Box>
   );
