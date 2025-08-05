@@ -1,48 +1,58 @@
 'use client';
 
-import { Button, Typography, Box, Paper } from '@mui/material';
-import { GoogleAuthProvider, signInWithPopup } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/contexts/AuthContext';
+import {
+  Button,
+  Typography,
+  Box,
+  Paper,
+  CircularProgress,
+} from '@mui/material';
 
 export default function Home() {
-  const handleGoogleLogin = async () => {
-    const provider = new GoogleAuthProvider();
-    try {
-      const result = await signInWithPopup(auth, provider);
-      const user = result.user;
+  const { user, login, logout, isLoading } = useAuth();
 
-      const idToken = await user.getIdToken();
-
-      console.log('ログイン成功！');
-      console.log('ユーザー情報:', user);
-      console.log('IDトークン:', idToken);
-
-      // TODO: バックエンドにトークン送信
-    } catch (error) {
-      if (typeof error === 'object' && error !== null && 'code' in error) {
-        const firebaseError = error as { code: string };
-
-        if (firebaseError.code === 'auth/popup-closed-by-user') {
-          console.warn('ユーザーがポップアップを閉じました');
-        } else {
-          console.error('その他のFirebaseエラー:', firebaseError.code);
-        }
-      } else {
-        console.error('予期しないエラー:', error);
-      }
-    }
-  };
+  if (isLoading) {
+    return (
+      <Box
+        display="flex"
+        justifyContent="center"
+        alignItems="center"
+        minHeight="100vh"
+      >
+        <CircularProgress />
+      </Box>
+    );
+  }
 
   return (
     <Box p={4}>
       <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
-        <Typography variant="h4" gutterBottom>
-          ようこそ！
-        </Typography>
-        <Typography sx={{ mb: 2 }}>続けるにはログインしてください。</Typography>
-        <Button variant="contained" onClick={handleGoogleLogin}>
-          Googleでログイン
-        </Button>
+        {user ? (
+          // --- ログイン後の表示 ---
+          <>
+            <Typography variant="h4" gutterBottom>
+              ようこそ、{user.nickname}さん！
+            </Typography>
+            <Typography sx={{ mb: 2 }}>ログインに成功しました。</Typography>
+            <Button variant="outlined" onClick={logout}>
+              ログアウト
+            </Button>
+          </>
+        ) : (
+          // --- ログアウト時の表示 ---
+          <>
+            <Typography variant="h4" gutterBottom>
+              ようこそ！
+            </Typography>
+            <Typography sx={{ mb: 2 }}>
+              続けるにはログインしてください。
+            </Typography>
+            <Button variant="contained" onClick={login}>
+              Googleでログイン
+            </Button>
+          </>
+        )}
       </Paper>
     </Box>
   );
