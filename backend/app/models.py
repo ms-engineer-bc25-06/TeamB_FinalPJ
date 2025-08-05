@@ -1,5 +1,5 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, func
+from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, ForeignKey, func
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase
 
@@ -30,3 +30,17 @@ class User(Base):
     last_login_at = Column(DateTime(timezone=True))
     login_count = Column(Integer, default=0, nullable=False)
     role = Column(String, default='user', nullable=False)
+
+class VoiceRecord(Base):
+    __tablename__ = "voice_records"
+
+    id = Column(Integer, primary_key=True, index=True)
+    # Userテーブルのidを参照
+    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False)
+
+    # S3パス
+    audio_file_path = Column(String, nullable=False)  # 音声ファイルのS3パス
+    text_file_path = Column(String)  # テキストファイルのS3パス
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+
