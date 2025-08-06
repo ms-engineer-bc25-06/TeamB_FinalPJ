@@ -58,6 +58,8 @@
 
    - `docker compose ps`コマンドを実行し、`teamb_backend`と`teamb_db`の 2 つのコンテナが`Up (healthy)`または`running`状態であることを確認します。
    - Web ブラウザで `http://localhost:8000/docs` にアクセスし、FastAPI の Swagger UI が表示されれば成功です。
+   - Swagger UI の使い方補足：
+     > 表示されたページで、テストしたい API（例: POST /api/v1/login）をクリックして展開。「Try it out」ボタンを押し、必要な情報（ID トークンなど）を入力して「Execute」ボタンを押すと、実際に API を実行して結果を確認できます。
 
 ### 🌐 フロントエンドのセットアップ
 
@@ -162,8 +164,6 @@ curl -X PUT "<upload_url>" \
 ### テスト設計
 
 - [Test Plan](docs/testPlan.md)
-
-### 非機能設計
 
 ## 運用設計
 
