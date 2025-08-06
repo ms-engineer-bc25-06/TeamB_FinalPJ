@@ -165,8 +165,6 @@ curl -X PUT "<upload_url>" \
 
 - [Test Plan](docs/testPlan.md)
 
-### 非機能設計
-
 ## 運用設計
 
 - [Operations Plan](docs/operationsPlan.md)
