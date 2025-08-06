@@ -45,6 +45,38 @@ class SaveRecordRequest(BaseModel):
     2. 取得したURLに直接ファイルをアップロード（PUT）
     3. アップロード完了後、`/voice/save-record`でファイルパスをDBに保存
     
+    ## 使用例（JavaScript）
+    ```javascript
+    // 1. アップロードURLを取得
+    const response = await fetch('/voice/get-upload-url', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        user_id: 1, 
+        file_type: 'audio',
+        file_format: 'webm'
+      })
+    });
+    
+    const { upload_url, content_type } = await response.json();
+    
+    // 2. MediaRecorderで録音
+    const mediaRecorder = new MediaRecorder(stream, {
+      mimeType: 'audio/webm;codecs=opus'
+    });
+    
+    mediaRecorder.ondataavailable = async (event) => {
+      const audioBlob = event.data;
+      
+      // 3. 直接S3にアップロード
+      await fetch(upload_url, {
+        method: 'PUT',
+        body: audioBlob,
+        headers: { 'Content-Type': content_type }
+      });
+    };
+    ```
+    
     ## セキュリティ
     - 署名付きURLの有効期限は1時間
     - ユーザー固有のファイルパスを生成
@@ -117,6 +149,20 @@ async def get_upload_url(
     - S3へのファイルアップロード完了後
     - ファイルパスをDBに記録して管理
     
+    ## 使用例（JavaScript）
+    ```javascript
+    // 4. ファイルパスをDBに保存
+    await fetch('/voice/save-record', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        user_id: 1,
+        audio_file_path: 's3://bucket-name/audio/1/audio_20241201_143022_abc123.webm',
+        text_file_path: 's3://bucket-name/text/1/text_20241201_143022_abc123.txt'  // オプション
+      })
+    });
+    ```
+    
     ## 注意事項
     - ファイルパスはS3の形式（s3://bucket-name/path）で指定してください
     """,
@@ -155,6 +201,32 @@ async def save_record(
     description="""
     指定ユーザーのファイル情報とダウンロード用Presigned URLを返すAPIです。
     
+    ## 使用タイミング
+    - ファイル一覧の表示時
+    - ダウンロード用URLの取得時
+    
+    ## 使用例（JavaScript）
+    ```javascript
+    // 5. ファイル一覧を取得
+    const records = await fetch('/voice/records/1');
+    const { records } = await records.json();
+    
+    // レスポンス例
+    {
+      "success": true,
+      "records": [
+        {
+          "id": 123,
+          "audio_path": "s3://bucket-name/audio/1/audio_20241201_143022_abc123.webm",
+          "text_path": "s3://bucket-name/text/1/text_20241201_143022_abc123.txt",
+          "audio_download_url": "https://bucket-name.s3.ap-northeast-1.amazonaws.com/...",
+          "text_download_url": "https://bucket-name.s3.ap-northeast-1.amazonaws.com/...",
+          "created_at": ["20241201", "143022"]
+        }
+      ]
+    }
+    ```
+    
     ## 取得情報
     - ファイルの基本情報（ID、パス、作成日時）
     - ダウンロード用の署名付きURL（1時間有効）
@@ -170,7 +242,7 @@ async def save_record(
     response_description="ユーザーのファイル一覧とダウンロードURLを返します"
 )
 async def get_records(
-    user_id: int = Field(..., description="ユーザーID", example=1),
+    user_id: int, 
     db: AsyncSession = Depends(get_db)
 ):
     try:

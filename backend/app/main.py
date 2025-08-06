@@ -34,36 +34,7 @@ async def lifespan(app: FastAPI):
     yield
 
 # lifespanを登録して、起動時の処理を有効化
-app = FastAPI(
-    title="ファイル保存・管理API",
-    description="""
-    ## 概要
-    子供の音声入力と文字起こしテキストファイルをAWS S3に安全に保存し、データベースで管理するAPI
-    
-    ## 主な機能
-    - 🔐 Firebase認証によるユーザー管理
-    - 🎤 音声ファイルのアップロード（S3署名付きURL）
-    - 📝 テキストファイルの管理
-    - 📊 ユーザー固有のファイル一覧取得
-    
-    ## セキュリティ
-    - Firebase IDトークンによる認証
-    - S3署名付きURLによる安全なファイルアップロード
-    - ユーザー固有のファイルパス分離
-    
-    ## 対応ファイル形式
-    - **音声**: WebM, WAV, MP3
-    - **テキスト**: TXT
-    
-    ## 使用方法
-    1. `/api/v1/login` でFirebase IDトークンを使用してログイン
-    2. `/voice/get-upload-url` でアップロード用URLを取得
-    3. 直接S3にファイルをアップロード
-    4. `/voice/save-record` でファイルパスをDBに保存
-    5. `/voice/records/{user_id}` でファイル一覧を取得
-    """,
-    lifespan=lifespan
-)
+app = FastAPI(lifespan=lifespan)
 
 # CORSミドルウェア設定
 origins = [
