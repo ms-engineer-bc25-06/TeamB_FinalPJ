@@ -2,16 +2,18 @@
 // トップページ
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import { KokoronDefault, SpeechBubble, PrimaryButton, Spinner, HamburgerMenu, MenuItem } from '@/components/ui';
 import { commonStyles } from '@/styles/theme';
 import styles from './page.module.css';
 
 export default function Home() {
   const { user, isLoading, logout, login } = useAuth();
+  const router = useRouter();
 
   // おしゃべりボタンが押された時の処理
   const handleTalk = () => {
-    console.log('おしゃべりボタンが押されました');
+    router.push('/emotion-selection');
   };
 
   // ログイン処理
