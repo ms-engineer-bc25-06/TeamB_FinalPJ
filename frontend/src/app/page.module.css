@@ -51,9 +51,10 @@
 
 .userInfo p {
   margin: 0;
-  font-size: 13px;
+  font-size: 28px;
   color: #666;
   text-align: center;
+  font-weight: bold;
 }
 
 /* ログインカードのタイトルとテキスト */

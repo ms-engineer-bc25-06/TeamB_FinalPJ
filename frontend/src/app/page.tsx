@@ -7,11 +7,20 @@ import { commonStyles } from '@/styles/theme';
 import styles from './page.module.css';
 
 export default function Home() {
-  const { user, isLoading, logout } = useAuth();
+  const { user, isLoading, logout, login } = useAuth();
 
   // おしゃべりボタンが押された時の処理
   const handleTalk = () => {
     console.log('おしゃべりボタンが押されました');
+  };
+
+  // ログイン処理
+  const handleLogin = async () => {
+    try {
+      await login();
+    } catch (error) {
+      console.error('ログインエラー:', error);
+    }
   };
 
   // ログアウト処理
@@ -39,7 +48,7 @@ export default function Home() {
           <button 
             style={commonStyles.login.button}
             className={styles.loginButton}
-            onClick={() => window.location.href = '/login'}
+            onClick={handleLogin}
           >
             Googleでログイン
           </button>
@@ -78,7 +87,7 @@ export default function Home() {
 
         {/* こころんキャラクター（画面の真ん中に配置） */}
         <div style={commonStyles.page.kokoronContainer}>
-          <KokoronDefault size={200} />
+          <KokoronDefault size={420} />
         </div>
 
         {/* おしゃべりボタン */}
