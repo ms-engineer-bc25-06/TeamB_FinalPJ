@@ -2,18 +2,12 @@
 // トップページ
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import { KokoronDefault, SpeechBubble, PrimaryButton, Spinner } from '@/components/ui';
+import { KokoronDefault, SpeechBubble, PrimaryButton, Spinner, HamburgerMenu, MenuItem } from '@/components/ui';
 import { commonStyles } from '@/styles/theme';
 import styles from './page.module.css';
 
 export default function Home() {
   const { user, isLoading, logout } = useAuth();
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  // メニューの開閉を切り替える
-  const toggleMenu = () => {
-    setMenuOpen(!menuOpen);
-  };
 
   // おしゃべりボタンが押された時の処理
   const handleTalk = () => {
@@ -23,7 +17,6 @@ export default function Home() {
   // ログアウト処理
   const handleLogout = async () => {
     await logout();
-    setMenuOpen(false);
   };
 
   // ローディング中
@@ -57,38 +50,26 @@ export default function Home() {
 
   return (
     <div style={commonStyles.page.container}>
-      {/* 右上のハンバーガーメニュー */}
-      <button style={commonStyles.menuButton} onClick={toggleMenu}>
-        <span style={commonStyles.menuIcon}></span>
-        <span style={commonStyles.menuIcon}></span>
-        <span style={commonStyles.menuIcon}></span>
-      </button>
-
-      {/* 右側から出てくるメニュー */}
-      <div style={menuOpen ? { ...commonStyles.menuDrawer, ...commonStyles.menuDrawerOpen } : commonStyles.menuDrawer}>
-        <div className={styles.drawerContent}>
-          <div className={styles.userInfo}>
-            <p>ようこそ、{user.nickname}さん！</p>
-          </div>
-          <ul className={styles.menuList}>
-            <li className={styles.menuItem}>使い方</li>
-            <li className={styles.menuItem}>保護者向けTips</li>
-            <li className={styles.menuItem}>レポートページの見かた</li>
-            <li className={styles.menuItem}>感情教育について</li>
-            <li className={styles.menuItem}>非認知能力について</li>
-            <li className={styles.menuItem}>プライバシーポリシー</li>
-            <li className={styles.menuItem}>FAQ</li>
-            <li className={styles.menuItem}>設定</li>
-            <li className={styles.menuItem}>ロールプレイ</li>
-            <li className={styles.menuItem}>レポート</li>
-            <li className={styles.menuItem}>アップグレード</li>
-            <li className={styles.menuItem} onClick={handleLogout}>ログアウト</li>
-          </ul>
+      {/* ハンバーガーメニュー */}
+      <HamburgerMenu>
+        <div className={styles.userInfo}>
+          <p>ようこそ、{user.nickname}さん！</p>
         </div>
-      </div>
-
-      {/* メニューが開いている時の背景オーバーレイ */}
-      {menuOpen && <div style={commonStyles.menuOverlay} onClick={toggleMenu}></div>}
+        <ul className={styles.menuList}>
+          <MenuItem>使い方</MenuItem>
+          <MenuItem>保護者向けTips</MenuItem>
+          <MenuItem>レポートページの見かた</MenuItem>
+          <MenuItem>感情教育について</MenuItem>
+          <MenuItem>非認知能力について</MenuItem>
+          <MenuItem>プライバシーポリシー</MenuItem>
+          <MenuItem>FAQ</MenuItem>
+          <MenuItem>設定</MenuItem>
+          <MenuItem>ロールプレイ</MenuItem>
+          <MenuItem>レポート</MenuItem>
+          <MenuItem>アップグレード</MenuItem>
+          <MenuItem onClick={handleLogout}>ログアウト</MenuItem>
+        </ul>
+      </HamburgerMenu>
 
       {/* メインコンテンツ */}
       <div style={commonStyles.page.mainContent}>

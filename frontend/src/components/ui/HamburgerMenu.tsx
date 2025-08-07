@@ -1,16 +1,20 @@
 import { useState } from 'react';
-import { colors, commonStyles, animation, spacing, borderRadius } from '@/styles/theme';
+import { colors, commonStyles, animation, spacing } from '@/styles/theme';
 
 interface HamburgerMenuProps {
   children: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
+  position?: 'left' | 'right';
+  width?: string;
 }
 
 export default function HamburgerMenu({ 
   children, 
   className = '',
-  style = {}
+  style = {},
+  position = 'right',
+  width = '300px'
 }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
 
@@ -18,76 +22,127 @@ export default function HamburgerMenu({
     setIsOpen(!isOpen);
   };
 
+  const closeMenu = () => {
+    setIsOpen(false);
+  };
+
+  // ハンバーガーボタンのスタイル
   const hamburgerStyle: React.CSSProperties = {
-    position: 'relative',
+    position: 'fixed',
+    top: spacing.md,
+    right: spacing.md,
     cursor: 'pointer',
-    width: '30px',
-    height: '30px',
+    width: '40px',
+    height: '40px',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: '4px',
-    background: 'none',
+    gap: '5px',
+    background: 'rgba(255, 255, 255, 0.95)',
     border: 'none',
+    borderRadius: '10px',
     padding: '0',
+    zIndex: 200,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
     ...style,
   };
 
+  // ハンバーガーアイコンのスタイル
   const lineStyle: React.CSSProperties = {
-    width: '100%',
-    height: '3px',
+    width: '20px',
+    height: '2px',
     backgroundColor: colors.text.primary,
-    borderRadius: '2px',
+    borderRadius: '1px',
     transition: animation.transition,
     transformOrigin: 'center',
   };
 
-  const menuStyle: React.CSSProperties = {
-    position: 'absolute',
-    top: '100%',
-    right: '0',
+  // ドロワーメニューのスタイル
+  const drawerMenuStyle: React.CSSProperties = {
+    position: 'fixed',
+    top: 0,
+    [position]: isOpen ? 0 : `-${width}`,
+    width,
+    height: '100vh',
+    background: colors.background.white,
+    boxShadow: position === 'right' 
+      ? '-2px 0 10px rgba(0, 0, 0, 0.1)' 
+      : '2px 0 10px rgba(0, 0, 0, 0.1)',
+    transition: animation.transition,
     zIndex: 1000,
-    ...commonStyles.menu,
+  };
+
+  // 閉じるボタンのスタイル
+  const closeButtonStyle: React.CSSProperties = {
+    position: 'absolute',
+    top: spacing.md,
+    [position === 'right' ? 'right' : 'left']: spacing.md,
+    width: '32px',
+    height: '32px',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '20px',
+    color: colors.text.primary,
+    zIndex: 1001,
+  };
+
+  // オーバーレイのスタイル
+  const overlayStyle: React.CSSProperties = {
+    ...commonStyles.menuOverlay,
     opacity: isOpen ? 1 : 0,
     visibility: isOpen ? 'visible' : 'hidden',
-    transform: isOpen ? 'translateY(0)' : 'translateY(-10px)',
     transition: animation.transition,
-    marginTop: spacing.sm,
   };
 
   return (
-    <div style={{ position: 'relative' }} className={className}>
+    <>
+      {/* ハンバーガーボタン */}
       <button
         onClick={toggleMenu}
         style={hamburgerStyle}
         aria-label="メニューを開く"
         aria-expanded={isOpen}
+        className={className}
       >
-        <div
-          style={{
-            ...lineStyle,
-            transform: isOpen ? 'rotate(45deg) translate(6px, 6px)' : 'rotate(0)',
-          }}
-        />
-        <div
-          style={{
-            ...lineStyle,
-            opacity: isOpen ? 0 : 1,
-          }}
-        />
-        <div
-          style={{
-            ...lineStyle,
-            transform: isOpen ? 'rotate(-45deg) translate(6px, -6px)' : 'rotate(0)',
-          }}
-        />
+        <span style={lineStyle} />
+        <span style={lineStyle} />
+        <span style={lineStyle} />
       </button>
-      
-      <div style={menuStyle}>
-        {children}
+
+      {/* ドロワーメニュー */}
+      <div style={drawerMenuStyle}>
+        {/* 閉じるボタン */}
+        <button 
+          onClick={closeMenu}
+          style={closeButtonStyle}
+          aria-label="メニューを閉じる"
+        >
+          ×
+        </button>
+        
+        {/* メニューコンテンツ */}
+        <div style={{ 
+          padding: spacing.md, 
+          paddingTop: '60px', 
+          height: '100vh', 
+          overflowY: 'auto' 
+        }}>
+          {children}
+        </div>
       </div>
-    </div>
+
+      {/* オーバーレイ */}
+      <div 
+        style={overlayStyle}
+        onClick={closeMenu}
+        aria-hidden="true"
+      />
+    </>
   );
 }
 
@@ -104,7 +159,17 @@ export function MenuItem({
   disabled = false 
 }: MenuItemProps) {
   const itemStyle: React.CSSProperties = {
-    ...commonStyles.menuItem,
+    width: '100%',
+    padding: `${spacing.md} ${spacing.md}`,
+    background: 'none',
+    border: 'none',
+    textAlign: 'left' as const,
+    cursor: 'pointer',
+    fontSize: '14px',
+    lineHeight: '1.4',
+    color: colors.text.primary,
+    transition: animation.transition,
+    borderBottom: '1px solid #eee',
     ...(disabled && {
       opacity: 0.5,
       cursor: 'not-allowed',
@@ -118,7 +183,7 @@ export function MenuItem({
       style={itemStyle}
       onMouseEnter={(e) => {
         if (!disabled) {
-          e.currentTarget.style.backgroundColor = colors.background.gradient;
+          e.currentTarget.style.backgroundColor = colors.primary;
           e.currentTarget.style.color = colors.text.white;
         }
       }}
