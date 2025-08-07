@@ -28,8 +28,8 @@ export type EmotionLog = {
   id: string;
   child_id: string;
   created_at: string;
-  voice_note: string | null;
-  audio_path: string | null;
+  voice_note?: string | null;
+  audio_path?: string | null;
   emotion_card: EmotionCard;
   intensity: Intensity;
 };
