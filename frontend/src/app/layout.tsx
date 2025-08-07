@@ -1,7 +1,7 @@
 'use client';
 
-import { LocalizationProvider } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+// import { LocalizationProvider } from '@mui/x-date-pickers';
+// import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { AuthProvider } from '@/contexts/AuthContext';
 
 export default function RootLayout({
@@ -13,9 +13,9 @@ export default function RootLayout({
     <html lang="ja">
       <body>
         <AuthProvider>
-          <LocalizationProvider dateAdapter={AdapterDayjs}>
-            {children}
-          </LocalizationProvider>
+        {/* <LocalizationProvider dateAdapter={AdapterDayjs}> */}
+          {children}
+          {/* </LocalizationProvider> */}
         </AuthProvider>
       </body>
     </html>

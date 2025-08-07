@@ -1,59 +1,91 @@
 'use client';
-
+// トップページ
+import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  Button,
-  Typography,
-  Box,
-  Paper,
-  CircularProgress,
-} from '@mui/material';
+import { KokoronDefault, SpeechBubble, PrimaryButton, Spinner, HamburgerMenu, MenuItem } from '@/components/ui';
+import { commonStyles } from '@/styles/theme';
+import styles from './page.module.css';
 
 export default function Home() {
-  const { user, login, logout, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
 
+  // おしゃべりボタンが押された時の処理
+  const handleTalk = () => {
+    console.log('おしゃべりボタンが押されました');
+  };
+
+  // ログアウト処理
+  const handleLogout = async () => {
+    await logout();
+  };
+
+  // ローディング中
   if (isLoading) {
     return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <CircularProgress />
-      </Box>
+      <div style={commonStyles.loading.container}>
+        <Spinner size="medium" />
+        <p>読み込み中...</p>
+      </div>
+    );
+  }
+
+  // ログインしていない場合
+  if (!user) {
+    return (
+      <div style={commonStyles.login.container}>
+        <div style={commonStyles.login.card}>
+          <h1>ようこそ！</h1>
+          <p>続けるにはログインしてください。</p>
+          <button 
+            style={commonStyles.login.button}
+            className={styles.loginButton}
+            onClick={() => window.location.href = '/login'}
+          >
+            Googleでログイン
+          </button>
+        </div>
+      </div>
     );
   }
 
   return (
-    <Box p={4}>
-      <Paper elevation={3} sx={{ p: 3, textAlign: 'center' }}>
-        {user ? (
-          // --- ログイン後の表示 ---
-          <>
-            <Typography variant="h4" gutterBottom>
-              ようこそ、{user.nickname}さん！
-            </Typography>
-            <Typography sx={{ mb: 2 }}>ログインに成功しました。</Typography>
-            <Button variant="outlined" onClick={logout}>
-              ログアウト
-            </Button>
-          </>
-        ) : (
-          // --- ログアウト時の表示 ---
-          <>
-            <Typography variant="h4" gutterBottom>
-              ようこそ！
-            </Typography>
-            <Typography sx={{ mb: 2 }}>
-              続けるにはログインしてください。
-            </Typography>
-            <Button variant="contained" onClick={login}>
-              Googleでログイン
-            </Button>
-          </>
-        )}
-      </Paper>
-    </Box>
+    <div style={commonStyles.page.container}>
+      {/* ハンバーガーメニュー */}
+      <HamburgerMenu>
+        <div className={styles.userInfo}>
+          <p>ようこそ、{user.nickname}さん！</p>
+        </div>
+        <ul className={styles.menuList}>
+          <MenuItem>使い方</MenuItem>
+          <MenuItem>保護者向けTips</MenuItem>
+          <MenuItem>レポートページの見かた</MenuItem>
+          <MenuItem>感情教育について</MenuItem>
+          <MenuItem>非認知能力について</MenuItem>
+          <MenuItem>プライバシーポリシー</MenuItem>
+          <MenuItem>FAQ</MenuItem>
+          <MenuItem>設定</MenuItem>
+          <MenuItem>ロールプレイ</MenuItem>
+          <MenuItem>レポート</MenuItem>
+          <MenuItem>アップグレード</MenuItem>
+          <MenuItem onClick={handleLogout}>ログアウト</MenuItem>
+        </ul>
+      </HamburgerMenu>
+
+      {/* メインコンテンツ */}
+      <div style={commonStyles.page.mainContent}>
+        {/* 吹き出し（こころんの上に表示） */}
+        <SpeechBubble text="きょうは　どんな　きもち　かな？" />
+
+        {/* こころんキャラクター（画面の真ん中に配置） */}
+        <div style={commonStyles.page.kokoronContainer}>
+          <KokoronDefault size={200} />
+        </div>
+
+        {/* おしゃべりボタン */}
+        <PrimaryButton onClick={handleTalk}>
+          おしゃべりする
+        </PrimaryButton>
+      </div>
+    </div>
   );
 }
