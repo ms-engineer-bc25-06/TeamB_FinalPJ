@@ -97,11 +97,11 @@
 | **ファイル名（JS/TS/React）** | キャメルケース | `camelCase` | `page.tsx` |
 | **ファイル名（Python）** | スネークケース（snake_case） | `snake_case.py` | `main.py`, `s3_service.py` |
 | **コンポーネント名（React）** | パスカルケース（PascalCase） | `UserCard.tsx` | `UserCard.tsx` |
-| **CSS モジュールファイル名** | ケバブケース（kebab-case） | `page.module.css` | 実際に `page.module.css` を確認 |
-| **CSS クラス名** | ケバブケース（kebab-case） | `.form-group__input` | 一般的な BEM 記法に従うと仮定 |
+| **CSS モジュールファイル名** | ケバブケース（kebab-case） | `page.module.css` | |
+| **CSS クラス名** | ケバブケース（kebab-case） | `.form-group__input` | 一般的な BEM 記法に従う |
 | **ディレクトリ名** | 小文字＋単語区切り（スネークケース） | `app`, `contexts`, `voice_api` | `app`, `lib`, `types`など |
-| **DB カラム名 / スキーマ** | スネークケース（snake_case） | `user_id`, `created_at` | `user_id`, `email_verified` などが想定される構成 |
-| **API エンドポイント** | ケバブケース（kebab-case） | `/user-profile` | REST API を想定。FastAPI や Next API Routes と連携 |
+| **DB カラム名 / スキーマ** | スネークケース（snake_case） | `user_id`, `created_at` | `user_id`, `email_verified` など |
+| **API エンドポイント** | ケバブケース（kebab-case） | `/user-profile` | |
 | **Python のクラス名** | パスカルケース（PascalCase） | `UploadRequest`, `UserCreate` | |
 | **ドキュメントファイル名** | キャメルケース（camelCase） | `devGuideline.md` | `APISpecification.md`, `UIDesign.md`, `PRD.md` など、既存スタイルを尊重 |
 | **TypeScript 型定義** | パスカルケース（PascalCase） | `UserResponse`, `EmotionLog` | `type` / `interface` どちらでも共通 |
