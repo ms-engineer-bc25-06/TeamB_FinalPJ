@@ -1,10 +1,21 @@
 import uuid
-from sqlalchemy import Column, String, Boolean, DateTime, Integer, Text, ForeignKey, func
+from sqlalchemy import (
+    Column,
+    String,
+    Boolean,
+    DateTime,
+    Integer,
+    Text,
+    ForeignKey,
+    func,
+)
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase
 
+
 class Base(DeclarativeBase):
     pass
+
 
 class User(Base):
     __tablename__ = "users"
@@ -23,13 +34,21 @@ class User(Base):
     subscription_status = Column(String)
     stripe_customer_id = Column(String, unique=True)
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False,
+    )
     deleted_at = Column(DateTime(timezone=True))
 
     last_login_at = Column(DateTime(timezone=True))
     login_count = Column(Integer, default=0, nullable=False)
-    role = Column(String, default='user', nullable=False)
+    role = Column(String, default="user", nullable=False)
+
 
 class VoiceRecord(Base):
     __tablename__ = "voice_records"
@@ -42,5 +61,6 @@ class VoiceRecord(Base):
     audio_file_path = Column(String, nullable=False)  # 音声ファイルのS3パス
     text_file_path = Column(String)  # テキストファイルのS3パス
 
-    created_at = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-
+    created_at = Column(
+        DateTime(timezone=True), server_default=func.now(), nullable=False
+    )

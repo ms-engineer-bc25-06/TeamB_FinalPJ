@@ -4,7 +4,7 @@
 
 ## 2. 👷 開発ガイドライン（dev-guidelines.md）
 
-- [PRD](docs/devGuideline.md)
+- [dev-guidelines.md](docs/devGuideline.md)
 
 ## 3. 🚀 Getting Started
 
@@ -12,18 +12,23 @@
 
 ### 事前準備
 
-| ツール                                                          | 目的                                     | インストール方法・情報源                                                                                                                               |
-| --------------------------------------------------------------- | ---------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| **Git**                                                         | ソースコードのバージョン管理             | [公式サイト](https://git-scm.com/downloads) からダウンロード。                                                                                         |
-| **Node.js** (v18.17.0 以降)                                     | フロントエンドの実行環境・パッケージ管理 | [nvm](https://github.com/nvm-sh/nvm) (Mac/Linux) や [nvm-windows](https://github.com/coreybutler/nvm-windows) を使ったバージョン管理を強く推奨します。 |
-| **Python** (v3.10 以降)                                         | バックエンドの実行環境                   | [pyenv](https://github.com/pyenv/pyenv) を使ったバージョン管理を推奨します。                                                                           |
-| **Docker** & **Docker Compose**                                 | コンテナ技術による環境の分離・再現性向上 | [Docker Desktop 公式サイト](https://www.docker.com/products/docker-desktop/) からインストールします。Docker Compose V2 が含まれています。              |
-| **Visual Studio Code**                                          | コードエディタ                           | [公式サイト](https://code.visualstudio.com/) からダウンロード。以下の拡張機能を入れておくと便利です。                                                  |
-| └ **ESLint**, **Prettier**, **Python**, **Pylance**, **Docker** | コーディング支援、静的解析、フォーマット | VSCode の拡張機能マーケットプレイスからインストールします。                                                                                            |
+このプロジェクトでは、**フロントエンドはローカルで開発**し、**バックエンドとデータベースは Docker コンテナで開発**しています。
 
-### ⚡️ バックエンドのセットアップ
+バックエンドの整形（Black）や静的解析（pylint）などをローカルに環境構築せずに実行できるよう、**VSCode の Dev Container 機能の利用を推奨**しています。
 
-バックエンドサーバー (FastAPI) とデータベース (PostgreSQL) を Docker コンテナで起動します。
+Dev Container を使うことで、チーム全体で共通の開発環境（パッケージ、フォーマッターなど）を使い、保存時整形や import 整理などをローカルに依存せず行えます。
+| ツール | 目的 | インストール方法・情報源 |
+| ----------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
+| **Git** | ソースコードのバージョン管理 | [公式サイト](https://git-scm.com/downloads) からダウンロード。 |
+| **Node.js** (v18.17.0 以降) | フロントエンドの実行環境・パッケージ管理 | [nvm](https://github.com/nvm-sh/nvm) などでのバージョン管理を推奨 |
+| **Docker** & **Docker Compose** | コンテナ技術による環境の分離・再現性向上 | [Docker Desktop 公式サイト](https://www.docker.com/products/docker-desktop/) からインストール |
+| **Visual Studio Code** | コードエディタ | [公式サイト](https://code.visualstudio.com/) より。以下の拡張機能も併せて導入。 |
+| └ **ESLint**, **Prettier**, **Python**, **Pylance**, **Docker**, **Dev Containers（推奨）** | コーディング支援、保存時整形、Lint、DevContainer 接続など | VSCode の拡張機能マーケットプレイスからインストール |
+
+## ⚡️ バックエンドのセットアップ（DevContainer あり・なし共通）
+
+バックエンドサーバー（FastAPI）とデータベース（PostgreSQL）を Docker コンテナで起動します。  
+本プロジェクトでは、DevContainer あり・なし 2 通りの開発方法が選べます。Docker 環境で Black や Pylint の自動整形を行いたい場合は DevContainer を使用することを推奨します。
 
 **手順:**
 
@@ -60,6 +65,78 @@
    - Web ブラウザで `http://localhost:8000/docs` にアクセスし、FastAPI の Swagger UI が表示されれば成功です。
    - Swagger UI の使い方補足：
      > 表示されたページで、テストしたい API（例: POST /api/v1/login）をクリックして展開。「Try it out」ボタンを押し、必要な情報（ID トークンなど）を入力して「Execute」ボタンを押すと、実際に API を実行して結果を確認できます。
+
+### ⚡️ バックエンドのセットアップ続き（DevContainer あり）
+
+**Dev Container を使用する場合の整形・Lint 実行方法**
+
+- `.devcontainer/devcontainer.json` により、**DevContainer 初回起動時に自動で以下のコマンドが実行されます：**
+
+```
+pip install -r requirements-dev.txt
+```
+
+- VSCode 側では `.devcontainer/devcontainer.json` により以下の設定が自動で適用されます：
+
+  - 保存時に自動で `black` による整形が実行される
+  - `pylint` による Lint が有効になる
+
+- 初回セットアップ手順：
+  1. VSCode 拡張「Dev Containers」をインストールする
+  2. プロジェクトを VSCode で開く
+  3. 左下の緑色のボタン 🟢 から「Reopen in Container」を選ぶ
+  4. 自動的にコンテナがビルドされ、開発環境（black, pylint など）がセットアップされます
+     > 💡 初回ビルドには 5〜10 分かかることがあります。2 回目以降は高速に起動します。
+
+### ⚡️ バックエンドのセットアップ続き（DevContainer なし）
+
+**Dev Container を使用しない場合の整形・Lint 実行方法**
+
+```bash
+docker compose exec backend pip install -r requirements-dev.txt
+```
+
+開発中に 1 回実行すれば OK です（本番環境や CI では使用されません）
+その後、整形や Lint は以下のように実行できます：
+
+```bash
+docker compose exec backend black app
+docker compose exec backend pylint app
+```
+
+- `app`：整形対象ディレクトリ（例：`app schemas utils` など複数指定も OK）
+
+Python（3.10 以降）がローカルにインストールされている場合は、以下でも整形可能です。
+
+```
+pip install -r backend/requirements-dev.txt
+cd backend
+black app
+```
+
+### ❗️ 再セットアップ**が必要になるケース**
+
+| ケース                                                                                    | 再セットアップ必要？ | 理由                                                                        |
+| ----------------------------------------------------------------------------------------- | -------------------- | --------------------------------------------------------------------------- |
+| `--build`付きで `docker compose up --build` を実行した場合                                | ✅ **必要**          | イメージが再生成されるため、開発パッケージが消える（`black`, `pylint`など） |
+| コンテナや volume を削除した (`docker compose down -v`)                                   | ✅ **必要**          | volume ごと削除されるため、インストール済みパッケージが失われる             |
+| `.devcontainer/devcontainer.json` の `postCreateCommand` が何らかの理由で実行されなかった | ✅ **必要**          | コマンドが失敗するとパッケージが入っていない可能性がある                    |
+| VSCode の DevContainer 再構築時に `Rebuild Container` を選択                              | ✅ **必要**          | ベースイメージから再構築されるため開発パッケージが未インストール            |
+
+---
+
+#### 🛠 再セットアップが必要かどうかの**確認方法**
+
+```
+docker compose exec backend which black
+```
+
+- パスが表示されれば OK（例： `/usr/local/bin/black`）
+- 表示されなければ再インストールが必要：
+
+```
+docker compose exec backend pip install -r requirements-dev.txt
+```
 
 ### 🌐 フロントエンドのセットアップ
 

@@ -86,6 +86,26 @@
 
 タスク管理ツール（GitHub Issues）と連携していれば、その番号を入れることで PR とタスクの対応が明確になります。
 
+### 命名規則ガイドライン
+
+本プロジェクトでは、コードの可読性と保守性を高めるために、以下の命名規則を採用します。
+| 用途 | 命名規則 | 形式 | 現在の例・備考 |
+| ---------------------- | ------------------- | ------------------------------ | ----------------------------------------------------------- |
+| **変数・関数名（JS/TS）** | キャメルケース（camelCase） | `camelCase` | `getUserData`, `decodedToken` など |
+| **変数・関数名（Python）**<br> | スネークケース（snake_case） | `snake_case` | |
+| **定数・環境変数名** | スネークケース（SNAKE_CASE） | `UPPER_SNAKE_CASE` | `.env` 内の `API_KEY`、`DATABASE_URL` など |
+| **ファイル名（JS/TS/React）** | キャメルケース | `camelCase` | `page.tsx` |
+| **ファイル名（Python）** | スネークケース（snake_case） | `snake_case.py` | `main.py`, `s3_service.py` |
+| **コンポーネント名（React）** | パスカルケース（PascalCase） | `UserCard.tsx` | `UserCard.tsx` |
+| **CSS モジュールファイル名** | ケバブケース（kebab-case） | `page.module.css` | |
+| **CSS クラス名** | ケバブケース（kebab-case） | `.form-group__input` | 一般的な BEM 記法に従う |
+| **ディレクトリ名** | 小文字＋単語区切り（スネークケース） | `app`, `contexts`, `voice_api` | `app`, `lib`, `types`など |
+| **DB カラム名 / スキーマ** | スネークケース（snake_case） | `user_id`, `created_at` | `user_id`, `email_verified` など |
+| **API エンドポイント** | ケバブケース（kebab-case） | `/user-profile` | |
+| **Python のクラス名** | パスカルケース（PascalCase） | `UploadRequest`, `UserCreate` | |
+| **ドキュメントファイル名** | キャメルケース（camelCase） | `devGuideline.md` | `APISpecification.md`, `UIDesign.md`, `PRD.md` など、既存スタイルを尊重 |
+| **TypeScript 型定義** | パスカルケース（PascalCase） | `UserResponse`, `EmotionLog` | `type` / `interface` どちらでも共通 |
+
 ### 開発手順
 
 <!-- TODO: GitHub IssuesやProjectを使わないのであれば該当箇所削除。 -->
