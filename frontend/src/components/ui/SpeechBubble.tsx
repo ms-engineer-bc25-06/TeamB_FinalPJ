@@ -10,22 +10,25 @@ export default function SpeechBubble({ text }: SpeechBubbleProps) {
       position: 'relative',
       backgroundColor: colors.background.white,
       borderRadius: borderRadius.large,
-      padding: `${spacing.md} ${spacing.lg}`,
+      padding: `${spacing.lg} ${spacing.xl}`,
       boxShadow: colors.shadow.light,
-      width: '280px',
-      minHeight: '60px',
+      width: '500px',
+      minHeight: '120px',
       textAlign: 'center',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      maxWidth: '90vw',
+      maxWidth: '95vw',
     }}>
       <span style={{
         color: colors.text.primary,
         fontWeight: 'bold',
-        fontSize: fontSize.large,
-        lineHeight: 1.4,
+        fontSize: '30px',
+        lineHeight: 1.5,
         margin: 0,
+        whiteSpace: 'pre-line',
+        wordBreak: 'keep-all',
+        overflowWrap: 'break-word',
       }}>
         {text}
       </span>

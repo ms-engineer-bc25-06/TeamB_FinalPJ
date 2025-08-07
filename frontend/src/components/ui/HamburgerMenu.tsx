@@ -32,28 +32,28 @@ export default function HamburgerMenu({
     top: spacing.md,
     right: spacing.md,
     cursor: 'pointer',
-    width: '40px',
-    height: '40px',
+    width: '70px',
+    height: '70px',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: '5px',
+    gap: '6px',
     background: 'rgba(255, 255, 255, 0.95)',
     border: 'none',
     borderRadius: '10px',
     padding: '0',
-    zIndex: 200,
+    zIndex: 1001,
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
     ...style,
   };
 
   // ハンバーガーアイコンのスタイル
   const lineStyle: React.CSSProperties = {
-    width: '20px',
-    height: '2px',
+    width: '50px',
+    height: '6px',
     backgroundColor: colors.text.primary,
-    borderRadius: '1px',
+    borderRadius: '3px',
     transition: animation.transition,
     transformOrigin: 'center',
   };
@@ -62,15 +62,15 @@ export default function HamburgerMenu({
   const drawerMenuStyle: React.CSSProperties = {
     position: 'fixed',
     top: 0,
-    [position]: isOpen ? 0 : `-${width}`,
-    width,
+    [position]: isOpen ? 0 : '-400px',
+    width: '400px',
     height: '100vh',
     background: colors.background.white,
     boxShadow: position === 'right' 
       ? '-2px 0 10px rgba(0, 0, 0, 0.1)' 
       : '2px 0 10px rgba(0, 0, 0, 0.1)',
     transition: animation.transition,
-    zIndex: 1000,
+    zIndex: 999,
   };
 
   // 閉じるボタンのスタイル
@@ -78,26 +78,20 @@ export default function HamburgerMenu({
     position: 'absolute',
     top: spacing.md,
     [position === 'right' ? 'right' : 'left']: spacing.md,
-    width: '32px',
-    height: '32px',
+    width: '50px',
+    height: '50px',
     background: 'none',
     border: 'none',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '20px',
+    fontSize: '32px',
     color: colors.text.primary,
-    zIndex: 1001,
+    zIndex: 1002,
   };
 
-  // オーバーレイのスタイル
-  const overlayStyle: React.CSSProperties = {
-    ...commonStyles.menuOverlay,
-    opacity: isOpen ? 1 : 0,
-    visibility: isOpen ? 'visible' : 'hidden',
-    transition: animation.transition,
-  };
+  // オーバーレイのスタイル（削除済み）
 
   return (
     <>
@@ -127,21 +121,19 @@ export default function HamburgerMenu({
         
         {/* メニューコンテンツ */}
         <div style={{ 
-          padding: spacing.md, 
-          paddingTop: '60px', 
+          padding: spacing.lg, 
+          paddingTop: '80px', 
           height: '100vh', 
-          overflowY: 'auto' 
+          overflowY: 'auto',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: spacing.sm,
         }}>
           {children}
         </div>
       </div>
 
-      {/* オーバーレイ */}
-      <div 
-        style={overlayStyle}
-        onClick={closeMenu}
-        aria-hidden="true"
-      />
+      {/* オーバーレイを削除 */}
     </>
   );
 }
@@ -160,16 +152,18 @@ export function MenuItem({
 }: MenuItemProps) {
   const itemStyle: React.CSSProperties = {
     width: '100%',
-    padding: `${spacing.md} ${spacing.md}`,
+    padding: `${spacing.xl} ${spacing.lg}`,
     background: 'none',
     border: 'none',
     textAlign: 'left' as const,
     cursor: 'pointer',
-    fontSize: '14px',
-    lineHeight: '1.4',
+    fontSize: '28px',
+    lineHeight: '1.5',
     color: colors.text.primary,
     transition: animation.transition,
     borderBottom: '1px solid #eee',
+    borderRadius: '8px',
+    marginBottom: spacing.sm,
     ...(disabled && {
       opacity: 0.5,
       cursor: 'not-allowed',

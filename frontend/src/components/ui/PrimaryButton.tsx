@@ -18,6 +18,9 @@ export default function PrimaryButton({
       style={{
         ...commonStyles.button.base,
         ...commonStyles.button.primary,
+        fontSize: '36px',
+        padding: '36px 68px',
+        minWidth: '360px',
         ...(disabled && {
           backgroundColor: '#ccc',
           cursor: 'not-allowed',
