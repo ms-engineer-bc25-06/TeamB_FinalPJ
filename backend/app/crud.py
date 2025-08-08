@@ -36,7 +36,6 @@ async def create_user(
             nickname=nickname,
             last_login_at=now_jst(),
             login_count=1,
-            updated_at=now_jst(),
         )
         db.add(db_user)
         await db.commit()
@@ -54,7 +53,6 @@ async def update_login_info(
     try:
         user.last_login_at = now_jst()
         user.login_count += 1
-        user.updated_at = now_jst()
         await db.commit()
         await db.refresh(user)
         return user
