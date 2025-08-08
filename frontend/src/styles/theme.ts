@@ -36,6 +36,85 @@ export const colors = {
   },
 } as const;
 
+// ===== 感情カラーシステム =====
+// DBから取得したデータを処理するためのユーティリティ関数
+export const emotionColorUtils = {
+  // 強度による透明度（DB intensity テーブルの color_modifier カラム）
+  // 注：実際の値はDBから取得するが、フォールバック用として定義
+  intensityModifiers: {
+    1: 0.4,  // 薄い
+    2: 0.7,  // 中間
+    3: 1.0,  // 濃い
+  },
+} as const;
+
+// ===== 感情カラーロジック関数 =====
+interface RgbColor {
+  r: number;
+  g: number;
+  b: number;
+}
+
+/**
+ * HEXカラーをRGBに変換
+ * @param hex - HEXカラーコード（例: "#FF0000"）
+ * @returns RGBオブジェクト または null（無効な形式の場合）
+ */
+export function hexToRgb(hex: string): RgbColor | null {
+  const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+  return result ? {
+    r: parseInt(result[1], 16),
+    g: parseInt(result[2], 16),
+    b: parseInt(result[3], 16)
+  } : null;
+}
+
+/**
+ * 感情の基本色と強度から最終的な色を計算
+ * @param baseColor - 基本色（HEXコード）
+ * @param intensity - 強度（1-3）
+ * @param intensityModifiers - 強度による透明度マップ（DBから取得）
+ * @returns RGBA形式の色文字列
+ */
+export function getEmotionColor(
+  baseColor: string, 
+  intensity: number, 
+  intensityModifiers: Record<number, number> = emotionColorUtils.intensityModifiers
+): string {
+  const rgb = hexToRgb(baseColor);
+  if (!rgb) {
+    console.error('Invalid color format:', baseColor);
+    return 'rgba(128, 128, 128, 0.5)'; // フォールバック色
+  }
+
+  const opacity = intensityModifiers[intensity] || 0.5;
+  return `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${opacity})`;
+}
+
+/**
+ * 感情データと強度から最終的な色を計算
+ * @param emotionData - DBから取得した感情データ
+ * @param intensity - 強度（1-3）
+ * @param intensityModifiers - 強度による透明度マップ（DBから取得）
+ * @returns RGBA形式の色文字列
+ */
+export function getEmotionColorFromData(
+  emotionData: { color: string },
+  intensity: number,
+  intensityModifiers: Record<number, number> = emotionColorUtils.intensityModifiers
+): string {
+  return getEmotionColor(emotionData.color, intensity, intensityModifiers);
+}
+
+/**
+ * 強度選択が必要かどうかを判定
+ * @param emotionData - DBから取得した感情データ
+ * @returns 強度選択が必要な場合はtrue
+ */
+export function isIntensityRequired(emotionData: { is_intensity_required?: boolean }): boolean {
+  return emotionData.is_intensity_required !== false;
+}
+
 // ===== サイズとスペーシング =====
 // レイアウトの間隔を統一管理
 export const spacing = {
