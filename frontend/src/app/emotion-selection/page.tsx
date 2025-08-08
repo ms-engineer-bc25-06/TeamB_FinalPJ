@@ -281,10 +281,12 @@ export default function EmotionSelectionPage() {
                   objectFit: 'contain',
                 }}
                 onError={(e) => {
-                  // TODO: 画像が読み込めない場合のフォールバック
-                  // 現在はコンソールにエラーを出力
-                  // 将来的には"/こころん（仮）.png"にフォールバックする実装を追加
-                  console.warn(`画像の読み込みに失敗しました: ${emotion.imageUrl}`);
+                  // 画像の読み込みに失敗した場合はデフォルト画像にフォールバック
+                  try {
+                    (e.currentTarget as HTMLImageElement).src = '/こころん（仮）.png';
+                  } catch (_) {
+                    // no-op
+                  }
                 }}
               />
               <span style={{
