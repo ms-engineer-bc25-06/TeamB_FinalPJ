@@ -36,6 +36,7 @@ async def create_user(
             nickname=nickname,
             last_login_at=now_jst(),
             login_count=1,
+            updated_at=now_jst(),
         )
         db.add(db_user)
         await db.commit()
