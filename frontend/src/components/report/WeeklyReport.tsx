@@ -6,6 +6,23 @@ interface WeeklyReportProps {
   onClose: () => void;
 }
 
+// モックデータ
+const sampleWeeklyReports: ReportData[] = [
+    {
+      content: 'この一週間は全体的に良い調子でした。特に月曜日と金曜日は気分が良く、積極的に活動できました。',
+    },
+    {
+      date: '2024-01-20',
+      content: 'おともだちにおもちゃをとられちゃってかなしかった',
+      mood: '😭'
+    },
+    {
+      date: '2024-01-24',
+      content: 'またおともだちにおもちゃをとられちゃった',
+      mood: '😡'
+    }
+  ];
+
 export default function WeeklyReport({ onClose }: WeeklyReportProps) {
   return (
     <div style={{
@@ -28,7 +45,7 @@ export default function WeeklyReport({ onClose }: WeeklyReportProps) {
         maxHeight: '90vh',
         overflow: 'auto',
         position: 'relative',
-        border: `3px solid #4CAF50`,
+        border: `3px solid ${colors.primary}`,
         width: '600px',
         height: '500px',
       }}>
@@ -55,18 +72,17 @@ export default function WeeklyReport({ onClose }: WeeklyReportProps) {
           marginBottom: spacing.lg,
         }}>
           <h2 style={{
-            color: '#4CAF50',
+            color: colors.secondary,
             fontSize: fontSize.large,
             fontWeight: 'bold',
             margin: 0,
           }}>
-            週間レポート
+            こんしゅうのきろく
           </h2>
         </div>
 
         {/* 週間レポート内容 */}
         <div style={{
-          border: `3px solid #9C27B0`,
           borderRadius: borderRadius.medium,
           padding: spacing.lg,
           backgroundColor: colors.background.white,
@@ -74,12 +90,12 @@ export default function WeeklyReport({ onClose }: WeeklyReportProps) {
           overflow: 'auto',
         }}>
           <h3 style={{
-            color: '#9C27B0',
+            color: colors.secondary,
             fontSize: fontSize.base,
             fontWeight: 'bold',
             margin: `0 0 ${spacing.md} 0`,
           }}>
-            1週間の感情ふりかえり by AI
+            こんしゅうのふりかえり
           </h3>
           
           <div style={{
@@ -87,17 +103,8 @@ export default function WeeklyReport({ onClose }: WeeklyReportProps) {
             color: colors.text.primary,
             lineHeight: 1.6,
           }}>
-            <p style={{ margin: `0 0 ${spacing.md} 0` }}>
-              今週の振り返り:
-            </p>
-            <p style={{ margin: `0 0 ${spacing.md} 0` }}>
-              この一週間は全体的に良い調子でした。特に月曜日と金曜日は気分が良く、積極的に活動できました。
-            </p>
-            <p style={{ margin: `0 0 ${spacing.md} 0` }}>
-              中間の水曜日は少し疲れを感じましたが、友人との会話で元気を取り戻すことができました。
-            </p>
-            <p style={{ margin: 0 }}>
-              来週は更に充実した日々を送れるよう、規則正しい生活を心がけたいと思います。
+            <p>
+                {sampleWeeklyReports[0].content}
             </p>
           </div>
         </div>

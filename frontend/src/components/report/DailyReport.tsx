@@ -13,22 +13,22 @@ interface ReportData {
   mood: string;
 }
 
-// サンプルデータ
+// モックデータ
 const sampleReports: ReportData[] = [
   {
     date: '2024-01-15',
-    content: '今日は朝から気分が良く、散歩を楽しみました。新しいカフェで美味しいコーヒーを飲んで、読書もできました。',
+    content: 'きょうはねきぶんがよかったよ　あたらしいおともだちとあそんだんだ',
     mood: '😊'
   },
   {
     date: '2024-01-20',
-    content: '少し疲れていましたが、友人と電話で話して元気になりました。夕食は手作りのパスタを作って満足です。',
-    mood: '😌'
+    content: 'おともだちにおもちゃをとられちゃってかなしかった',
+    mood: '😭'
   },
   {
     date: '2024-01-24',
-    content: '1週間の感想をふりかえり by AI\n\nこの週は全体的に良い調子でした。規則正しい生活ができており、感情も安定しています。',
-    mood: '🤔'
+    content: 'またおともだちにおもちゃをとられちゃった',
+    mood: '😡'
   }
 ];
 
@@ -104,7 +104,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         maxHeight: '90vh',
         overflow: 'auto',
         position: 'relative',
-        border: `3px solid #4CAF50`,
+        border: `3px solid ${colors.primary}`,
         width: '500px',
         height: '700px',
       }}>
@@ -132,12 +132,12 @@ export default function DailyReport({ onClose }: DailyReportProps) {
           marginBottom: spacing.lg,
         }}>
           <h2 style={{
-            color: '#4CAF50',
+            color: colors.secondary,
             fontSize: fontSize.large,
             fontWeight: 'bold',
             margin: 0,
           }}>
-            11. レポート画面
+            まいにちのきろく
           </h2>
         </div>
 
@@ -157,7 +157,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
 
         {/* カレンダー部分 */}
         <div style={{
-          border: `2px solid #4CAF50`,
+          border: `2px solid ${colors.primary}`,
           borderRadius: borderRadius.medium,
           padding: spacing.md,
           marginBottom: spacing.lg,
@@ -274,7 +274,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
 
         {/* レポート表示部分 */}
         <div style={{
-          border: `3px solid #9C27B0`,
+          border: `3px solid ${colors.primary}`,
           borderRadius: borderRadius.medium,
           padding: spacing.md,
           backgroundColor: colors.background.white,
