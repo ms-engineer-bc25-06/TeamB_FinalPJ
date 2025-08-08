@@ -13,6 +13,7 @@ import schemas
 from models import Base
 
 from voice_api import router as voice_router
+from api.v1.endpoints.voice import router as new_voice_router
 
 load_dotenv()
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -55,6 +56,7 @@ app.add_middleware(
 
 # 入力音声から作られたファイルを管理するAPIを追加
 app.include_router(voice_router)
+app.include_router(new_voice_router, prefix="/api/v1")
 
 
 # DBセッションを依存関係として定義
