@@ -47,38 +47,37 @@ import { useState, useEffect } from 'react';
 // 3. 画像ファイル配置: frontend/public/assets/emotions/ フォルダに各感情のWebP画像を配置
 // 4. エラーハンドリング: API呼び出しに失敗した場合はデフォルトデータを使用
 
-// 感情データの型定義
+// 感情データの型定義（APIレスポンスに合わせて修正）
 interface Emotion {
   id: string;
-  name: string;
+  label: string;
   color: string;
-  imageUrl: string;
-  category?: string;
+  image_url: string;
 }
 
 // デフォルトの感情データ（API呼び出しに失敗した場合のフォールバック）
 const DEFAULT_EMOTIONS: Emotion[] = [
   // 黄色の感情
-  { id: 'ureshii', name: 'うれしい', color: '#FFD700', imageUrl: '/assets/emotions/ureshii-40.webp' },
-  { id: 'yukai', name: 'ゆかい', color: '#FFD700', imageUrl: '/assets/emotions/yukai-40.webp' },
+  { id: 'ureshii', label: 'うれしい', color: '#FFD700', image_url: '/assets/emotions/ureshii-40.webp' },
+  { id: 'yukai', label: 'ゆかい', color: '#FFD700', image_url: '/assets/emotions/yukai-40.webp' },
   
   // 緑色の感情
-  { id: 'anshin', name: 'あんしん', color: '#00D4AA', imageUrl: '/assets/emotions/anshin-40.webp' },
-  { id: 'bikkuri', name: 'びっくり', color: '#00D4AA', imageUrl: '/assets/emotions/bikkuri-40.webp' },
+  { id: 'anshin', label: 'あんしん', color: '#00D4AA', image_url: '/assets/emotions/anshin-40.webp' },
+  { id: 'bikkuri', label: 'びっくり', color: '#00D4AA', image_url: '/assets/emotions/bikkuri-40.webp' },
   
   // 青色の感情
-  { id: 'kowai', name: 'こわい', color: '#0066FF', imageUrl: '/assets/emotions/kowai-40.webp' },
-  { id: 'kanashii', name: 'かなしい', color: '#0066FF', imageUrl: '/assets/emotions/kanashii-40.webp' },
-  { id: 'komatta', name: 'こまった', color: '#0066FF', imageUrl: '/assets/emotions/komatta-40.webp' },
+  { id: 'kowai', label: 'こわい', color: '#0066FF', image_url: '/assets/emotions/kowai-40.webp' },
+  { id: 'kanashii', label: 'かなしい', color: '#0066FF', image_url: '/assets/emotions/kanashii-40.webp' },
+  { id: 'komatta', label: 'こまった', color: '#0066FF', image_url: '/assets/emotions/komatta-40.webp' },
   
   // 赤色の感情
-  { id: 'fuyukai', name: 'ふゆかい', color: '#FF1744', imageUrl: '/assets/emotions/fuyukai-40.webp' },
-  { id: 'ikari', name: 'いかり', color: '#FF1744', imageUrl: '/assets/emotions/ikari-40.webp' },
-  { id: 'hazukashii', name: 'はずかしい', color: '#FF1744', imageUrl: '/assets/emotions/hazukashii-40.webp' },
-  { id: 'kincho', name: 'きんちょう', color: '#FF1744', imageUrl: '/assets/emotions/kincho-40.webp' },
+  { id: 'fuyukai', label: 'ふゆかい', color: '#FF1744', image_url: '/assets/emotions/fuyukai-40.webp' },
+  { id: 'ikari', label: 'いかり', color: '#FF1744', image_url: '/assets/emotions/ikari-40.webp' },
+  { id: 'hazukashii', label: 'はずかしい', color: '#FF1744', image_url: '/assets/emotions/hazukashii-40.webp' },
+  { id: 'kincho', label: 'きんちょう', color: '#FF1744', image_url: '/assets/emotions/kincho-40.webp' },
   
   // 灰色の感情
-  { id: 'wakaranai', name: 'わからない', color: '#424242', imageUrl: '/assets/emotions/wakaranai-40.webp' },
+  { id: 'wakaranai', label: 'わからない', color: '#424242', image_url: '/assets/emotions/wakaranai-40.webp' },
 ];
 
 export default function EmotionSelectionPage() {
@@ -95,17 +94,18 @@ export default function EmotionSelectionPage() {
       setError(null);
       
       try {
-        // TODO: 実際のAPIエンドポイントに変更
-        // const response = await fetch('/api/emotions');
-        // if (!response.ok) {
-        //   throw new Error('感情データの取得に失敗しました');
-        // }
-        // const data = await response.json();
-        // setEmotions(data);
+        // バックエンドAPIから感情データを取得
+        const response = await fetch('http://localhost:8000/emotion/cards');
+        if (!response.ok) {
+          throw new Error('感情データの取得に失敗しました');
+        }
+        const data = await response.json();
         
-        // 現在はデフォルトデータを使用（API実装後に削除）
-        console.log('感情データをDBから取得する予定です');
-        setEmotions(DEFAULT_EMOTIONS);
+        if (data.success && data.cards) {
+          setEmotions(data.cards);
+        } else {
+          throw new Error('感情データの形式が正しくありません');
+        }
       } catch (err) {
         console.error('感情データの取得エラー:', err);
         setError('感情データの読み込みに失敗しました');
@@ -273,8 +273,8 @@ export default function EmotionSelectionPage() {
               }}
             >
               <Image
-                src={emotion.imageUrl}
-                alt={`こころん - ${emotion.name}`}
+                src={emotion.image_url}
+                alt={`こころん - ${emotion.label}`}
                 width={40}
                 height={40}
                 style={{
@@ -282,6 +282,7 @@ export default function EmotionSelectionPage() {
                 }}
                 onError={(e) => {
                   // 画像の読み込みに失敗した場合はデフォルト画像にフォールバック
+                  console.log(`画像読み込みエラー: ${emotion.image_url} -> デフォルト画像にフォールバック`);
                   try {
                     (e.currentTarget as HTMLImageElement).src = '/こころん（仮）.png';
                   } catch (_) {
@@ -294,7 +295,7 @@ export default function EmotionSelectionPage() {
                 fontSize: '18px',
                 lineHeight: '1.2',
               }}>
-                {emotion.name}
+                {emotion.label}
               </span>
             </button>
           ))}
