@@ -87,7 +87,7 @@ export default function Home() {
 
         {/* こころんキャラクター（画面の真ん中に配置） */}
         <div style={commonStyles.page.kokoronContainer}>
-          <KokoronDefault size={420} />
+          <KokoronDefault size={280} />
         </div>
 
         {/* おしゃべりボタン */}

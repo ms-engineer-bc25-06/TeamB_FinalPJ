@@ -4,7 +4,7 @@ interface KokoronDefaultProps {
   size?: number;
 }
 
-export default function KokoronDefault({ size = 180 }: KokoronDefaultProps) {
+export default function KokoronDefault({ size = 120 }: KokoronDefaultProps) {
   return (
     <div style={{
       width: size + 20,

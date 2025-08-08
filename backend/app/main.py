@@ -8,11 +8,12 @@ from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
 import firebase_admin
 from firebase_admin import credentials, auth
-import crud
-import schemas
-from models import Base
+from app import crud
+from app import schemas
+from app.models import Base
 
-from voice_api import router as voice_router
+
+from app.voice_api import router as voice_router
 from api.v1.endpoints.voice import router as new_voice_router
 
 load_dotenv()

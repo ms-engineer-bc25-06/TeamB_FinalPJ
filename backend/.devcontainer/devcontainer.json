@@ -4,8 +4,8 @@
   "dockerComposeFile": ["../compose.yaml"],
   // VSCodeが接続するサービス（backendコンテナ）
   "service": "backend",
-  // VSCodeが開くワークスペースフォルダ
-  "workspaceFolder": "/app",
+  // VSCodeが開くワークスペースフォルダ（backendディレクトリ）
+  "workspaceFolder": "/workspace/backend",
 
   // VS Codeのカスタマイズ設定
   "customizations": {
@@ -34,10 +34,10 @@
   },
 
   // コンテナ初回起動後に開発用パッケージをインストール
-  "postCreateCommand": "pip install -r requirements-dev.txt",
+  "postCreateCommand": "pip install -r /workspace/backend/requirements-dev.txt",
 
   // Python モジュール解決のためのパス設定
   "remoteEnv": {
-    "PYTHONPATH": "/app"
+    "PYTHONPATH": "/workspace/backend"
   }
 }
