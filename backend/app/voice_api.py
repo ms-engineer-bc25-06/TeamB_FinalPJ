@@ -20,8 +20,8 @@ async def get_db():
         yield session
 
 
-from models import VoiceRecord
-from s3_service import S3Service
+from app.models import EmotionLog
+from app.s3_service import S3Service
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 
@@ -181,7 +181,7 @@ async def save_record(request: SaveRecordRequest, db: AsyncSession = Depends(get
 
     try:
         # DBに記録を保存
-        voice_record = VoiceRecord(
+        voice_record = EmotionLog(
             user_id=request.user_id,
             audio_file_path=request.audio_file_path,
             text_file_path=request.text_file_path,
@@ -252,9 +252,9 @@ async def get_records(user_id: int, db: AsyncSession = Depends(get_db)):
     try:
         s3_service = S3Service()
         query = (
-            select(VoiceRecord)
-            .where(VoiceRecord.user_id == user_id)
-            .order_by(VoiceRecord.id.desc())
+            select(EmotionLog)
+            .where(EmotionLog.user_id == user_id)
+            .order_by(EmotionLog.id.desc())
         )
         result = await db.execute(query)
         records = result.scalars().all()
