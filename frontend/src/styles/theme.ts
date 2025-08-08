@@ -39,32 +39,32 @@ export const colors = {
 // ===== サイズとスペーシング =====
 // レイアウトの間隔を統一管理
 export const spacing = {
-  xs: '4px',   // 最小間隔
-  sm: '8px',   // 小間隔
-  md: '16px',  // 中間隔
-  lg: '24px',  // 大間隔
-  xl: '32px',  // 特大間隔
-  xxl: '48px', // 最大間隔
+  xs: '2px',   // 最小間隔（4px → 2px）
+  sm: '4px',   // 小間隔（8px → 4px）
+  md: '8px',   // 中間隔（16px → 8px）
+  lg: '12px',  // 大間隔（24px → 12px）
+  xl: '16px',  // 特大間隔（32px → 16px）
+  xxl: '24px', // 最大間隔（48px → 24px）
 } as const;
 
 // ===== ボーダーラジウス =====
 // 角丸のサイズを統一管理
 export const borderRadius = {
-  small: '8px',   // 小角丸
-  medium: '16px', // 中角丸
-  large: '20px',  // 大角丸
-  button: '24px', // ボタン用角丸
+  small: '4px',   // 小角丸（8px → 4px）
+  medium: '8px',  // 中角丸（16px → 8px）
+  large: '12px',  // 大角丸（20px → 12px）
+  button: '16px', // ボタン用角丸（24px → 16px）
   circle: '50%',  // 円形
 } as const;
 
 // ===== フォントサイズ =====
-// テキストサイズを統一管理（14px以上に統一）
+// テキストサイズを統一管理（390px幅に適応）
 export const fontSize = {
-  small: '14px',     // 最小サイズ（14px）
-  base: '16px',      // 基本サイズ（16px）
-  large: '18px',     // 大文字（18px）
-  xl: '20px',        // 特大文字（20px）
-  xxl: '24px',       // 最大文字（24px）
+  small: '12px',     // 最小サイズ（14px → 12px）
+  base: '14px',      // 基本サイズ（16px → 14px）
+  large: '16px',     // 大文字（18px → 16px）
+  xl: '18px',        // 特大文字（20px → 18px）
+  xxl: '20px',       // 最大文字（24px → 20px）
 } as const;
 
 // ===== アニメーション =====
@@ -129,8 +129,8 @@ export const commonStyles = {
     position: 'fixed' as const,
     top: spacing.md,
     right: spacing.md,
-    width: '100px',
-    height: '100px',
+    width: '50px',
+    height: '50px',
     background: 'rgba(255, 255, 255, 0.9)',
     border: 'none',
     borderRadius: borderRadius.small,
@@ -143,16 +143,16 @@ export const commonStyles = {
     zIndex: 200,
   },
   menuIcon: {
-    width: '84px',
-    height: '12px',
+    width: '32px',
+    height: '4px',
     background: colors.text.primary,
-    borderRadius: '6px',
+    borderRadius: '2px',
   },
   menuDrawer: {
     position: 'fixed' as const,
     top: 0,
-    right: '-500px',
-    width: '500px',
+    right: '-300px',
+    width: '300px',
     height: '100vh',
     background: colors.background.white,
     boxShadow: '-2px 0 10px rgba(0, 0, 0, 0.1)',
@@ -185,24 +185,24 @@ export const commonStyles = {
       justifyContent: 'center',
       background: 'url("/背景（仮）.PNG") no-repeat center center',
       backgroundSize: 'cover',
-      padding: spacing.lg,
+      padding: spacing.md,
       zIndex: 300,
     },
     card: {
       background: colors.background.white,
       borderRadius: borderRadius.large,
-      padding: spacing.xl,
+      padding: spacing.lg,
       textAlign: 'center' as const,
       boxShadow: colors.shadow.heavy,
-      maxWidth: '400px',
+      maxWidth: '300px',
       width: '100%',
     },
     button: {
       background: colors.login.primary,
       border: 'none',
-      borderRadius: '50px',
-      padding: `${spacing.md} ${spacing.xl}`,
-      fontSize: fontSize.large,
+      borderRadius: '25px',
+      padding: `${spacing.sm} ${spacing.lg}`,
+      fontSize: fontSize.base,
       fontWeight: 'bold',
       color: colors.text.white,
       cursor: 'pointer',
@@ -249,10 +249,10 @@ export const commonStyles = {
       backgroundColor: colors.primary,
       color: colors.text.white,
       borderRadius: borderRadius.button,
-      padding: `${spacing.md} ${spacing.xxl}`,
-      fontSize: fontSize.large,
+      padding: `${spacing.sm} ${spacing.lg}`,
+      fontSize: fontSize.base,
       fontWeight: 'bold',
-      minWidth: '200px',
+      minWidth: '120px',
       boxShadow: colors.shadow.medium,
     },
     secondary: {
@@ -260,7 +260,7 @@ export const commonStyles = {
       border: `1px solid ${colors.border.light}`,
       color: colors.text.primary,
       borderRadius: borderRadius.small,
-      padding: `${spacing.sm} ${spacing.md}`,
+      padding: `${spacing.xs} ${spacing.sm}`,
       fontSize: fontSize.small,
     },
   },
@@ -279,16 +279,16 @@ export const commonStyles = {
     borderRadius: borderRadius.small,
     boxShadow: colors.shadow.menu,
     padding: `${spacing.sm} 0`,
-    minWidth: '150px',
+    minWidth: '100px',
   },
   menuItem: {
     width: '100%',
-    padding: `${spacing.xxl} ${spacing.xxl}`,
+    padding: `${spacing.md} ${spacing.md}`,
     background: 'none',
     border: 'none',
     textAlign: 'left' as const,
     cursor: 'pointer',
-    fontSize: '72px',
+    fontSize: fontSize.base,
     color: colors.text.primary,
     transition: animation.transitionFast,
   },

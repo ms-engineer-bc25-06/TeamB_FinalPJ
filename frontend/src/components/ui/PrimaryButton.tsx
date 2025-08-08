@@ -18,9 +18,9 @@ export default function PrimaryButton({
       style={{
         ...commonStyles.button.base,
         ...commonStyles.button.primary,
-        fontSize: '36px',
-        padding: '36px 68px',
-        minWidth: '360px',
+        fontSize: '25px',
+        padding: '30px 60px',
+        minWidth: '240px',
         ...(disabled && {
           backgroundColor: '#ccc',
           cursor: 'not-allowed',
@@ -31,8 +31,8 @@ export default function PrimaryButton({
       onMouseEnter={(e) => {
         if (!disabled) {
           e.currentTarget.style.backgroundColor = colors.primaryHover;
-          e.currentTarget.style.transform = 'translateY(-2px)';
-          e.currentTarget.style.boxShadow = '0 6px 16px rgba(255,107,107,0.4)';
+          e.currentTarget.style.transform = 'translateY(-1px)';
+          e.currentTarget.style.boxShadow = '0 4px 12px rgba(255,107,107,0.4)';
         }
       }}
       onMouseLeave={(e) => {

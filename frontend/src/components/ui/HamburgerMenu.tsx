@@ -32,16 +32,16 @@ export default function HamburgerMenu({
     top: spacing.md,
     right: spacing.md,
     cursor: 'pointer',
-    width: '70px',
-    height: '70px',
+    width: '40px',
+    height: '40px',
     display: 'flex',
     flexDirection: 'column',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: '6px',
+    gap: '3px',
     background: 'rgba(255, 255, 255, 0.95)',
     border: 'none',
-    borderRadius: '10px',
+    borderRadius: '6px',
     padding: '0',
     zIndex: 1001,
     boxShadow: '0 2px 8px rgba(0, 0, 0, 0.1)',
@@ -50,10 +50,10 @@ export default function HamburgerMenu({
 
   // ハンバーガーアイコンのスタイル
   const lineStyle: React.CSSProperties = {
-    width: '50px',
-    height: '6px',
+    width: '24px',
+    height: '3px',
     backgroundColor: colors.text.primary,
-    borderRadius: '3px',
+    borderRadius: '2px',
     transition: animation.transition,
     transformOrigin: 'center',
   };
@@ -62,8 +62,8 @@ export default function HamburgerMenu({
   const drawerMenuStyle: React.CSSProperties = {
     position: 'fixed',
     top: 0,
-    [position]: isOpen ? 0 : '-400px',
-    width: '400px',
+    [position]: isOpen ? 0 : '-280px',
+    width: '280px',
     height: '100vh',
     background: colors.background.white,
     boxShadow: position === 'right' 
@@ -78,15 +78,15 @@ export default function HamburgerMenu({
     position: 'absolute',
     top: spacing.md,
     [position === 'right' ? 'right' : 'left']: spacing.md,
-    width: '50px',
-    height: '50px',
+    width: '30px',
+    height: '30px',
     background: 'none',
     border: 'none',
     cursor: 'pointer',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'center',
-    fontSize: '32px',
+    fontSize: '20px',
     color: colors.text.primary,
     zIndex: 1002,
   };
@@ -121,13 +121,13 @@ export default function HamburgerMenu({
         
         {/* メニューコンテンツ */}
         <div style={{ 
-          padding: spacing.lg, 
-          paddingTop: '80px', 
+          padding: spacing.md, 
+          paddingTop: '60px', 
           height: '100vh', 
           overflowY: 'auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: spacing.sm,
+          gap: spacing.xs,
         }}>
           {children}
         </div>
@@ -152,18 +152,18 @@ export function MenuItem({
 }: MenuItemProps) {
   const itemStyle: React.CSSProperties = {
     width: '100%',
-    padding: `${spacing.xl} ${spacing.lg}`,
+    padding: `${spacing.md} ${spacing.sm}`,
     background: 'none',
     border: 'none',
     textAlign: 'left' as const,
     cursor: 'pointer',
-    fontSize: '28px',
-    lineHeight: '1.5',
+    fontSize: '14px',
+    lineHeight: '1.4',
     color: colors.text.primary,
     transition: animation.transition,
     borderBottom: '1px solid #eee',
-    borderRadius: '8px',
-    marginBottom: spacing.sm,
+    borderRadius: '4px',
+    marginBottom: spacing.xs,
     ...(disabled && {
       opacity: 0.5,
       cursor: 'not-allowed',
