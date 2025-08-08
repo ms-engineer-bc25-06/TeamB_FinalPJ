@@ -120,19 +120,19 @@ async def get_emotion_cards(db: AsyncSession = Depends(get_db)):
     {
       "success": true,
       "intensities": [
-        { "id": 1, "color_modifier": 40 },
-        { "id": 2, "color_modifier": 70 },
-        { "id": 3, "color_modifier": 100 }
+        { "id": 1, "color_modifier": 0.4 },
+        { "id": 2, "color_modifier": 0.7 },
+        { "id": 3, "color_modifier": 1.0 }
       ]
     }
     ```
 
     ## 取得情報
     - `id`: 強度ID（1, 2, 3 ...）
-    - `color_modifier`: 透明度（0-100）。例: 70 → RGBAのalpha 0.7 相当
+    - `color_modifier`: 透明度（0.0-1.0）。例: 0.7 → RGBAのalpha 0.7 相当
 
     ## 表示のヒント
-    - ベースカラー `#RRGGBB` と `color_modifier` を組み合わせて `rgba(r,g,b, color_modifier/100)` を計算
+    - ベースカラー `#RRGGBB` と `color_modifier` を組み合わせて `rgba(r,g,b, color_modifier)` を計算
     """,
     response_description="強度一覧を返します",
 )
@@ -143,7 +143,7 @@ async def get_intensities(db: AsyncSession = Depends(get_db)):
         return {
             "success": True,
             "intensities": [
-                {"id": intensity.id, "color_modifier": intensity.color_modifier}
+                {"id": intensity.id, "color_modifier": intensity.color_modifier / 100}
                 for intensity in intensities
             ],
         }
@@ -169,7 +169,7 @@ async def get_intensities(db: AsyncSession = Depends(get_db)):
       "child_id": "a1f0d7b2-2a18-4b2d-9d5f-8d4b2c3a1f01",
       "emotion_card_id": "8f5e4f8a-0e2f-4a2b-9dc3-6a4b1b3f4e12",
       "intensity_id": 2,
-      "voice_note": "今日はとても楽しかった",
+      "voice_note": "こころんとおはなしして楽しかった",
       "text_file_path": "s3://bucket/text/user-uuid/2024-01-01.txt",
       "audio_file_path": "s3://bucket/audio/user-uuid/2024-01-01.webm"
     }
