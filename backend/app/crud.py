@@ -1,20 +1,20 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-import models
+from app import models
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
 JST = timezone(timedelta(hours=9))
+
+
 def now_jst() -> datetime:
     return datetime.now(JST)
 
 
 async def get_user_by_uid(db: AsyncSession, uid: str) -> Optional[models.User]:
     try:
-        result = await db.execute(
-            select(models.User).filter(models.User.uid == uid)
-        )
+        result = await db.execute(select(models.User).filter(models.User.uid == uid))
         return result.scalars().first()
     except SQLAlchemyError as e:
         print(f"[DB ERROR] get_user_by_uid: {e}")
@@ -47,7 +47,9 @@ async def create_user(
         return None
 
 
-async def update_login_info(db: AsyncSession, user: models.User) -> Optional[models.User]:
+async def update_login_info(
+    db: AsyncSession, user: models.User
+) -> Optional[models.User]:
     try:
         user.last_login_at = now_jst()
         user.login_count += 1
@@ -59,6 +61,7 @@ async def update_login_info(db: AsyncSession, user: models.User) -> Optional[mod
         print(f"[DB ERROR] update_login_info: {e}")
         return None
 
+
 # 初回ログインかどうかを判定し、
 # 既存ユーザーであればログイン情報を更新し、新規ユーザーであれば登録する
 async def get_or_create_user(
@@ -66,7 +69,7 @@ async def get_or_create_user(
     uid: str,
     email: str,
     email_verified: bool,
-    nickname: Optional[str]
+    nickname: Optional[str],
 ) -> Optional[models.User]:
     user = await get_user_by_uid(db, uid)
     if user:

@@ -6,21 +6,20 @@ services:
     container_name: teamb_backend
     ports:
       - "8000:8000"
-    volumes:
-      - ./app:/app
-      - ./firebase-service-account.json:/firebase-service-account.json
-      - ./wait-for-db.sh:/wait-for-db.sh
+    working_dir: /app
     env_file:
       - .env
     depends_on:
       - db
+    volumes:
+      - ./firebase-service-account.json:/firebase-service-account.json
     entrypoint:
       [
         "/bin/sh",
-        "/wait-for-db.sh",
+        "/app/wait-for-db.sh",
         "db",
         "uvicorn",
-        "main:app",
+        "app.main:app",
         "--host",
         "0.0.0.0",
         "--port",

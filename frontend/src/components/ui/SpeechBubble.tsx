@@ -10,21 +10,21 @@ export default function SpeechBubble({ text }: SpeechBubbleProps) {
       position: 'relative',
       backgroundColor: colors.background.white,
       borderRadius: borderRadius.large,
-      padding: `${spacing.lg} ${spacing.xl}`,
+      padding: `${spacing.md} ${spacing.lg}`,
       boxShadow: colors.shadow.light,
-      width: '500px',
-      minHeight: '120px',
+      width: '300px',
+      minHeight: '80px',
       textAlign: 'center',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
-      maxWidth: '95vw',
+      maxWidth: '85vw',
     }}>
       <span style={{
         color: colors.text.primary,
         fontWeight: 'bold',
-        fontSize: '30px',
-        lineHeight: 1.5,
+        fontSize: '16px',
+        lineHeight: 1.4,
         margin: 0,
         whiteSpace: 'pre-line',
         wordBreak: 'keep-all',
@@ -34,14 +34,14 @@ export default function SpeechBubble({ text }: SpeechBubbleProps) {
       </span>
       <div style={{
         position: 'absolute',
-        bottom: '-10px',
+        bottom: '-8px',
         left: '50%',
         transform: 'translateX(-50%)',
         width: 0,
         height: 0,
-        borderLeft: '10px solid transparent',
-        borderRight: '10px solid transparent',
-        borderTop: `10px solid ${colors.background.white}`,
+        borderLeft: '8px solid transparent',
+        borderRight: '8px solid transparent',
+        borderTop: `8px solid ${colors.background.white}`,
       }} />
     </div>
   );
