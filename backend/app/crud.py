@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
-import models
+from app import models
 from datetime import datetime, timedelta, timezone
 from typing import Optional
 
