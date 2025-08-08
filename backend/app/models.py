@@ -1,5 +1,6 @@
 import uuid
 from sqlalchemy import (
+    Column,
     String,
     Boolean,
     DateTime,
@@ -28,7 +29,7 @@ class User(Base):
     nickname: Mapped[str] = mapped_column(String, nullable=True)
 
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    updated_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=text('CURRENT_TIMESTAMP'), onupdate=func.now(), nullable=False)
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now(), nullable=False)
     deleted_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
 
     # TODO: 管理者画面を作成したら以下にnullable=Falseを入れること
