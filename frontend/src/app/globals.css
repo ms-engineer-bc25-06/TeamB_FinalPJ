@@ -1,6 +1,7 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+  --font-size-small: 12px;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -39,4 +40,14 @@ a {
   html {
     color-scheme: dark;
   }
+}
+
+button.text-small {
+  font-size: var(--font-size-small) !important;
+  white-space: pre-line !important;
+}
+
+.text-small {
+  font-size: var(--font-size-small);
+  white-space: pre-line; /* 改行を保持 */
 }

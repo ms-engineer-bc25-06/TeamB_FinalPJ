@@ -14,11 +14,6 @@ export default function ReportPage() {
   return (
     <div style={commonStyles.page.container}>
       <div style={commonStyles.page.mainContent}>
-        {/* こころんキャラクター */}
-        <div style={commonStyles.page.kokoronContainer}>
-          <KokoronDefault size={120} />
-        </div>
-
         <h1 style={{
           color: colors.text.primary,
           fontSize: fontSize.xxl,
@@ -27,8 +22,12 @@ export default function ReportPage() {
           textAlign: 'center',
           textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
         }}>
-          レポート
+          〇〇のこころん
         </h1>
+                {/* こころんを表示 */}
+                <div style={commonStyles.page.kokoronContainer}>
+          <KokoronDefault size={120} />
+        </div>
         
         <div style={{
           display: 'flex',
@@ -36,12 +35,12 @@ export default function ReportPage() {
           gap: spacing.lg,
           alignItems: 'center',
         }}>
-          <PrimaryButton onClick={() => setShowDailyReport(true)}>
-            日次レポート
+          <PrimaryButton className="text-small" onClick={() => setShowDailyReport(true)}>
+          毎日のきろく
           </PrimaryButton>
           
-          <PrimaryButton onClick={() => setShowWeeklyReport(true)}>
-            週次レポート
+          <PrimaryButton className="text-small" onClick={() => setShowWeeklyReport(true)}>
+          今週のきろく
           </PrimaryButton>
         </div>
 
@@ -51,14 +50,6 @@ export default function ReportPage() {
           textAlign: 'center',
           maxWidth: '300px',
         }}>
-          <p style={{
-            fontSize: fontSize.base,
-            color: colors.text.secondary,
-            lineHeight: 1.6,
-            margin: 0,
-          }}>
-            日次レポートでカレンダーから日付を選択して記録を確認できます
-          </p>
         </div>
       </div>
 
