@@ -17,6 +17,8 @@ from app.voice_api import router as voice_router
 from api.v1.endpoints.voice import router as new_voice_router
 
 load_dotenv()
+
+from app.emotion_color_api import router as emotion_color_router
 DATABASE_URL = os.getenv("DATABASE_URL")
 
 #  Firebase Adminの初期化し秘密鍵を読み込む
@@ -57,7 +59,11 @@ app.add_middleware(
 
 # 入力音声から作られたファイルを管理するAPIを追加
 app.include_router(voice_router)
+
 app.include_router(new_voice_router, prefix="/api/v1")
+
+app.include_router(emotion_color_router)
+
 
 
 # DBセッションを依存関係として定義
