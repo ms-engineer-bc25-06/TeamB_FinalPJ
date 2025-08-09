@@ -14,7 +14,7 @@ from app.models import Base
 
 
 from app.voice_api import router as voice_router
-from api.v1.endpoints.voice import router as new_voice_router
+from app.api.v1.endpoints.voice import router as new_voice_router
 
 load_dotenv()
 
