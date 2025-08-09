@@ -31,3 +31,6 @@ pnpm-debug.log*
 
 # Firebase Admin SDK private key
 backend/firebase-service-account.json
+
+# 開発専用 docker compose 設定
+compose.override.yaml
