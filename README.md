@@ -59,7 +59,24 @@ Dev Container を使うことで、チーム全体で共通の開発環境（パ
      ```
    - `--build`は初回や`Dockerfile`に変更があった場合に必要です。`-d`はバックグラウンドで起動するオプションです。
 
-5. **動作確認**
+5. **マイグレーション適用（初回 or モデル更新時）**
+
+   - `backend`ディレクトリで、以下のコマンドを実行します。
+
+     ```
+     docker compose exec backend alembic upgrade head
+
+     ```
+
+   - Alembic によって DB スキーマをコードと同期させます。
+   - 初回セットアップ時 または models.py などスキーマ変更後 のみ実行します。
+   - 適用確認
+     ```
+     docker compose exec backend alembic current
+     ```
+   - 上記コマンドを実行し、`initial migration`など、最新版のリビジョン ID が表示されれば OK。
+
+6. **動作確認**
 
    - `docker compose ps`コマンドを実行し、`teamb_backend`と`teamb_db`の 2 つのコンテナが`Up (healthy)`または`running`状態であることを確認します。
    - Web ブラウザで `http://localhost:8000/docs` にアクセスし、FastAPI の Swagger UI が表示されれば成功です。

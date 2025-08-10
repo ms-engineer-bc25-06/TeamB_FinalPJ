@@ -5,3 +5,8 @@
 black==25.1.0
 pytest==8.4.1
 pylint==3.3.7
+alembic==1.16.4
+
+# 運用メモ（本番運用が近づいたら以下を検討）
+# - alembic を requirements.txt に含めるか？
+#   （本番での自動マイグレーション適用が必要な場合）
