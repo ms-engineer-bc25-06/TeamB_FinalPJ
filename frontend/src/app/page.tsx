@@ -3,7 +3,14 @@
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { KokoronDefault, SpeechBubble, PrimaryButton, Spinner, HamburgerMenu, MenuItem } from '@/components/ui';
+import {
+  KokoronDefault,
+  SpeechBubble,
+  PrimaryButton,
+  Spinner,
+  HamburgerMenu,
+  MenuItem,
+} from '@/components/ui';
 import { commonStyles } from '@/styles/theme';
 import styles from './page.module.css';
 
@@ -47,7 +54,7 @@ export default function Home() {
         <div style={commonStyles.login.card}>
           <h1>ようこそ！</h1>
           <p>続けるにはログインしてください。</p>
-          <button 
+          <button
             style={commonStyles.login.button}
             className={styles.loginButton}
             onClick={handleLogin}
@@ -76,7 +83,7 @@ export default function Home() {
           <MenuItem>FAQ</MenuItem>
           <MenuItem>設定</MenuItem>
           <MenuItem>ロールプレイ</MenuItem>
-          <MenuItem>レポート</MenuItem>
+          <MenuItem onClick={() => router.push('/report')}>レポート</MenuItem>
           <MenuItem>アップグレード</MenuItem>
           <MenuItem onClick={handleLogout}>ログアウト</MenuItem>
         </ul>
@@ -93,9 +100,7 @@ export default function Home() {
         </div>
 
         {/* おしゃべりボタン */}
-        <PrimaryButton onClick={handleTalk}>
-          おしゃべりする
-        </PrimaryButton>
+        <PrimaryButton onClick={handleTalk}>おしゃべりする</PrimaryButton>
       </div>
     </div>
   );
