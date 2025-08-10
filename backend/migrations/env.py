@@ -6,6 +6,8 @@ from sqlalchemy import pool
 from alembic import context
 
 import os
+from app.models import Base
+
 from dotenv import load_dotenv
 
 load_dotenv()
@@ -29,7 +31,7 @@ config.set_main_option("sqlalchemy.url", db_url)
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-target_metadata = None
+target_metadata = Base.metadata
 
 # other values from the config, defined by the needs of env.py,
 # can be acquired:
