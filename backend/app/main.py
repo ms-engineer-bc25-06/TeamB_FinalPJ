@@ -13,6 +13,8 @@ from app import schemas
 from app.models import Base
 
 from app.voice_api import router as voice_router
+from app.api.v1.endpoints.voice import router as new_voice_router
+from app.utils.error_handlers import register_error_handlers
 
 load_dotenv()
 
@@ -42,6 +44,9 @@ async def lifespan(app: FastAPI):
 # lifespanを登録して、起動時の処理を有効化
 app = FastAPI(lifespan=lifespan)
 
+# エラーハンドラの登録
+register_error_handlers(app)
+
 # CORSミドルウェア設定
 origins = [
     "http://localhost:3000",
@@ -57,7 +62,11 @@ app.add_middleware(
 
 # 入力音声から作られたファイルを管理するAPIを追加
 app.include_router(voice_router)
+
+app.include_router(new_voice_router, prefix="/api/v1")
+
 app.include_router(emotion_color_router)
+
 
 
 # DBセッションを依存関係として定義
@@ -72,7 +81,8 @@ async def login(token: schemas.Token, db: AsyncSession = Depends(get_db)):
     try:
         decoded_token = auth.verify_id_token(token.id_token)
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+        from app.utils.error_handlers import raise_auth_error
+        raise_auth_error("INVALID_TOKEN", 401)
 
     uid = decoded_token["uid"]
     email = decoded_token.get("email")
@@ -84,6 +94,7 @@ async def login(token: schemas.Token, db: AsyncSession = Depends(get_db)):
     )
 
     if user is None:
-        raise HTTPException(status_code=500, detail="Could not process user.")
+        from app.utils.error_handlers import raise_voice_error
+        raise_voice_error("DATABASE_ERROR", 500)
 
     return user
