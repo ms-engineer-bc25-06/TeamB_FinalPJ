@@ -2,6 +2,29 @@ import os
 import boto3
 from botocore.exceptions import ClientError
 from typing import Optional
+import logging
+
+# カスタム例外クラスを追加
+class S3UploadError(Exception):
+    def __init__(self, message: str, error_code: str = "S3_UPLOAD_ERROR"):
+        self.message = message
+        self.error_code = error_code
+        super().__init__(self.message)
+
+class S3DownloadError(Exception):
+    def __init__(self, message: str, error_code: str = "S3_DOWNLOAD_ERROR"):
+        self.message = message
+        self.error_code = error_code
+        super().__init__(self.message)
+
+class S3PresignedUrlError(Exception):
+    def __init__(self, message: str, error_code: str = "S3_PRESIGNED_URL_ERROR"):
+        self.message = message
+        self.error_code = error_code
+        super().__init__(self.message)
+
+# ロガーの設定
+logger = logging.getLogger(__name__)
 
 
 class S3Service:
@@ -30,8 +53,8 @@ class S3Service:
             )
             return True
         except ClientError as e:
-            print(f"S3 upload error: {e}")
-            return False
+            logger.error(f"S3 upload error: {e}")
+            raise S3UploadError(f"ファイルのアップロードに失敗しました: {e}")
 
     def get_file_url(self, file_path: str) -> str:
         """S3ファイルのURLを取得"""
@@ -56,8 +79,8 @@ class S3Service:
             )
             return url
         except ClientError as e:
-            print(f"Presigned upload URL error: {e}")
-            return None
+            logger.error(f"Presigned upload URL error: {e}")
+            raise S3PresignedUrlError(f"署名付きアップロードURLの生成に失敗しました: {e}")
 
     def generate_presigned_download_url(
         self, file_path: str, expiration: int = 3600
@@ -74,5 +97,5 @@ class S3Service:
             )
             return url
         except ClientError as e:
-            print(f"Presigned download URL error: {e}")
-            return None
+            logger.error(f"Presigned download URL error: {e}")
+            raise S3PresignedUrlError(f"署名付きダウンロードURLの生成に失敗しました: {e}")
