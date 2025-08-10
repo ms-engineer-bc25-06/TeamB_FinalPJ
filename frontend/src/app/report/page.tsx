@@ -8,14 +8,13 @@ import DailyReport from '@/components/report/DailyReport';
 import WeeklyReport from '@/components/report/WeeklyReport';
 import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
 import {
-  KokoronDefault,
-  SpeechBubble,
   PrimaryButton,
   Spinner,
   HamburgerMenu,
   MenuItem,
 } from '@/components/ui';
 import styles from '../page.module.css';
+import KokoronReadingReport from '@/components/ui/KokoronReadingReport';
 
 export default function ReportPage() {
   const { user, isLoading } = useAuth();
@@ -99,7 +98,7 @@ export default function ReportPage() {
         </h1>
         {/* こころんを表示 */}
         <div style={commonStyles.page.kokoronContainer}>
-          <KokoronDefault size={120} />
+          <KokoronReadingReport size={120} />
         </div>
 
         <div
