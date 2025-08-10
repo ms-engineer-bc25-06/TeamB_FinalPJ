@@ -132,9 +132,6 @@ async def create_checkout_session(
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
-    """
-    Stripeのチェックアウトセッションを作成し、決済ページのURLを返す
-    """
     price_id = os.getenv("STRIPE_PRICE_ID")
     success_url = "http://localhost:3000/payment/success?session_id={CHECKOUT_SESSION_ID}"
     cancel_url = "http://localhost:3000/payment/cancel"
@@ -162,6 +159,6 @@ async def create_checkout_session(
             success_url=success_url,
             cancel_url=cancel_url,
         )
-        return {"url": checkout_session.url}
+        return {"sessionId": checkout_session.id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

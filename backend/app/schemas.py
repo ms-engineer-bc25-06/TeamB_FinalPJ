@@ -22,3 +22,6 @@ class UserResponse(UserBase):
 
     class Config:
         orm_mode = True
+
+class CheckoutSessionResponse(BaseModel):
+    sessionId: str
