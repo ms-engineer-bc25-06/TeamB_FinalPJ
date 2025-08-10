@@ -11,6 +11,7 @@ from sqlalchemy import (
     Date,
     text,
 )
+from datetime import datetime
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 
@@ -30,10 +31,10 @@ class User(Base):
 
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now(), onupdate=func.now(), nullable=False)
-    deleted_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
+    deleted_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
     # TODO: 管理者画面を作成したら以下にnullable=Falseを入れること
-    last_login_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True))
+    last_login_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
     login_count: Mapped[int] = mapped_column(Integer, default=0)
     role: Mapped[str] = mapped_column(String, default="user")
 
