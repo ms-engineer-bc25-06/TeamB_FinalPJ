@@ -20,6 +20,8 @@ from app.stripe_api import router as stripe_router
 
 load_dotenv()
 
+security_schemes = {"bearerAuth": {"type": "http", "scheme": "bearer"}}
+
 #  Firebase Adminの初期化し秘密鍵を読み込む
 cred_path = os.getenv(
     "GOOGLE_APPLICATION_CREDENTIALS", "/firebase-service-account.json"
@@ -42,7 +44,10 @@ async def lifespan(app: FastAPI):
 
 
 # lifespanを登録して、起動時の処理を有効化
-app = FastAPI(lifespan=lifespan)
+    app = FastAPI(lifespan=lifespan, openapi_tags=[{"name": "stripe", "description": "Stripe決済関連API"}], swagger_ui_init_oauth={"appName": "Firebase Auth"})
+    app.openapi_schema = app.openapi_schema or {}
+    app.openapi_schema["components"] = app.openapi_schema.get("components", {})
+    app.openapi_schema["components"]["securitySchemes"] = security_schemes
 
 # CORSミドルウェア設定
 origins = [
