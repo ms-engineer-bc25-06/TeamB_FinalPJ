@@ -57,7 +57,7 @@ async def create_checkout_session(
     success_url = "http://localhost:3000/payment/success?session_id={CHECKOUT_SESSION_ID}"
     cancel_url = "http://localhost:3000/payment/cancel"
     # DBからStripe顧客IDを取得
-    stripe_customer_id = current_user.subscription.stripe_customer_id if current_user.subscription else None
+    stripe_customer_id = current_user.subscriptions.stripe_customer_id if current_user.subscriptions else None
     # まだStripeの顧客でない場合は、新しく作成する
     if not stripe_customer_id:
         customer = stripe.Customer.create(

@@ -25,7 +25,7 @@ async def get_user_by_uid(db: AsyncSession, uid: str) -> Optional[models.User]:
         stmt = (
             select(models.User)
             .where(models.User.uid == uid)
-            .options(selectinload(models.User.subscription))
+            .options(selectinload(models.User.subscriptions))
         )
         res = await db.execute(stmt)
         return res.scalar_one_or_none()
@@ -138,7 +138,7 @@ async def update_stripe_customer_id(
     if sub is None:
         return None
     try:
-        # user.subscription を直後に使うなら明示的に最新化
+        # user.subscriptions を直後に使うなら明示的に最新化
         await db.refresh(user)
     except SQLAlchemyError as e:
         logger.warning("refresh user after subscription upsert failed", exc_info=e)
