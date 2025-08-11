@@ -7,6 +7,7 @@ from typing import Optional
 
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
 from sqlalchemy.dialects.postgresql import insert
 from sqlalchemy.exc import SQLAlchemyError
 
@@ -21,12 +22,15 @@ def now_utc() -> datetime:
 # UIDでユーザーを1件取得
 async def get_user_by_uid(db: AsyncSession, uid: str) -> Optional[models.User]:
     try:
-        res = await db.execute(
-            select(models.User).where(models.User.uid == uid)
+        stmt = (
+            select(models.User)
+            .where(models.User.uid == uid)
+            .options(selectinload(models.User.subscription))
         )
+        res = await db.execute(stmt)
         return res.scalar_one_or_none()
     except SQLAlchemyError as e:
-        logging.error("get_user_by_uid failed", exc_info=e)
+        logger.error("get_user_by_uid failed", exc_info=e)
         return None
 
 # UIDでユーザーをUPSERT（なければ作成・あれば更新）
