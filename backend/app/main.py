@@ -43,10 +43,10 @@ async def lifespan(app: FastAPI):
 security_schemes = {"bearerAuth": {"type": "http", "scheme": "bearer"}}
 
 # lifespanを登録して、起動時の処理を有効化
-app = FastAPI(lifespan=lifespan, openapi_tags=[{"name": "stripe", "description": "Stripe決済関連API"}], swagger_ui_init_oauth={"appName": "Firebase Auth"})
-app.openapi_schema = app.openapi_schema or {}
-app.openapi_schema["components"] = app.openapi_schema.get("components", {})
-app.openapi_schema["components"]["securitySchemes"] = security_schemes
+app = FastAPI(
+    lifespan=lifespan,
+    openapi_components={"securitySchemes": security_schemes}
+)
 
 # CORSミドルウェア設定
 origins = [
