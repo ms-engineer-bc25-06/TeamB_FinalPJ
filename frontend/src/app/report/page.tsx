@@ -2,28 +2,68 @@
 'use client';
 
 import { useState } from 'react';
-// import { useAuth } from '@/contexts/AuthContext';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 import DailyReport from '@/components/report/DailyReport';
 import WeeklyReport from '@/components/report/WeeklyReport';
 import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
 import {
-  KokoronDefault,
-  SpeechBubble,
   PrimaryButton,
   Spinner,
   HamburgerMenu,
   MenuItem,
 } from '@/components/ui';
 import styles from '../page.module.css';
+import KokoronReadingReport from '@/components/ui/KokoronReadingReport';
 
 export default function ReportPage() {
-  // const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  const router = useRouter();
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
 
+  // 戻るボタンの処理
+  const handleBack = () => {
+    router.push('/');
+  };
+
+  // ログアウト処理
+  const handleLogout = async () => {
+    await logout();
+  };
+
+  // ローディング中（認証）
+  if (isLoading) {
+    return (
+      <div style={commonStyles.loading.container}>
+        <Spinner size="medium" />
+        <p>読み込み中...</p>
+      </div>
+    );
+  }
+
+  // ログインしていない場合
+  if (!user) {
+    router.push('/');
+    return null;
+  }
+
   return (
     <div style={commonStyles.page.container}>
-      {/* ハンバーガーメニュー
+      <button
+        onClick={handleBack}
+        style={{
+          background: 'none',
+          border: 'none',
+          fontSize: '18px',
+          cursor: 'pointer',
+          padding: '8px',
+          borderRadius: '8px',
+          color: '#333',
+        }}
+      >
+        ← もどる
+      </button>
       <HamburgerMenu>
         <div className={styles.userInfo}>
           <p>ようこそ、{user.nickname}さん！</p>
@@ -42,8 +82,7 @@ export default function ReportPage() {
           <MenuItem>アップグレード</MenuItem>
           <MenuItem onClick={handleLogout}>ログアウト</MenuItem>
         </ul>
-      </HamburgerMenu> */}
-
+      </HamburgerMenu>
       <div style={commonStyles.page.mainContent}>
         <h1
           style={{
@@ -59,7 +98,7 @@ export default function ReportPage() {
         </h1>
         {/* こころんを表示 */}
         <div style={commonStyles.page.kokoronContainer}>
-          <KokoronDefault size={120} />
+          <KokoronReadingReport size={120} />
         </div>
 
         <div
@@ -94,12 +133,10 @@ export default function ReportPage() {
           }}
         ></div>
       </div>
-
       {/* 日次レポートモーダル */}
       {showDailyReport && (
         <DailyReport onClose={() => setShowDailyReport(false)} />
       )}
-
       {/* 週次レポートモーダル */}
       {showWeeklyReport && (
         <WeeklyReport onClose={() => setShowWeeklyReport(false)} />
