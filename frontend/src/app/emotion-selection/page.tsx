@@ -33,26 +33,26 @@ interface Emotion {
 // デフォルトの感情データ（API呼び出しに失敗した場合のフォールバック）
 const DEFAULT_EMOTIONS: Emotion[] = [
   // 黄色の感情
-  { id: 'ureshii', label: 'うれしい', color: '#FFD700', image_url: '/assets/emotions/ureshii-40.webp' },
-  { id: 'yukai', label: 'ゆかい', color: '#FFD700', image_url: '/assets/emotions/yukai-40.webp' },
+  { id: 'ureshii', label: 'うれしい', color: '#FFD700', image_url: '/images/emotions/ureshii.webp' },
+  { id: 'yukai', label: 'ゆかい', color: '#FFD700', image_url: '/images/emotions/yukai.webp' },
   
   // 緑色の感情
-  { id: 'anshin', label: 'あんしん', color: '#00D4AA', image_url: '/assets/emotions/anshin-40.webp' },
-  { id: 'bikkuri', label: 'びっくり', color: '#00D4AA', image_url: '/assets/emotions/bikkuri-40.webp' },
+  { id: 'anshin', label: 'あんしん', color: '#00D4AA', image_url: '/images/emotions/anshin.webp' },
+  { id: 'bikkuri', label: 'びっくり', color: '#00D4AA', image_url: '/images/emotions/bikkuri.webp' },
   
   // 青色の感情
-  { id: 'kowai', label: 'こわい', color: '#0066FF', image_url: '/assets/emotions/kowai-40.webp' },
-  { id: 'kanashii', label: 'かなしい', color: '#0066FF', image_url: '/assets/emotions/kanashii-40.webp' },
-  { id: 'komatta', label: 'こまった', color: '#0066FF', image_url: '/assets/emotions/komatta-40.webp' },
+  { id: 'kowai', label: 'こわい', color: '#0066FF', image_url: '/images/emotions/kowai.webp' },
+  { id: 'kanashii', label: 'かなしい', color: '#0066FF', image_url: '/images/emotions/kanashii.webp' },
+  { id: 'komatta', label: 'こまった', color: '#0066FF', image_url: '/images/emotions/komatta.webp' },
   
   // 赤色の感情
-  { id: 'fuyukai', label: 'ふゆかい', color: '#FF1744', image_url: '/assets/emotions/fuyukai-40.webp' },
-  { id: 'ikari', label: 'いかり', color: '#FF1744', image_url: '/assets/emotions/ikari-40.webp' },
-  { id: 'hazukashii', label: 'はずかしい', color: '#FF1744', image_url: '/assets/emotions/hazukashii-40.webp' },
-  { id: 'kincho', label: 'きんちょう', color: '#FF1744', image_url: '/assets/emotions/kincho-40.webp' },
+  { id: 'fuyukai', label: 'ふゆかい', color: '#FF1744', image_url: '/images/emotions/fuyukai.webp' },
+  { id: 'ikari', label: 'いかり', color: '#FF1744', image_url: '/images/emotions/ikari.webp' },
+  { id: 'hazukashii', label: 'はずかしい', color: '#FF1744', image_url: '/images/emotions/hazukashii.webp' },
+  { id: 'kinchou', label: 'きんちょう', color: '#FF1744', image_url: '/images/emotions/kinchou.webp' },
   
   // 灰色の感情
-  { id: 'wakaranai', label: 'わからない', color: '#424242', image_url: '/assets/emotions/wakaranai-40.webp' },
+  { id: 'wakaranai', label: 'わからない', color: '#424242', image_url: '/images/emotions/wakaranai.webp' },
 ];
 
 export default function EmotionSelectionPage() {
@@ -295,7 +295,7 @@ export default function EmotionSelectionPage() {
                     // 画像の読み込みに失敗した場合はデフォルト画像にフォールバック
                     console.log(`画像読み込みエラー: ${emotion.image_url} -> デフォルト画像にフォールバック`);
                     try {
-                      (e.currentTarget as HTMLImageElement).src = '/こころん（仮）.png';
+                      (e.currentTarget as HTMLImageElement).src = '/images/kokoron/kokoron_greeting.webp';
                     } catch (_) {
                       // no-op
                     }
