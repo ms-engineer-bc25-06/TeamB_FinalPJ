@@ -10,8 +10,8 @@ from firebase_admin import credentials, auth
 import stripe
 
 from app import crud, schemas
-from app.models import Base, User
 from app.database import engine, async_session_local, get_db
+from app.models import Base, User
 
 from app.voice_api import router as voice_router
 from app.emotion_color_api import router as emotion_color_router
@@ -19,8 +19,6 @@ from app.stripe_api import router as stripe_router
 
 
 load_dotenv()
-
-security_schemes = {"bearerAuth": {"type": "http", "scheme": "bearer"}}
 
 #  Firebase Adminの初期化し秘密鍵を読み込む
 cred_path = os.getenv(
@@ -42,12 +40,13 @@ async def lifespan(app: FastAPI):
     #         await conn.run_sync(Base.metadata.create_all)
     yield
 
+security_schemes = {"bearerAuth": {"type": "http", "scheme": "bearer"}}
 
 # lifespanを登録して、起動時の処理を有効化
-    app = FastAPI(lifespan=lifespan, openapi_tags=[{"name": "stripe", "description": "Stripe決済関連API"}], swagger_ui_init_oauth={"appName": "Firebase Auth"})
-    app.openapi_schema = app.openapi_schema or {}
-    app.openapi_schema["components"] = app.openapi_schema.get("components", {})
-    app.openapi_schema["components"]["securitySchemes"] = security_schemes
+app = FastAPI(lifespan=lifespan, openapi_tags=[{"name": "stripe", "description": "Stripe決済関連API"}], swagger_ui_init_oauth={"appName": "Firebase Auth"})
+app.openapi_schema = app.openapi_schema or {}
+app.openapi_schema["components"] = app.openapi_schema.get("components", {})
+app.openapi_schema["components"]["securitySchemes"] = security_schemes
 
 # CORSミドルウェア設定
 origins = [
@@ -66,6 +65,8 @@ app.add_middleware(
 app.include_router(voice_router)
 app.include_router(emotion_color_router)
 app.include_router(stripe_router)
+
+
 
 # ログイン
 @app.post("/api/v1/login", response_model=schemas.UserResponse)
