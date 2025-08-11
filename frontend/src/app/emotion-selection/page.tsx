@@ -121,7 +121,13 @@ export default function EmotionSelectionPage() {
 
   // 感情カードをクリックした時の処理
   const handleEmotionSelect = (emotionId: string) => {
-    router.push(`/emotion-confirmation?emotion=${emotionId}`);
+    // 「わからない」が選択された場合は強度選択画面を飛ばして直接感情確認画面に遷移
+    if (emotionId === 'wakaranai') {
+      router.push(`/emotion-confirmation?emotion=${emotionId}&intensity=medium`);
+    } else {
+      // その他の感情は強度選択画面に遷移
+      router.push(`/emotion-intensity?emotion=${emotionId}`);
+    }
   };
 
   // 戻るボタンの処理
