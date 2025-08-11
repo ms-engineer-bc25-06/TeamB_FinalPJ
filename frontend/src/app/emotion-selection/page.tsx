@@ -3,35 +3,10 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { Spinner } from '@/components/ui';
+import { KokoronDefault, SpeechBubble, Spinner, HamburgerMenu} from '@/components/ui';
 import { commonStyles } from '@/styles/theme';
 import { useState, useEffect } from 'react';
 
-// TODO: 画像データが完成した時の対応
-// 1. 以下のフォルダ構造を作成:
-//    frontend/public/assets/emotions/
-//    - anshin-40.webp (あんしん表情)
-//    - bikkuri-40.webp (びっくり表情)
-//    - kowai-40.webp (こわい表情)
-//    - kanashii-40.webp (かなしい表情)
-//    - komatta-40.webp (こまった表情)
-//    - ureshii-40.webp (うれしい表情)
-//    - yukai-40.webp (ゆかい表情)
-//    - fuyukai-40.webp (ふゆかい表情)
-//    - ikari-40.webp (いかり表情)
-//    - hazukashii-40.webp (はずかしい表情)
-//    - kincho-40.webp (きんちょう表情)
-//    - wakaranai-40.webp (わからない表情)
-//
-// 2. 画像仕様:
-//    - サイズ: 40x40px
-//    - 形式: WebP（最適化のため）
-//    - 背景: 透明
-//    - 各感情に適したこころんの表情
-//
-// 3. フォールバック対応:
-//    画像が読み込めない場合は現在の"/こころん（仮）.png"を使用するよう
-//    onErrorハンドラーを追加することを検討
 
 // TODO: 感情データをDBから取得する対応
 // 1. 現在のハードコードされた感情データを削除
@@ -157,46 +132,37 @@ export default function EmotionSelectionPage() {
 
   return (
     <div style={commonStyles.page.container}>
-      {/* ヘッダー */}
+
+
+      {/* 左上の戻るボタン */}
+      <button onClick={handleBack} style={{
+        position: 'fixed',
+        top: '20px',
+        left: '20px',
+        background: 'none',
+        border: 'none',
+        fontSize: '16px',
+        cursor: 'pointer',
+        padding: '6px',
+        borderRadius: '6px',
+        color: '#000000',
+        zIndex: 200,
+        fontWeight: 'bold',
+      }}>
+        ← もどる
+      </button>
+
+
+      {/* デフォルトのこころん（右側に配置） */}
       <div style={{
         position: 'fixed',
-        top: 0,
-        left: 0,
-        right: 0,
-        padding: '16px',
-        backdropFilter: 'blur(10px)',
-        zIndex: 100,
+        top: '80px',
+        right: '2px',
+        zIndex: 250,
       }}>
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          maxWidth: '600px',
-          margin: '0 auto',
-        }}>
-          <button onClick={handleBack} style={{
-            background: 'none',
-            border: 'none',
-            fontSize: '18px',
-            cursor: 'pointer',
-            padding: '8px',
-            borderRadius: '8px',
-            color: '#333',
-          }}>
-            ← もどる
-          </button>
-          <h1 style={{
-            margin: 0,
-            fontSize: '20px',
-            fontWeight: 'bold',
-            color: '#333',
-          }}>
-            きもちを　えらんでね
-          </h1>
-          <div style={{ width: '50px' }}></div>
-        </div>
+        <KokoronDefault size={80} />
       </div>
-
+      
       {/* エラーメッセージ */}
       {error && (
         <div style={{
@@ -218,20 +184,50 @@ export default function EmotionSelectionPage() {
       {/* メインコンテンツ */}
       <div style={{
         position: 'fixed',
-        top: '80px',
+        top: '0',
         left: '50%',
         transform: 'translateX(-50%)',
         bottom: 0,
-        padding: 0,
+        padding: '10px 0 0 0',
         zIndex: 50,
         boxSizing: 'border-box',
         width: '100%',
         maxWidth: '600px',
         overflowX: 'hidden',
         display: 'flex',
+        flexDirection: 'column',
         justifyContent: 'center',
         alignItems: 'center',
+        backdropFilter: 'blur(10px)',
+        background: 'transparent',
+        gap: '8px',
       }}>
+        {/* 感情カードの一番上に配置する白い四角 */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          padding: '12px 16px',
+          boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
+          width: '80%',
+          maxWidth: '288px',
+          boxSizing: 'border-box',
+          textAlign: 'center',
+          alignSelf: 'flex-start',
+          marginLeft: '20px',
+        }}>
+          <span style={{
+        fontWeight: 'bold',
+        fontSize: '16px',
+        lineHeight: 1.4,
+        margin: 0,
+        whiteSpace: 'pre-line',
+        wordBreak: 'keep-all',
+        overflowWrap: 'break-word',
+      }}>
+            いまの　きもちを　えらんでね
+          </span>
+        </div>
+        
         <div style={{
           display: 'grid',
           gridTemplateColumns: 'repeat(3, 1fr)',
@@ -247,22 +243,22 @@ export default function EmotionSelectionPage() {
               key={emotion.id}
               onClick={() => handleEmotionSelect(emotion.id)}
               style={{
-                background: emotion.color, // DBから取得した色を使用
-                border: '2px solid rgba(255, 255, 255, 0.8)',
-                borderRadius: '12px',
-                padding: '16px 10px',
+                background: '#ffffff', // カード自体は白
+                border: `4px solid ${emotion.color}`, 
+                borderRadius: '16px',
+                padding: '12px 8px',
                 cursor: 'pointer',
                 display: 'flex',
                 flexDirection: 'column',
                 alignItems: 'center',
-                gap: '8px',
+                gap: '6px',
                 transition: 'all 0.3s ease',
                 fontSize: '24px',
                 fontWeight: 'bold',
-                color: '#fff',
-                boxShadow: '0 4px 12px rgba(0, 0, 0, 0.2)',
+                color: '#000000', 
+                boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
                 minHeight: '120px',
-                justifyContent: 'center',
+                justifyContent: 'space-between',
                 touchAction: 'manipulation',
                 WebkitTapHighlightColor: 'transparent',
                 aspectRatio: '5/6',
@@ -270,33 +266,58 @@ export default function EmotionSelectionPage() {
                 maxWidth: '100%',
                 boxSizing: 'border-box',
                 overflow: 'hidden',
+                position: 'relative',
               }}
             >
-              <Image
-                src={emotion.image_url}
-                alt={`こころん - ${emotion.label}`}
-                width={40}
-                height={40}
-                style={{
-                  objectFit: 'contain',
-                }}
-                onError={(e) => {
-                  // 画像の読み込みに失敗した場合はデフォルト画像にフォールバック
-                  console.log(`画像読み込みエラー: ${emotion.image_url} -> デフォルト画像にフォールバック`);
-                  try {
-                    (e.currentTarget as HTMLImageElement).src = '/こころん（仮）.png';
-                  } catch (_) {
-                    // no-op
-                  }
-                }}
-              />
-              <span style={{
-                textShadow: '1px 1px 2px rgba(0, 0, 0, 0.3)',
-                fontSize: '18px',
-                lineHeight: '1.2',
+              <div style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'flex-start',
+                width: '100%',
+                padding: '8px 8px 8px 8px',
+                gap: '8px',
+                marginTop: '-10px',
               }}>
-                {emotion.label}
-              </span>
+                <Image
+                  src={emotion.image_url}
+                  alt={`こころん - ${emotion.label}`}
+                  width={60}
+                  height={60}
+                  style={{
+                    objectFit: 'contain',
+                    width: '100%',
+                    height: 'auto',
+                    maxWidth: '80px',
+                    maxHeight: '80px',
+                  }}
+                  onError={(e) => {
+                    // 画像の読み込みに失敗した場合はデフォルト画像にフォールバック
+                    console.log(`画像読み込みエラー: ${emotion.image_url} -> デフォルト画像にフォールバック`);
+                    try {
+                      (e.currentTarget as HTMLImageElement).src = '/こころん（仮）.png';
+                    } catch (_) {
+                      // no-op
+                    }
+                  }}
+                />
+                <span style={{
+                  fontSize: '14px',
+                  lineHeight: '1.2',
+                  fontWeight: '600',
+                  color: '#000000',
+                  textAlign: 'center',
+                  padding: '4px 8px',
+                  borderRadius: '8px',
+                  background: 'rgba(255, 255, 255, 0.9)',
+                  minHeight: '24px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}>
+                  {emotion.label}
+                </span>
+              </div>
             </button>
           ))}
         </div>
