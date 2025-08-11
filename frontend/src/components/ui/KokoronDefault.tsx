@@ -14,7 +14,7 @@ export default function KokoronDefault({ size = 120 }: KokoronDefaultProps) {
       alignItems: 'center',
     }}>
       <Image
-        src="/こころん（仮）.png"
+        src="/images/kokoron/kokoron_greeting.webp"
         alt="こころん"
         width={size}
         height={size}
