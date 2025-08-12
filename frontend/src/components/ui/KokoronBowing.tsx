@@ -1,12 +1,10 @@
 import Image from 'next/image';
 
-interface KokoronThankingProps {
+interface KokoronBowingProps {
   size?: number;
 }
 
-export default function KokoronThanking({
-  size = 120,
-}: KokoronThankingProps) {
+export default function KokoronBowing({ size = 120 }: KokoronBowingProps) {
   return (
     <div
       style={{
@@ -18,8 +16,8 @@ export default function KokoronThanking({
       }}
     >
       <Image
-        src="/感謝のこころん.png"
-        alt="感謝のこころん"
+        src="/images/kokoron/kokoron_bowing.webp"
+        alt="お辞儀するこころん"
         width={size}
         height={size}
         style={{ objectFit: 'contain' }}

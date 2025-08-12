@@ -18,7 +18,7 @@ export default function KokoronReadingReport({
       }}
     >
       <Image
-        src="/レポートをよむこころん.png"
+        src="/images/kokoron/kokoron_readingreport.webp"
         alt="レポートをよむこころん"
         width={size}
         height={size}
