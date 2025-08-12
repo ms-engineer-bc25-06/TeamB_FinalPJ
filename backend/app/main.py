@@ -13,21 +13,17 @@ from app import crud, schemas
 from app.database import engine, async_session_local, get_db
 from app.models import Base, User
 
-from app.voice_api import router as voice_router
-<<<<<<< HEAD
 from app.api.v1.endpoints.voice import router as new_voice_router
 from app.utils.error_handlers import register_error_handlers
-=======
 from app.emotion_color_api import router as emotion_color_router
 from app.stripe_api import router as stripe_router
 
->>>>>>> origin/develop
 
 load_dotenv()
 
 #  Firebase Adminの初期化し秘密鍵を読み込む
 cred_path = os.getenv(
-    "GOOGLE_APPLICATION_CREDENTIALS", "/firebase-service-account.json"
+    "GOOGLE_APPLICATION_CREDENTIALS", "firebase-service-account.json"
 )
 cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred)
@@ -70,22 +66,10 @@ app.add_middleware(
 )
 
 # ルーター登録
-app.include_router(voice_router)
-
 app.include_router(new_voice_router, prefix="/api/v1")
-
 app.include_router(emotion_color_router)
 app.include_router(stripe_router)
 
-
-<<<<<<< HEAD
-
-# DBセッションを依存関係として定義
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session_local() as session:
-        yield session
-=======
->>>>>>> origin/develop
 
 # ログイン
 @app.post("/api/v1/login", response_model=schemas.UserResponse)
@@ -93,13 +77,8 @@ async def login(token: schemas.Token, db: AsyncSession = Depends(get_db)):
     try:
         decoded_token = auth.verify_id_token(token.id_token)
     except Exception as e:
-<<<<<<< HEAD
-        from app.utils.error_handlers import raise_auth_error
-        raise_auth_error("INVALID_TOKEN", 401)
-=======
         logging.warning("Login token invalid", exc_info=e)
         raise HTTPException(status_code=401, detail="Invalid token")
->>>>>>> origin/develop
 
     uid = decoded_token["uid"]
     email = decoded_token.get("email")
@@ -111,7 +90,6 @@ async def login(token: schemas.Token, db: AsyncSession = Depends(get_db)):
     )
 
     if user is None:
-        from app.utils.error_handlers import raise_voice_error
-        raise_voice_error("DATABASE_ERROR", 500)
+        raise HTTPException(status_code=500, detail="Could not process user.")
 
     return user
