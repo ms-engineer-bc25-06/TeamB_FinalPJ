@@ -2,12 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  SpeechBubble,
-  PrimaryButton,
-  Spinner,
-} from '@/components/ui';
-import KokoronThanking from '@/components/ui/KokoronThanking';  // ← 直接インポート
+import { SpeechBubble, PrimaryButton, Spinner } from '@/components/ui';
+import KokoronBowing from '@/components/ui/KokoronBowing';
 import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
 
 export default function PaymentSuccessPage() {
@@ -111,7 +107,7 @@ export default function PaymentSuccessPage() {
 
         {/* こころんキャラクター */}
         <div style={commonStyles.page.kokoronContainer}>
-          <KokoronThanking size={200} />
+          <KokoronBowing size={200} />
         </div>
 
         {/* 成功メッセージカード */}
@@ -211,10 +207,10 @@ export default function PaymentSuccessPage() {
               </div>
               <div>
                 <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                📈 成長記録
+                  📈 成長記録
                 </div>
                 <div style={{ color: colors.text.secondary, fontSize: '11px' }}>
-                長期間の追跡
+                  長期間の追跡
                 </div>
               </div>
               <div>
