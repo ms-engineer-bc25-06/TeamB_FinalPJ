@@ -1,78 +1,145 @@
-from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
-from sqlalchemy.exc import SQLAlchemyError
-from app import models
-from datetime import datetime, timedelta, timezone
+from __future__ import annotations
+
+import uuid
+import logging
+from datetime import datetime, timezone
 from typing import Optional
 
-JST = timezone(timedelta(hours=9))
+from sqlalchemy import select, func
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.orm import selectinload
+from sqlalchemy.dialects.postgresql import insert
+from sqlalchemy.exc import SQLAlchemyError
 
+from app import models
 
-def now_jst() -> datetime:
-    return datetime.now(JST)
+logger = logging.getLogger(__name__)
 
+UTC = timezone.utc
+def now_utc() -> datetime:
+    return datetime.now(UTC)
 
+# UIDでユーザーを1件取得
 async def get_user_by_uid(db: AsyncSession, uid: str) -> Optional[models.User]:
     try:
-        result = await db.execute(select(models.User).filter(models.User.uid == uid))
-        return result.scalars().first()
+        stmt = (
+            select(models.User)
+            .where(models.User.uid == uid)
+            .options(selectinload(models.User.subscriptions))
+        )
+        res = await db.execute(stmt)
+        return res.scalar_one_or_none()
     except SQLAlchemyError as e:
-        print(f"[DB ERROR] get_user_by_uid: {e}")
+        logger.error("get_user_by_uid failed", exc_info=e)
         return None
 
-
-async def create_user(
+# UIDでユーザーをUPSERT（なければ作成・あれば更新）
+async def upsert_user_by_uid(
     db: AsyncSession,
+    *,
     uid: str,
-    email: str,
+    email: Optional[str],
     email_verified: bool,
     nickname: Optional[str],
 ) -> Optional[models.User]:
     try:
-        db_user = models.User(
-            uid=uid,
-            email=email,
-            email_verified=email_verified,
-            nickname=nickname,
-            last_login_at=now_jst(),
-            login_count=1,
-            updated_at=now_jst(),
+        update_set: dict = {
+            "last_login_at": func.now(),
+            "login_count": models.User.login_count + 1,
+            "email_verified": email_verified,
+        }
+        if email is not None:
+            update_set["email"] = email
+        if nickname is not None:
+            update_set["nickname"] = nickname
+
+        stmt = (
+            insert(models.User)
+            .values(
+                uid=uid,
+                email=email,
+                email_verified=email_verified,
+                nickname=nickname,
+                last_login_at=func.now(), 
+                login_count=1,
+            )
+            .on_conflict_do_update(
+                index_elements=[models.User.uid],
+                set_=update_set,
+            )
+            .returning(models.User.id)
         )
-        db.add(db_user)
+
+        res = await db.execute(stmt)
+        user_id = res.scalar_one()
         await db.commit()
-        await db.refresh(db_user)
-        return db_user
+
+        # ORMオブジェクトで返す（セッションにバインド）
+        return await db.get(models.User, user_id)
+
     except SQLAlchemyError as e:
         await db.rollback()
-        print(f"[DB ERROR] create_user: {e}")
+        logger.error("upsert_user_by_uid failed", exc_info=e)
         return None
 
 
-async def update_login_info(
-    db: AsyncSession, user: models.User
-) -> Optional[models.User]:
-    try:
-        user.last_login_at = now_jst()
-        user.login_count += 1
-        await db.commit()
-        await db.refresh(user)
-        return user
-    except SQLAlchemyError as e:
-        await db.rollback()
-        print(f"[DB ERROR] update_login_info: {e}")
-        return None
-
-
-# 初回ログインかどうかを判定し、
-# 既存ユーザーであればログイン情報を更新し、新規ユーザーであれば登録する
 async def get_or_create_user(
     db: AsyncSession,
     uid: str,
-    email: str,
+    email: Optional[str],
     email_verified: bool,
     nickname: Optional[str],
 ) -> Optional[models.User]:
-    user = await get_user_by_uid(db, uid)
-    if user:
-        return await update_login_info(db, user)
-    return await create_user(db, uid, email, email_verified, nickname)
+    return await upsert_user_by_uid(
+        db,
+        uid=uid,
+        email=email,
+        email_verified=email_verified,
+        nickname=nickname,
+    )
+
+# ユーザーに紐づくSubscriptionレコードの作成/更新
+async def upsert_subscription_customer_id(
+    db: AsyncSession,
+    *,
+    user_id: uuid.UUID,              # ← UUID に合わせる
+    stripe_customer_id: str,
+) -> Optional[models.Subscription]:
+    try:
+        stmt = (
+            insert(models.Subscription)
+            .values(
+                user_id=user_id,
+                stripe_customer_id=stripe_customer_id,
+            )
+            .on_conflict_do_update(
+                index_elements=[models.Subscription.user_id],
+                set_={"stripe_customer_id": stripe_customer_id},
+            )
+            .returning(models.Subscription.id)
+        )
+        res = await db.execute(stmt)
+        sub_id = res.scalar_one()
+        await db.commit()
+        return await db.get(models.Subscription, sub_id)
+
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error("upsert_subscription_customer_id failed", exc_info=e)
+        return None
+
+# 上のUPSERTを使い、必要なら user をリフレッシュ   
+async def update_stripe_customer_id(
+    db: AsyncSession, user: models.User, stripe_customer_id: str
+) -> Optional[models.User]:
+    sub = await upsert_subscription_customer_id(
+        db, user_id=user.id, stripe_customer_id=stripe_customer_id
+    )
+    if sub is None:
+        return None
+    try:
+        # user.subscriptions を直後に使うなら明示的に最新化
+        await db.refresh(user)
+    except SQLAlchemyError as e:
+        logger.warning("refresh user after subscription upsert failed", exc_info=e)
+    return user

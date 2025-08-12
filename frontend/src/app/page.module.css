@@ -23,13 +23,17 @@
 
 /* ローディングスピナーのアニメーション */
 @keyframes spin {
-  0% { transform: rotate(0deg); }
-  100% { transform: rotate(360deg); }
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
 }
 
 /* ログインボタンのホバー効果（疑似クラス） */
 .loginButton:hover {
-  background: #3367D6;
+  background: #3367d6;
   transform: translateY(-2px);
   box-shadow: 0 8px 24px rgba(66, 133, 244, 0.3);
 }
@@ -68,4 +72,76 @@
   margin: 0 0 24px 0;
   color: #666;
   font-size: 1rem;
+}
+
+.tooltipContainer {
+  position: relative;
+  display: inline-block;
+}
+
+.tooltipText {
+  visibility: hidden;
+  opacity: 0;
+  width: 280px;
+  background-color: #333;
+  color: #fff;
+  text-align: center;
+  border-radius: 8px;
+  padding: 12px 16px;
+  position: absolute;
+  z-index: 1000;
+  bottom: 125%;
+  left: 50%;
+  margin-left: -140px;
+  font-size: 14px;
+  line-height: 1.4;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.2);
+  transition:
+    opacity 0.3s ease,
+    visibility 0.3s ease;
+}
+
+.tooltipText::after {
+  content: '';
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  margin-left: -5px;
+  border-width: 5px;
+  border-style: solid;
+  border-color: #333 transparent transparent transparent;
+}
+
+/* デスクトップ用ホバー */
+.tooltipContainer:hover .tooltipText {
+  visibility: visible;
+  opacity: 1;
+}
+
+/* スマホ・タブレット対応 */
+@media (max-width: 768px) {
+  .tooltipText {
+    width: 250px;
+    margin-left: -125px;
+    font-size: 12px;
+    padding: 10px 12px;
+  }
+
+  /* タッチデバイス用：タップで表示/非表示 */
+  .tooltipContainer:active .tooltipText,
+  .tooltipContainer:focus .tooltipText {
+    visibility: visible;
+    opacity: 1;
+  }
+
+  /* タッチデバイスでは長押しでも表示 */
+  .tooltipContainer {
+    -webkit-tap-highlight-color: transparent;
+  }
+}
+
+/* ツールチップを「表示状態」にするスタイル */
+.tooltipText.show {
+  visibility: visible !important;
+  opacity: 1 !important;
 }
