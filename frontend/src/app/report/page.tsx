@@ -16,7 +16,7 @@ import styles from '../page.module.css';
 import KokoronReadingReport from '@/components/ui/KokoronReadingReport';
 
 export default function ReportPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout, login } = useAuth();
   const router = useRouter();
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
@@ -24,6 +24,15 @@ export default function ReportPage() {
   // 戻るボタンの処理
   const handleBack = () => {
     router.push('/');
+  };
+
+  // ログイン処理
+  const handleLogin = async () => {
+    try {
+      await login();
+    } catch (error) {
+      console.error('ログインエラー:', error);
+    }
   };
 
   // ログアウト処理
@@ -43,9 +52,25 @@ export default function ReportPage() {
 
   // ログインしていない場合
   if (!user) {
-    router.push('/');
-    return null;
+    return (
+      <div style={commonStyles.login.container}>
+        <div style={commonStyles.login.card}>
+          <h1>ようこそ！</h1>
+          <p>続けるにはログインしてください。</p>
+          <button
+            style={commonStyles.login.button}
+            className={styles.loginButton}
+            onClick={handleLogin}
+          >
+            Googleでログイン
+          </button>
+        </div>
+      </div>
+    );
   }
+
+  // TODO: userオブジェクトに紐づくsubscription.is_paidなどの会員状態で表示を切り替える
+  const isPaidMember = false; // 仮の変数
 
   return (
     <div style={commonStyles.page.container}>
@@ -78,7 +103,8 @@ export default function ReportPage() {
           <MenuItem>設定</MenuItem>
           <MenuItem>ロールプレイ</MenuItem>
           <MenuItem>レポート</MenuItem>
-          <MenuItem>アップグレード</MenuItem>
+          {/* 有料会員でない場合にアップグレードメニューを表示 */}
+          {!isPaidMember && <MenuItem>サブスクリプション</MenuItem>}
           <MenuItem onClick={handleLogout}>ログアウト</MenuItem>
         </ul>
       </HamburgerMenu>
@@ -109,14 +135,12 @@ export default function ReportPage() {
           }}
         >
           <PrimaryButton
-            className="text-small"
             onClick={() => setShowDailyReport(true)}
           >
             毎日のきろく
           </PrimaryButton>
 
           <PrimaryButton
-            className="text-small"
             onClick={() => setShowWeeklyReport(true)}
           >
             今週のきろく
