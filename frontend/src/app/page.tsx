@@ -114,7 +114,7 @@ export default function Home() {
           <MenuItem>ロールプレイ</MenuItem>
           <MenuItem onClick={() => router.push('/report')}>レポート</MenuItem>
           {/* 有料会員でない場合にアップグレードメニューを表示 */}
-          {!isPaidMember && <MenuItem>アップグレード</MenuItem>}
+          {!isPaidMember && <MenuItem>サブスクリプション</MenuItem>}
           <MenuItem onClick={handleLogout}>ログアウト</MenuItem>
         </ul>
       </HamburgerMenu>
