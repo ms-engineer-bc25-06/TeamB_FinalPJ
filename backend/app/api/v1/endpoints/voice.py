@@ -1,80 +1,64 @@
-"""
-音声処理関連のAPIエンドポイント（Phase 1: 基本構造）
-"""
+from datetime import datetime, timezone  # timezoneを追加
+from typing import Optional
 
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional
+import anyio
+from app.schemas.voice import VoiceTranscribeRequest, VoiceTranscribeResponse
+from app.services.whisper import WhisperService
 
-# データベース依存関係（後で設定）
-async def get_db():
-    # TODO: データベース接続設定
-    pass
-
-# ルーターの作成
 router = APIRouter(prefix="/voice", tags=["voice"])
 
-# 基本的なヘルスチェックエンドポイント
-@router.get(
-    "/health", 
-    summary="音声APIヘルスチェック", 
-    description="音声APIの稼働状態を確認します。"
-)
+# --- 依存性注入：WhisperService をシングルトンで使い回す ---
+_whisper_service: Optional[WhisperService] = None
+def get_whisper_service() -> WhisperService:
+    global _whisper_service
+    if _whisper_service is None:
+        _whisper_service = WhisperService()  # モデル読み込みは高コスト → 1回だけ
+    return _whisper_service
+
+@router.get("/health", summary="音声APIヘルスチェック", description="音声APIの稼働状態を確認します。")
 async def health_check():
-    """
-    音声APIのヘルスチェックエンドポイントです。
-    サービスが正常に動作しているかを確認するために使用します。
-    """
     return {"status": "healthy", "service": "voice-api"}
 
-# 音声認識エンドポイント（新機能）
 @router.post(
     "/transcribe",
+    response_model=VoiceTranscribeResponse,
     summary="音声認識実行",
-    description="""
-    アップロードされた音声ファイルをWhisper APIで音声認識し、テキストに変換します。
-    
-    ## 使用フロー
-    1. 音声ファイルがS3にアップロード済みであることを確認
-    2. このAPIで音声認識を実行
-    3. 認識結果をテキストファイルとしてS3に保存
-    4. 認識結果をデータベースに記録
-    
-    ## 使用例（JavaScript）
-    ```javascript
-    // 音声認識を実行
-    const response = await fetch('/api/v1/voice/transcribe', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        user_id: 1,
-        audio_file_path: 's3://bucket-name/audio/1/audio_20241201_143022_abc123.wav',
-        language: 'ja'  // オプション: ja, en, auto
-      })
-    });
-    
-    const { transcription_id, text, confidence } = await response.json();
-    ```
-    
-    ## 対応言語
-    - **日本語 (ja)**: 日本語音声の認識
-    - **英語 (en)**: 英語音声の認識
-    - **自動検出 (auto)**: 言語を自動判定
-    
-    ## 処理時間
-    - 短い音声（30秒以下）: 数秒
-    - 長い音声（5分程度）: 数十秒
-    - 処理状況はWebSocketでリアルタイム通知予定
-    
-    ## 認識精度
-    - 高品質な音声（WAV形式推奨）
-    - ノイズの少ない環境
-    - 明確な発音
-    """
+    description="S3にある音声をWhisperで文字起こしして返します。"
 )
-async def transcribe_voice():
-    """
-    S3に保存されている音声ファイルをWhisper APIに送信し、音声認識を実行します。
-    認識結果はデータベースに保存され、テキストとして返却されます。
-    """
-    return {"message": "Transcribe endpoint - coming soon"}
+async def transcribe_voice(
+    request: VoiceTranscribeRequest,
+    whisper: WhisperService = Depends(get_whisper_service),
+    # db: AsyncSession = Depends(get_db),  # 将来DB保存するなら有効化
+) -> VoiceTranscribeResponse:
+    try:
+        # WhisperService.transcribe_audio は同期関数だと仮定
+        result = await anyio.to_thread.run_sync(
+            whisper.transcribe_audio,
+            request.audio_file_path,
+            request.language or "ja",
+        )
+
+        # confidence が無い実装の場合に備えてデフォルト
+        confidence = result.get("confidence", 0.0)
+        duration = float(result.get("duration", 0.0))
+        language = result.get("language", request.language or "ja")
+        text = result.get("text", "")
+
+        # TODO: 実際はDB保存して、そのレコードIDを使う
+        return VoiceTranscribeResponse(
+            success=True,
+            transcription_id=1,
+            text=text,
+            confidence=confidence,
+            language=language,
+            duration=duration,
+            processed_at = datetime.now(timezone.utc),
+        )
+
+    except HTTPException:
+        raise  # 既に適切なHTTP例外ならそのまま
+    except Exception as e:
+        # TODO: ロガーで記録（例: logger.exception("Transcribe failed")）
+        raise HTTPException(status_code=500, detail="Transcription failed")
