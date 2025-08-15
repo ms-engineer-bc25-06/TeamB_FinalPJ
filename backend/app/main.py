@@ -23,7 +23,7 @@ load_dotenv()
 
 #  Firebase Adminの初期化し秘密鍵を読み込む
 cred_path = os.getenv(
-    "GOOGLE_APPLICATION_CREDENTIALS", "firebase-service-account.json"
+    "GOOGLE_APPLICATION_CREDENTIALS", "/firebase-service-account.json"
 )
 cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred)
