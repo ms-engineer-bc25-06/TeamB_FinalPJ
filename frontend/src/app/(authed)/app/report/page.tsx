@@ -17,7 +17,7 @@ import styles from '../../../page.module.css';
 import KokoronReadingReport from '@/components/ui/KokoronReadingReport';
 
 export default function ReportPage() {
-  const { user, isLoading } = useAuth();
+  const { user, isLoading, logout } = useAuth();
   const router = useRouter();
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
@@ -110,14 +110,12 @@ export default function ReportPage() {
           }}
         >
           <PrimaryButton
-            className="text-small"
             onClick={() => setShowDailyReport(true)}
           >
             毎日のきろく
           </PrimaryButton>
 
           <PrimaryButton
-            className="text-small"
             onClick={() => setShowWeeklyReport(true)}
           >
             今週のきろく
