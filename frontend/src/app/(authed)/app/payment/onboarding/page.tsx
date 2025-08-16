@@ -3,12 +3,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import {
-  KokoronDefault,
-  SpeechBubble,
-  PrimaryButton,
-  Spinner,
-} from '@/components/ui';
+import { SpeechBubble, PrimaryButton, Spinner } from '@/components/ui';
+import KokoronBowing from '@/components/ui/KokoronBowing';
 import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
 
 export default function PaymentOnboardingPage() {
@@ -18,14 +14,11 @@ export default function PaymentOnboardingPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // 決済成功後の処理
     const processPaymentSuccess = async () => {
       try {
-        // URLパラメータから必要な情報を取得
         const sessionId = searchParams.get('session_id');
 
         if (sessionId) {
-          // バックエンドに決済完了を通知してユーザーの権限を更新
           const response = await fetch('/api/payment/verify', {
             method: 'POST',
             headers: {
@@ -58,11 +51,6 @@ export default function PaymentOnboardingPage() {
   const handleStartUsingAllFeatures = () => {
     // 全機能が使えるホーム画面に戻る
     router.push('/app');
-  };
-
-  const handleViewReports = () => {
-    // レポート機能を試してもらう
-    router.push('/app/report');
   };
 
   if (isProcessing) {
@@ -117,11 +105,11 @@ export default function PaymentOnboardingPage() {
     <div style={commonStyles.page.container}>
       <div style={commonStyles.page.mainContent}>
         {/* 吹き出し */}
-        <SpeechBubble text="おめでとうございます！\nプレミアム会員になりました！" />
+        <SpeechBubble text="プレミアムプランをご利用いただき、本当にありがとうございます！" />
 
-        {/* こころんキャラクター */}
+        {/* こころんアイコン */}
         <div style={commonStyles.page.kokoronContainer}>
-          <KokoronDefault size={200} />
+          <KokoronBowing size={200} />
         </div>
 
         {/* 成功メッセージカード */}
@@ -154,7 +142,7 @@ export default function PaymentOnboardingPage() {
               margin: `0 0 ${spacing.md} 0`,
             }}
           >
-            ようこそプレミアム会員へ！
+            プレミアム会員になりました！
           </h1>
 
           <p
@@ -167,7 +155,9 @@ export default function PaymentOnboardingPage() {
           >
             🔓 <strong>すべての機能が解放されました！</strong>
             <br />
-            こころんとの特別な時間をお楽しみください。
+            こころんと一緒に、
+            <br />
+            お子さんの心を育む毎日を楽しみましょう。
           </p>
 
           {/* 主要機能の紹介 */}
@@ -189,7 +179,7 @@ export default function PaymentOnboardingPage() {
                 textAlign: 'center',
               }}
             >
-              ✨ 新しく使える機能
+              ✨ 主要な機能
             </h3>
             <div
               style={{
@@ -199,16 +189,16 @@ export default function PaymentOnboardingPage() {
               }}
             >
               <div style={{ marginBottom: spacing.xs }}>
-                📊 <strong>詳細レポート</strong> - 感情の変化を分析
+                📊 <strong>詳細レポート</strong> - お子様の感情記録
               </div>
               <div style={{ marginBottom: spacing.xs }}>
-                💬 <strong>無制限会話</strong> - 回数制限なし
+                🎭 <strong>ロールプレイ</strong> - 様々なシナリオ
               </div>
               <div style={{ marginBottom: spacing.xs }}>
-                🤖 <strong>AI分析</strong> - 高度な感情理解
+                📈 <strong>成長記録</strong> - 長期間の追跡
               </div>
               <div>
-                📈 <strong>成長記録</strong> - 長期間の追跡
+                🤖 <strong>AI分析</strong> - 高度な感情理解
               </div>
             </div>
           </div>
@@ -223,58 +213,17 @@ export default function PaymentOnboardingPage() {
             }}
           >
             <PrimaryButton onClick={handleStartUsingAllFeatures}>
-              すべての機能を使ってみる
+              早速使ってみる
             </PrimaryButton>
-
-            <button
-              onClick={handleViewReports}
+            <div
               style={{
-                background: 'none',
-                border: `2px solid #2196F3`,
-                color: '#2196F3',
-                borderRadius: '20px',
-                padding: `${spacing.xs} ${spacing.md}`,
-                fontSize: fontSize.small,
-                cursor: 'pointer',
-                transition: 'all 0.3s ease',
-                minWidth: '200px',
+                display: 'flex',
+                gap: spacing.sm,
+                flexWrap: 'wrap',
+                justifyContent: 'center',
               }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = '#2196F3';
-                e.currentTarget.style.color = colors.text.white;
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = 'transparent';
-                e.currentTarget.style.color = '#2196F3';
-              }}
-            >
-              📊 レポートを見る
-            </button>
+            ></div>
           </div>
-        </div>
-
-        {/* 感謝メッセージ */}
-        <div
-          style={{
-            textAlign: 'center',
-            maxWidth: '350px',
-            marginTop: spacing.lg,
-          }}
-        >
-          <p
-            style={{
-              fontSize: fontSize.small,
-              color: colors.text.secondary,
-              lineHeight: 1.5,
-              margin: 0,
-            }}
-          >
-            プレミアムプランをご利用いただき、
-            <br />
-            本当にありがとうございます！
-            <br />
-            <strong>こころんと一緒に、素敵な感情の旅を始めましょう！</strong>
-          </p>
         </div>
       </div>
     </div>
