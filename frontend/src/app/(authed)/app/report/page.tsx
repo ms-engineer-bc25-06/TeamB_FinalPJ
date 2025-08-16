@@ -13,7 +13,7 @@ import {
   HamburgerMenu,
   MenuItem,
 } from '@/components/ui';
-import styles from '../page.module.css';
+import styles from '../../../page.module.css';
 import KokoronReadingReport from '@/components/ui/KokoronReadingReport';
 
 export default function ReportPage() {
