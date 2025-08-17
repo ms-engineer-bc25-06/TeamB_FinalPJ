@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { KokoronDefault, SpeechBubble, Spinner } from '@/components/ui';
@@ -16,6 +16,22 @@ export default function LoginPage() {
   const { user, isLoading, login } = useAuth();
   const router = useRouter();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
+  const [shouldRedirect, setShouldRedirect] = useState(false);
+
+  useEffect(() => {
+    // レンダリング完了後にリダイレクトフラグを設定
+    setShouldRedirect(true);
+  }, []);
+
+  useEffect(() => {
+    if (shouldRedirect) {
+      const timer = setTimeout(() => {
+        router.push('/app');
+      }, 100);
+      
+      return () => clearTimeout(timer);
+    }
+  }, [shouldRedirect, router]);
 
   // すでにログイン済みの場合はアプリに遷移
   if (user) {

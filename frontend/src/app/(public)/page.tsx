@@ -18,9 +18,8 @@ import {
 } from '@/styles/theme';
 
 export default function LandingPage() {
-  const { user, isLoading, login } = useAuth();
+  const { user } = useAuth();
   const router = useRouter();
-  const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   // ログイン済みの場合はアプリに遷移
   // if (user) {
@@ -28,26 +27,11 @@ export default function LandingPage() {
   //   return null;
   // }
 
-  const handleLogin = async () => {
-    setIsLoginLoading(true);
-    try {
-      await login();
-      router.push('/app');
-    } catch (error) {
-      console.error('ログインエラー:', error);
-    } finally {
-      setIsLoginLoading(false);
-    }
+  const handleLogin = () => {
+    router.push('/login');
   };
 
-  if (isLoading) {
-    return (
-      <div style={commonStyles.loading.container}>
-        <Spinner size="medium" />
-        <p>読み込み中...</p>
-      </div>
-    );
-  }
+
 
   return (
     <div style={{
@@ -98,9 +82,8 @@ export default function LandingPage() {
         >
           <PrimaryButton
             onClick={handleLogin}
-            disabled={isLoginLoading}
           >
-            {isLoginLoading ? '処理中...' : 'ログインする'}
+            ログインする
           </PrimaryButton>
         </div>
       </div>

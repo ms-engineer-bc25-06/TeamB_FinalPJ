@@ -8,10 +8,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <AuthProvider>
-      {/* <LocalizationProvider dateAdapter={AdapterDayjs}> */}
-      {children}
-      {/* </LocalizationProvider> */}
-    </AuthProvider>
+    <html lang="ja">
+      <body>
+        <AuthProvider>
+          {children}
+        </AuthProvider>
+      </body>
+    </html>
   );
 }
