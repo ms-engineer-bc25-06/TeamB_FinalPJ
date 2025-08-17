@@ -16,29 +16,24 @@ export default function LoginPage() {
   const { user, isLoading, login } = useAuth();
   const router = useRouter();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
-  const [shouldRedirect, setShouldRedirect] = useState(false);
 
+  // ログイン済みの場合はリダイレクト
   useEffect(() => {
-    // レンダリング完了後にリダイレクトフラグを設定
-    setShouldRedirect(true);
-  }, []);
-
-  useEffect(() => {
-    if (shouldRedirect) {
+    if (user) {
       const timer = setTimeout(() => {
         router.push('/app');
       }, 100);
       
       return () => clearTimeout(timer);
     }
-  }, [shouldRedirect, router]);
+  }, [user, router]);
 
-  // すでにログイン済みの場合はアプリに遷移
+  // ログイン済みの場合は何も表示しない
   if (user) {
-    router.push('/app');
     return null;
   }
 
+  // ログインしていない場合の通常のレンダリング
   const handleLogin = async () => {
     setIsLoginLoading(true);
     try {
