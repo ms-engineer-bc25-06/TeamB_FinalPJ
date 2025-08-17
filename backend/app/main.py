@@ -13,7 +13,8 @@ from app import crud, schemas
 from app.database import engine, async_session_local, get_db
 from app.models import Base, User
 
-from app.voice_api import router as voice_router
+from app.api.v1.endpoints.voice import router as new_voice_router
+from app.utils.error_handlers import register_error_handlers
 from app.emotion_color_api import router as emotion_color_router
 from app.stripe_api import router as stripe_router
 
@@ -48,6 +49,9 @@ app = FastAPI(
     openapi_components={"securitySchemes": security_schemes}
 )
 
+# エラーハンドラの登録
+register_error_handlers(app)
+
 # CORSミドルウェア設定
 origins = [
     "http://localhost:3000",
@@ -62,10 +66,9 @@ app.add_middleware(
 )
 
 # ルーター登録
-app.include_router(voice_router)
+app.include_router(new_voice_router, prefix="/api/v1")
 app.include_router(emotion_color_router)
 app.include_router(stripe_router)
-
 
 
 # ログイン

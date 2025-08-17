@@ -17,3 +17,9 @@ boto3==1.34.0
 python-multipart==0.0.7
 # Stripeライブラリ
 stripe==12.4.0
+# 音声認識 (Whisper)
+openai-whisper==20231117
+numpy==1.24.3
+# 音声処理
+ffmpeg-python==0.2.0
+pydub==0.25.1
