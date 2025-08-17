@@ -5,7 +5,6 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
-  KokoronDefault,
   SpeechBubble,
   PrimaryButton,
   Spinner,
@@ -24,10 +23,10 @@ export default function LandingPage() {
   const [isLoginLoading, setIsLoginLoading] = useState(false);
 
   // ログイン済みの場合はアプリに遷移
-  if (user) {
-    router.push('/app');
-    return null;
-  }
+  // if (user) {
+  //   router.push('/app');
+  //   return null;
+  // }
 
   const handleLogin = async () => {
     setIsLoginLoading(true);
@@ -55,7 +54,13 @@ export default function LandingPage() {
   }
 
   return (
-    <div style={commonStyles.page.container}>
+    <div style={{
+      ...commonStyles.page.container,
+      backgroundImage: 'url(/images/publictopbackground.webp)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    }}>
       <div style={commonStyles.page.mainContent}>
         {/* ヒーローセクション */}
         <div style={{ textAlign: 'center', marginBottom: spacing.xxl }}>
@@ -89,11 +94,10 @@ export default function LandingPage() {
         </div>
 
         {/* こころんキャラクター */}
-        <SpeechBubble text="はじめまして！\nいっしょに きもちを たんけんしよう！" />
-
-        <div style={commonStyles.page.kokoronContainer}>
-          <KokoronDefault size={280} />
-        </div>
+        <SpeechBubble 
+          text="はじめまして！\nいっしょに きもちを たんけんしよう！"
+          style={{ whiteSpace: 'pre-line' }}
+        />
 
         {/* CTA ボタン */}
         <div
