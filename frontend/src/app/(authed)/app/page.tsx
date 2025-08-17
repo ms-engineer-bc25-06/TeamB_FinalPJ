@@ -28,16 +28,23 @@ export default function AppHomePage() {
   const { todayEntry } = useTodayEntry();
   const router = useRouter();
 
-  // 初回セットアップが必要かチェック
-  const needsSetup = !user?.nickname;
+  // サブスク未登録の場合のチェック
+  const needsSubscription = !subscription || subscription.status === 'incomplete';
+  
+  // 初回セットアップが必要かチェック（サブスク登録済みの場合のみ）
+  const needsSetup = !needsSubscription && !user?.nickname;
 
   useEffect(() => {
-    if (needsSetup) {
+    if (needsSubscription) {
+      // サブスク未登録の場合はStripeチェックアウトへ
+      router.push('/subscription');
+    } else if (needsSetup) {
+      // サブスク登録済みでセットアップが必要な場合はセットアップページへ
       router.push('/app/setup');
     }
-  }, [needsSetup, router]);
+  }, [needsSubscription, needsSetup, router]);
 
-   // おしゃべりボタンが押された時の処理
+  // おしゃべりボタンが押された時の処理
   const handleStartEmotion = () => {
     router.push('/app/emotion-selection');
   };
@@ -62,7 +69,7 @@ export default function AppHomePage() {
   };
 
   // ローディング中
-  if (isLoading) {
+  if (isLoading || subLoading) {
     return (
       <div style={commonStyles.loading.container}>
         <Spinner size="medium" />
@@ -87,6 +94,11 @@ export default function AppHomePage() {
         </div>
       </div>
     );
+  }
+
+  // サブスク未登録またはセットアップ中の場合は何も表示しない
+  if (needsSubscription || needsSetup) {
+    return null;
   }
 
   // サブスクリプション状態に応じたメッセージ
@@ -121,10 +133,6 @@ export default function AppHomePage() {
     }
     return 'きょうは どんな きもち？\nおしえて くださいね！';
   };
-
-  if (needsSetup) {
-    return null; // セットアップページにリダイレクト中
-  }
 
   return (
     <div style={commonStyles.page.container}>
