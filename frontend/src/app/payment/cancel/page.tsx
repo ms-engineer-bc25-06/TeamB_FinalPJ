@@ -2,7 +2,7 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { KokoronDefault, SpeechBubble, PrimaryButton } from '@/components/ui';
+import { PrimaryButton } from '@/components/ui';
 import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
 
 export default function PaymentCancelPage() {
