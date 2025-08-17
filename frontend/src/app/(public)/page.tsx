@@ -40,10 +40,6 @@ export default function LandingPage() {
     }
   };
 
-  const handleStartFreeTrial = () => {
-    router.push('/login');
-  };
-
   if (isLoading) {
     return (
       <div style={commonStyles.loading.container}>
@@ -61,22 +57,13 @@ export default function LandingPage() {
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
     }}>
-      <div style={commonStyles.page.mainContent}>
+      <div style={{
+        ...commonStyles.page.mainContent,
+        paddingTop: '350px', 
+      }}>
         {/* ヒーローセクション */}
         <div style={{ textAlign: 'center', marginBottom: spacing.xxl }}>
-          <h1
-            style={{
-              fontSize: '2.5rem',
-              fontWeight: 'bold',
-              color: colors.text.primary,
-              marginBottom: spacing.lg,
-              lineHeight: 1.2,
-            }}
-          >
-            こころんと一緒に
-            <br />
-            感情を育もう
-          </h1>
+
 
           <p
             style={{
@@ -84,7 +71,7 @@ export default function LandingPage() {
               color: colors.text.secondary,
               marginBottom: spacing.xl,
               lineHeight: 1.6,
-              maxWidth: '400px',
+              maxWidth: '700px',
               margin: `0 auto ${spacing.xl} auto`,
             }}
           >
@@ -93,12 +80,12 @@ export default function LandingPage() {
           </p>
         </div>
 
-        {/* こころんキャラクター */}
+        {/* こころん吹き出し */}
         <SpeechBubble 
-          text="はじめまして！\nいっしょに きもちを たんけんしよう！"
-          style={{ whiteSpace: 'pre-line' }}
+          text="
+          いっしょに きもちを たんけんしよう！"
         />
-
+        <div style={{ marginBottom: '400px' }}></div>
         {/* CTA ボタン */}
         <div
           style={{
@@ -106,111 +93,15 @@ export default function LandingPage() {
             flexDirection: 'column',
             gap: spacing.md,
             alignItems: 'center',
-            marginTop: spacing.xl,
+            marginTop: '30px',
           }}
         >
           <PrimaryButton
-            onClick={handleStartFreeTrial}
-            disabled={isLoginLoading}
-          >
-            {isLoginLoading ? '処理中...' : '7日間無料で始める'}
-          </PrimaryButton>
-
-          <button
             onClick={handleLogin}
-            style={{
-              background: 'none',
-              border: `2px solid ${colors.primary}`,
-              color: colors.primary,
-              borderRadius: '25px',
-              padding: `${spacing.sm} ${spacing.lg}`,
-              fontSize: fontSize.base,
-              cursor: 'pointer',
-              transition: 'all 0.3s ease',
-              minWidth: '200px',
-            }}
             disabled={isLoginLoading}
           >
-            すでにアカウントをお持ちの方
-          </button>
-        </div>
-
-        {/* 特徴紹介 */}
-        <div
-          style={{
-            marginTop: spacing.xxl,
-            display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(250px, 1fr))',
-            gap: spacing.lg,
-            maxWidth: '800px',
-            width: '100%',
-          }}
-        >
-          <div
-            style={{
-              backgroundColor: colors.background.white,
-              borderRadius: borderRadius.medium,
-              padding: spacing.lg,
-              textAlign: 'center',
-              boxShadow: colors.shadow.light,
-            }}
-          >
-            <div style={{ fontSize: '3rem', marginBottom: spacing.md }}>🎯</div>
-            <h3
-              style={{ color: colors.text.primary, marginBottom: spacing.sm }}
-            >
-              感情を理解する
-            </h3>
-            <p
-              style={{ color: colors.text.secondary, fontSize: fontSize.small }}
-            >
-              AIが子どもの感情を分析し、適切なサポートを提供します
-            </p>
-          </div>
-
-          <div
-            style={{
-              backgroundColor: colors.background.white,
-              borderRadius: borderRadius.medium,
-              padding: spacing.lg,
-              textAlign: 'center',
-              boxShadow: colors.shadow.light,
-            }}
-          >
-            <div style={{ fontSize: '3rem', marginBottom: spacing.md }}>📊</div>
-            <h3
-              style={{ color: colors.text.primary, marginBottom: spacing.sm }}
-            >
-              成長を記録
-            </h3>
-            <p
-              style={{ color: colors.text.secondary, fontSize: fontSize.small }}
-            >
-              日々の感情の変化を記録し、成長の軌跡を可視化します
-            </p>
-          </div>
-
-          <div
-            style={{
-              backgroundColor: colors.background.white,
-              borderRadius: borderRadius.medium,
-              padding: spacing.lg,
-              textAlign: 'center',
-              boxShadow: colors.shadow.light,
-            }}
-          >
-            <div style={{ fontSize: '3rem', marginBottom: spacing.md }}>🎭</div>
-            <h3
-              style={{ color: colors.text.primary, marginBottom: spacing.sm }}
-            >
-              楽しく学習
-            </h3>
-            <p
-              style={{ color: colors.text.secondary, fontSize: fontSize.small }}
-            >
-              ゲーム感覚で感情について学び、表現力を育みます
-            </p>
-          </div>
+            {isLoginLoading ? '処理中...' : 'ログインする'}
+          </PrimaryButton>
         </div>
       </div>
     </div>
