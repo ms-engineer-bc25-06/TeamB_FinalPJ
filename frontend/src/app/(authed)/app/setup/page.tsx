@@ -19,7 +19,7 @@ export default function SetupPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [childName, setChildName] = useState('');
-  const [childAge, setChildAge] = useState('');
+  const [childAge] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -55,7 +55,7 @@ export default function SetupPage() {
   return (
     <div style={commonStyles.page.container}>
       <div style={commonStyles.page.mainContent}>
-        <SpeechBubble text="はじめまして！\nあなたのことを おしえてくださいね！" />
+        <SpeechBubble text="はじめまして！なんてよんだらいいかな？" />
 
         <div style={commonStyles.page.kokoronContainer}>
           <KokoronDefault size={200} />
@@ -91,7 +91,7 @@ export default function SetupPage() {
                 style={{
                   display: 'block',
                   color: colors.text.primary,
-                  fontSize: fontSize.base,
+                  fontSize: fontSize.xl,
                   fontWeight: 'bold',
                   marginBottom: spacing.sm,
                 }}
@@ -109,57 +109,33 @@ export default function SetupPage() {
                   padding: spacing.md,
                   border: `2px solid ${colors.primary}`,
                   borderRadius: borderRadius.medium,
-                  fontSize: fontSize.base,
+                  fontSize: fontSize.xl,
                   outline: 'none',
                   boxSizing: 'border-box',
                 }}
               />
             </div>
 
-            <div style={{ marginBottom: spacing.xl }}>
-              <label
+            <div style={{ textAlign: 'center' }}>
+              <button
+                type="submit"
+                disabled={!childName.trim() || isSubmitting}
                 style={{
-                  display: 'block',
-                  color: colors.text.primary,
-                  fontSize: fontSize.base,
+                  background: colors.primary,
+                  color: colors.text.white,
+                  border: 'none',
+                  borderRadius: borderRadius.button,
+                  padding: `${spacing.md} ${spacing.xl}`,
+                  fontSize: fontSize.xl,
                   fontWeight: 'bold',
-                  marginBottom: spacing.sm,
+                  cursor: 'pointer',
+                  minWidth: '200px',
                 }}
               >
-                年齢
-              </label>
-              <select
-                value={childAge}
-                onChange={(e) => setChildAge(e.target.value)}
-                required
-                style={{
-                  width: '100%',
-                  padding: spacing.md,
-                  border: `2px solid ${colors.primary}`,
-                  borderRadius: borderRadius.medium,
-                  fontSize: fontSize.base,
-                  outline: 'none',
-                  backgroundColor: colors.background.white,
-                  boxSizing: 'border-box',
-                }}
-              >
-                <option value="">年齢を選択してください</option>
-                {Array.from({ length: 10 }, (_, i) => i + 3).map((age) => (
-                  <option key={age} value={age}>
-                    {age}歳
-                  </option>
-                ))}
-              </select>
+                {isSubmitting ? '設定中...' : 'はじめる'}
+              </button>
             </div>
-
-            <PrimaryButton
-              onClick={() => handleSubmit({} as React.FormEvent)}
-              disabled={!childName.trim() || !childAge || isSubmitting}
-            >
-              {isSubmitting ? '設定中...' : 'はじめる'}
-            </PrimaryButton>
           </form>
-
           <div
             style={{
               marginTop: spacing.lg,
@@ -172,9 +148,7 @@ export default function SetupPage() {
             }}
           >
             <p style={{ margin: 0 }}>
-              💡 この情報は、お子さまに合わせた
-              <br />
-              より良い体験を提供するために使用されます
+              💡 アプリを使用いただくお子様のお名前をご入力ください
             </p>
           </div>
         </div>
