@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { KokoronDefault, SpeechBubble, Spinner } from '@/components/ui';
+import { Spinner } from '@/components/ui';
 import {
   colors,
   commonStyles,
@@ -72,7 +72,7 @@ export default function LoginPage() {
             left: spacing.lg,
             background: 'none',
             border: 'none',
-            fontSize: '24px',
+            fontSize: '16px',
             cursor: 'pointer',
             color: colors.text.secondary,
           }}
@@ -80,21 +80,16 @@ export default function LoginPage() {
           ← 戻る
         </button>
 
-        <SpeechBubble text="ログインして\nこころんと おはなししよう！" />
-
-        <div style={commonStyles.page.kokoronContainer}>
-          <KokoronDefault size={200} />
-        </div>
 
         {/* ログインカード */}
         <div
           style={{
             backgroundColor: colors.background.white,
-            borderRadius: '16px',
+            borderRadius: '20px',
             padding: spacing.xl,
             boxShadow: colors.shadow.heavy,
             textAlign: 'center',
-            maxWidth: '400px',
+            maxWidth: '100%',
             width: '100%',
             margin: `${spacing.lg} 0`,
           }}
@@ -102,25 +97,25 @@ export default function LoginPage() {
           <h1
             style={{
               color: colors.text.primary,
-              fontSize: fontSize.xl,
+              fontSize: fontSize.xxl, // fontSize.xl → fontSize.xxl に変更
               fontWeight: 'bold',
               marginBottom: spacing.lg,
             }}
           >
-            ログイン
+            <span style={{ color: colors.primary }}>STEP1</span> ログイン
           </h1>
 
           <p
             style={{
               color: colors.text.secondary,
-              fontSize: fontSize.base,
+              fontSize: fontSize.large, // fontSize.base → fontSize.large に変更
               marginBottom: spacing.xl,
               lineHeight: 1.6,
             }}
           >
-            Googleアカウントでログインして、
+            アプリをご利用いただくには、
             <br />
-            7日間の無料体験を始めましょう！
+            Googleアカウントでログインが必要です。
           </p>
 
           <button
@@ -150,21 +145,21 @@ export default function LoginPage() {
             )}
           </button>
 
+          {/* ボタンの下の説明文も大きく */}
           <div
             style={{
               marginTop: spacing.lg,
               padding: spacing.md,
               backgroundColor: '#f8f9fa',
               borderRadius: borderRadius.small,
-              fontSize: fontSize.small,
+              fontSize: fontSize.base, // fontSize.small → fontSize.base に変更
               color: colors.text.secondary,
               lineHeight: 1.4,
+              textAlign: 'left', // 左寄せを追加
             }}
           >
             <p style={{ margin: 0 }}>
-              ✅ 7日間完全無料
-              <br />✅ いつでもキャンセル可能
-              <br />✅ クレジットカード不要
+              ✅ ログイン後、決済情報の入力をいただいた後に7日間の無料体験をご利用いただけるようになります。
             </p>
           </div>
         </div>
