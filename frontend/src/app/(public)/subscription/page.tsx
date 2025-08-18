@@ -96,7 +96,13 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div style={commonStyles.page.container}>
+    <div style={{
+      ...commonStyles.page.container,
+      backgroundImage: 'url(/images/background.webp)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    }}>
       <div style={commonStyles.page.mainContent}>
         {/* 戻るボタン */}
         {firebaseUser && (
