@@ -3,9 +3,12 @@
 
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/hooks/useSubscription';
+import { useEffect } from 'react';
 import {
   SpeechBubble,
   PrimaryButton,
+  Spinner,
 } from '@/components/ui';
 import {
   colors,
@@ -16,11 +19,33 @@ import {
 
 export default function LandingPage() {
   const { user } = useAuth();
+  const { subscription, isLoading: subLoading } = useSubscription();
   const router = useRouter();
 
-  // ログイン済みの場合はアプリに遷移
-  if (user) {
-    router.push('/app');
+  // デバッグログを追加
+  console.log('LandingPage render:', { user, subscription, subLoading });
+
+  // ログイン済みかつサブスクリプション登録済みの場合のみアプリに遷移
+  useEffect(() => {
+    if (user && subscription && !subLoading) {
+      console.log('Redirecting to /app');
+      router.push('/app');
+    }
+  }, [user, subscription, subLoading, router]);
+
+  // サブスクリプション情報の読み込み中はローディング表示
+  if (subLoading) {
+    return (
+      <div style={commonStyles.loading.container}>
+        <Spinner size="medium" />
+        <p>読み込み中...</p>
+      </div>
+    );
+  }
+
+  // ログイン済みかつサブスクリプション登録済みの場合は何も表示しない
+  if (user && subscription && !subLoading) {
+    console.log('Returning null - user logged in with subscription');
     return null;
   }
 

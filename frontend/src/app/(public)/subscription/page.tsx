@@ -14,8 +14,6 @@ import {
 } from '@/styles/theme';
 import { createCheckoutSession, redirectToStripeCheckout } from '@/lib/api';
 
-
-
 export default function SubscriptionPage() {
   const { firebaseUser } = useAuth();
   const router = useRouter();
@@ -33,13 +31,12 @@ export default function SubscriptionPage() {
     try {
       // 1) Firebaseの最新IDトークン
       const idToken = await firebaseUser.getIdToken(true);
-      
+
       // 2) Checkout Session 作成
       const sessionId = await createCheckoutSession(idToken);
-      
+
       // 3) Stripe.jsでリダイレクト
       await redirectToStripeCheckout(sessionId);
-      
     } catch (err) {
       console.error('Subscription error:', err);
       alert('決済ページの作成に失敗しました。もう一度お試しください。');
@@ -48,8 +45,11 @@ export default function SubscriptionPage() {
     }
   };
 
-  const handleBackToApp = () => {
-    router.push('/app');
+  const handleBackToPublicTop = () => {
+    console.log('戻るボタンがクリックされました'); // デバッグログ
+    console.log('現在のパス:', window.location.pathname); // 現在のパスを確認
+    router.push('/login');
+    console.log('router.push("/login")が実行されました'); // 遷移処理の確認
   };
 
   if (isLoading) {
@@ -62,32 +62,32 @@ export default function SubscriptionPage() {
   }
 
   return (
-    <div style={{
-      ...commonStyles.page.container,
-      backgroundImage: 'url(/images/background.webp)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-    }}>
+    <div
+      style={{
+        ...commonStyles.page.container,
+        backgroundImage: 'url(/images/background.webp)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
       <div style={commonStyles.page.mainContent}>
         {/* 戻るボタン */}
-        {firebaseUser && (
-          <button
-            onClick={handleBackToApp}
-            style={{
-              position: 'absolute',
-              top: spacing.lg,
-              left: spacing.lg,
-              background: 'none',
-              border: 'none',
-              fontSize: '20px',
-              cursor: 'pointer',
-              color: colors.text.secondary,
-            }}
-          >
-            ← アプリに戻る
-          </button>
-        )}
+        <button
+          onClick={handleBackToPublicTop} 
+          style={{
+            position: 'absolute',
+            top: '12px',
+            left: '12px',
+            background: 'none',
+            border: 'none',
+            fontSize: '20px',
+            cursor: 'pointer',
+            color: colors.text.secondary,
+          }}
+        >
+          ← 戻る
+        </button>
 
         <div style={commonStyles.page.kokoronContainer}>
           <KokoronDefault size={200} />
@@ -236,10 +236,7 @@ export default function SubscriptionPage() {
             </div>
           </div>
 
-          <PrimaryButton
-            onClick={handleStartSubscription}
-            disabled={isLoading}
-          >
+          <PrimaryButton onClick={handleStartSubscription} disabled={isLoading}>
             {isLoading ? '処理中...' : '7日間無料で始める'}
           </PrimaryButton>
 

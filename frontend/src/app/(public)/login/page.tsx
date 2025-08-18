@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { Spinner } from '@/components/ui';
@@ -13,32 +13,16 @@ import {
 } from '@/styles/theme';
 
 export default function LoginPage() {
-  const { user, isLoading, login } = useAuth();
+  const { isLoading, login, logout } = useAuth(); // logoutを追加
   const router = useRouter();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
-
-  // ログイン済みの場合はリダイレクト
-  useEffect(() => {
-    if (user) {
-      const timer = setTimeout(() => {
-        router.push('/app');
-      }, 100);
-      
-      return () => clearTimeout(timer);
-    }
-  }, [user, router]);
-
-  // ログイン済みの場合は何も表示しない
-  if (user) {
-    return null;
-  }
 
   // ログインしていない場合の通常のレンダリング
   const handleLogin = async () => {
     setIsLoginLoading(true);
     try {
       await login();
-      router.push('/app');
+      router.push('/subscription'); // ログイン後にサブスクリプションページに遷移
     } catch (error) {
       console.error('ログインエラー:', error);
       alert('ログインに失敗しました。もう一度お試しください。');
@@ -47,8 +31,15 @@ export default function LoginPage() {
     }
   };
 
-  const handleBackToHome = () => {
-    router.push('/');
+  const handleBackToHome = async () => {
+    try {
+      await logout(); // ログアウト処理
+      console.log('ログアウト完了');
+      router.push('/'); // ログアウト後にトップページに遷移
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+      alert('ログアウトに失敗しました');
+    }
   };
 
   if (isLoading) {
