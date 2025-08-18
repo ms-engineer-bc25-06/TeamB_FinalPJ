@@ -1,7 +1,8 @@
 'use client';
 
 import { useRouter } from 'next/navigation';
-import { KokoronDefault, SpeechBubble, PrimaryButton } from '@/components/ui';
+import { SpeechBubble, PrimaryButton } from '@/components/ui';
+import Kokoron404 from '@/components/ui/Kokoron404';
 import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
 
 export default function AuthedNotFound() {
@@ -14,10 +15,10 @@ export default function AuthedNotFound() {
   return (
     <div style={commonStyles.page.container}>
       <div style={commonStyles.page.mainContent}>
-        <SpeechBubble text="あれ？ そのページは\nみつからないみたいです..." />
+        <SpeechBubble text="あれ？ そのページはみつからないみたいです..." />
 
         <div style={commonStyles.page.kokoronContainer}>
-          <KokoronDefault size={200} />
+          <Kokoron404 size={200} />
         </div>
 
         <div
