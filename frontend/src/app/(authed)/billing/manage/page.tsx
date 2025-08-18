@@ -49,7 +49,13 @@ export default function BillingManagePage() {
   }, [user, router]);
 
   return (
-    <div style={commonStyles.loading.container}>
+    <div style={{
+      ...commonStyles.page.container,
+      backgroundImage: 'url(/images/background.webp)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    }}>
       <Spinner size="large" />
       <p
         style={{
