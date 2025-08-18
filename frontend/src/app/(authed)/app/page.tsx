@@ -118,10 +118,10 @@ export default function AppHomePage() {
     }
 
     if (subscription.status === 'active') {
-      return 'プレミアム会員です！';
+      return 'サブスクリプション会員です！';
     }
 
-    return 'プレミアムプランに登録して全機能を使いましょう';
+    return 'サブスクリプションに登録して全機能を使いましょう';
   };
 
   {
@@ -160,7 +160,7 @@ export default function AppHomePage() {
           音声を録音
         </MenuItem>
 
-        {/* プレミアム機能 */}
+        {/* サブスクリプション機能 */}
         {subscription?.status === 'active' ||
         subscription?.status === 'trialing' ? (
           <>
@@ -173,7 +173,7 @@ export default function AppHomePage() {
           </>
         ) : (
           <MenuItem onClick={() => router.push('/subscription')}>
-            プレミアムにアップグレード
+            サブスクリプションにアップグレード
           </MenuItem>
         )}
 
@@ -273,7 +273,7 @@ export default function AppHomePage() {
                 cursor: 'pointer',
               }}
             >
-              プレミアムプランについて
+              サブスクリプションプランについて
             </button>
           </div>
         )}
