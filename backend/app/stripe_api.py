@@ -9,6 +9,8 @@ from firebase_admin import auth
 from app import crud, schemas
 from app.models import User
 from app.database import get_db
+from app.auth import get_current_user  
+from app.schemas import SessionStatusRequest  
     
 # Stripe関連のAPIルーター設定
 router = APIRouter(
@@ -83,3 +85,39 @@ async def create_checkout_session(
         return {"sessionId": checkout_session.id}
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+# Stripeセッションの状態を取得
+@router.post("/session-status")
+async def get_session_status(
+    session_id: str,
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        stripe.api_key = os.getenv("STRIPE_SECRET_KEY")     
+        session = stripe.checkout.Session.retrieve(session_id)        
+        payment_status = session.payment_status
+        customer_id = session.customer
+        subscription_id = session.subscription   
+        response_data = {
+            "session_id": session_id,
+            "payment_status": payment_status,
+            "customer_id": customer_id,
+            "subscription_id": subscription_id,
+            "success": True
+        }        
+        if payment_status == "paid":
+            response_data["message"] = "Payment completed successfully"
+        else:
+            response_data["message"] = f"Payment status: {payment_status}"
+        return response_data       
+    except stripe.error.StripeError as e:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Stripe error: {str(e)}"
+        ) from e 
+    except Exception as e:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Internal server error: {str(e)}"
+        ) from e
