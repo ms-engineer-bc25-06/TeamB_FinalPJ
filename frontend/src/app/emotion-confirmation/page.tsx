@@ -186,7 +186,41 @@ export default function EmotionConfirmationPage() {
   // 右スワイプ（はい）の処理
   const handleSwipeRight = () => {
     setSwipeDirection('right');
-    // ここで感情確認完了の処理を実行
+    
+    // TODO: 感情記録をDBに保存しようと思ったけど、音声やテキストのパスも一緒のタイミングで保存した方がスマート？
+    const saveEmotionLog = async () => {
+      try {
+        // 既存の感情記録保存APIを使用
+        const response = await fetch('http://localhost:8000/emotion/logs', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            user_id: user?.uid || "00000000-0000-0000-0000-000000000000", // 仮のユーザーID
+            child_id: "00000000-0000-0000-0000-000000000000", // 仮の子供ID
+            emotion_card_id: selectedEmotion?.id,
+            intensity_id: selectedIntensity?.id,
+            voice_note: "感情確認完了", // 仮の音声メモ
+            text_file_path: "s3://bucket/text/temp.txt", // 仮のテキストファイルパス
+            audio_file_path: null, // 音声ファイルは後で追加
+          }),
+        });
+
+        if (response.ok) {
+          console.log('感情記録が保存されました');
+        } else {
+          console.error('感情記録の保存に失敗しました');
+        }
+      } catch (error) {
+        console.error('感情記録保存エラー:', error);
+      }
+    };
+
+    // 感情記録を保存
+    saveEmotionLog();
+    
+    // 1秒後に次の画面に遷移
     setTimeout(() => {
       // TODO: 音声入力画面に遷移（後でれなさんの用意した画面とくっつける）
       router.push('/？？');
