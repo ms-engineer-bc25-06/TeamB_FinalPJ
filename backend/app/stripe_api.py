@@ -87,18 +87,18 @@ async def create_checkout_session(
 # Stripeセッションの状態を取得
 @router.post("/session-status")
 async def get_session_status(
-    session_id: str,
+    request: schemas.SessionStatusRequest,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db)
 ):
     try:
         stripe.api_key = os.getenv("STRIPE_SECRET_KEY")     
-        session = stripe.checkout.Session.retrieve(session_id)        
+        session = stripe.checkout.Session.retrieve(request.session_id)        
         payment_status = session.payment_status
         customer_id = session.customer
         subscription_id = session.subscription   
         response_data = {
-            "session_id": session_id,
+            "session_id": request.session_id,
             "payment_status": payment_status,
             "customer_id": customer_id,
             "subscription_id": subscription_id,
