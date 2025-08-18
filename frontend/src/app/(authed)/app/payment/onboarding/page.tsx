@@ -6,6 +6,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { SpeechBubble, PrimaryButton, Spinner } from '@/components/ui';
 import KokoronBowing from '@/components/ui/KokoronBowing';
 import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
+import { verifyPayment } from '@/lib/api';
 
 export default function PaymentOnboardingPage() {
   const router = useRouter();
@@ -19,15 +20,9 @@ export default function PaymentOnboardingPage() {
         const sessionId = searchParams.get('session_id');
 
         if (sessionId) {
-          const response = await fetch('/api/payment/verify', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ sessionId }),
-          });
+          const result = await verifyPayment(sessionId);
 
-          if (!response.ok) {
+          if (!result.success) {
             throw new Error('決済の確認に失敗しました');
           }
 
