@@ -4,13 +4,19 @@ import { loadStripe } from '@stripe/stripe-js';
 // Stripe決済検証関数
 export const verifyPayment = async (sessionId: string) => {
   try {
-    const response = await fetch('/api/payment/verify', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({ sessionId }),
-    });
+
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/stripe/session-status`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ sessionId }),
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`HTTP error! status: ${response.status}`);
