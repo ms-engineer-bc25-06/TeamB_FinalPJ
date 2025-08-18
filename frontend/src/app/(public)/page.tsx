@@ -1,20 +1,17 @@
 // 公開トップページ
 'use client';
 
-import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import {
   SpeechBubble,
   PrimaryButton,
-  Spinner,
 } from '@/components/ui';
 import {
   colors,
   commonStyles,
   spacing,
   fontSize,
-  borderRadius,
 } from '@/styles/theme';
 
 export default function LandingPage() {
@@ -22,10 +19,10 @@ export default function LandingPage() {
   const router = useRouter();
 
   // ログイン済みの場合はアプリに遷移
-  // if (user) {
-  //   router.push('/app');
-  //   return null;
-  // }
+  if (user) {
+    router.push('/app');
+    return null;
+  }
 
   const handleLogin = () => {
     router.push('/login');
