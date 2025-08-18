@@ -107,20 +107,7 @@ export default function SubscriptionPage() {
             border: `3px solid ${colors.primary}`,
           }}
         >
-          <div
-            style={{
-              backgroundColor: colors.primary,
-              color: colors.text.white,
-              padding: `${spacing.xs} ${spacing.md}`,
-              borderRadius: '20px',
-              fontSize: fontSize.small,
-              fontWeight: 'bold',
-              marginBottom: spacing.lg,
-              display: 'inline-block',
-            }}
-          >
-            🌟 7日間完全無料
-          </div>
+
 
           <h1
             style={{
@@ -130,7 +117,7 @@ export default function SubscriptionPage() {
               marginBottom: spacing.sm,
             }}
           >
-            プレミアムプラン
+            <span style={{ color: colors.primary }}>STEP2</span> サブスクリプション登録
           </h1>
 
           <div
