@@ -1,23 +1,25 @@
 import os
 import logging
-from typing import AsyncGenerator
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI, Depends, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 import firebase_admin
 from firebase_admin import credentials, auth
-from app import crud
-from app import schemas
-from app.models import Base
+import stripe
 
-from app.voice_api import router as voice_router
+from app import crud, schemas
+from app.database import engine, async_session_local, get_db
+from app.models import Base, User
+
+from app.api.v1.endpoints.voice import router as new_voice_router
+from app.utils.error_handlers import register_error_handlers
+from app.emotion_color_api import router as emotion_color_router
+from app.stripe_api import router as stripe_router
+
 
 load_dotenv()
-
-from app.emotion_color_api import router as emotion_color_router
-DATABASE_URL = os.getenv("DATABASE_URL")
 
 #  Firebase Adminの初期化し秘密鍵を読み込む
 cred_path = os.getenv(
@@ -26,21 +28,29 @@ cred_path = os.getenv(
 cred = credentials.Certificate(cred_path)
 firebase_admin.initialize_app(cred)
 
-# SQLAlchemyの非同期DBセッションを設定
-engine = create_async_engine(DATABASE_URL, echo=True)
-async_session_local = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
+# Stripe APIキーの設定
+stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # --- Lifespan Manager ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    # TODO:本番は Alembic マイグレーションでDBを用意する
+    # 開発用にどうしても必要なら、環境変数で切り替え
+    # if os.getenv("DEV_CREATE_ALL") == "1":
+    #     async with engine.begin() as conn:
+    #         await conn.run_sync(Base.metadata.create_all)
     yield
 
+security_schemes = {"bearerAuth": {"type": "http", "scheme": "bearer"}}
 
 # lifespanを登録して、起動時の処理を有効化
-app = FastAPI(lifespan=lifespan)
+app = FastAPI(
+    lifespan=lifespan,
+    openapi_components={"securitySchemes": security_schemes}
+)
+
+# エラーハンドラの登録
+register_error_handlers(app)
 
 # CORSミドルウェア設定
 origins = [
@@ -55,24 +65,20 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# 入力音声から作られたファイルを管理するAPIを追加
-app.include_router(voice_router)
+# ルーター登録
+app.include_router(new_voice_router, prefix="/api/v1")
 app.include_router(emotion_color_router)
+app.include_router(stripe_router)
 
 
-# DBセッションを依存関係として定義
-async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with async_session_local() as session:
-        yield session
-
-
-# --- APIエンドポイント ---
+# ログイン
 @app.post("/api/v1/login", response_model=schemas.UserResponse)
 async def login(token: schemas.Token, db: AsyncSession = Depends(get_db)):
     try:
         decoded_token = auth.verify_id_token(token.id_token)
     except Exception as e:
-        raise HTTPException(status_code=401, detail=f"Invalid token: {e}")
+        logging.warning("Login token invalid", exc_info=e)
+        raise HTTPException(status_code=401, detail="Invalid token")
 
     uid = decoded_token["uid"]
     email = decoded_token.get("email")
