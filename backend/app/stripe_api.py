@@ -9,9 +9,7 @@ from firebase_admin import auth
 from app import crud, schemas
 from app.models import User
 from app.database import get_db
-from app.auth import get_current_user  
-from app.schemas import SessionStatusRequest  
-    
+
 # Stripe関連のAPIルーター設定
 router = APIRouter(
     prefix="/api/v1/stripe",
