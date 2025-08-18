@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import { loadStripe } from '@stripe/stripe-js';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { KokoronDefault, PrimaryButton, Spinner } from '@/components/ui';
@@ -13,12 +12,9 @@ import {
   fontSize,
   borderRadius,
 } from '@/styles/theme';
+import { createCheckoutSession, redirectToStripeCheckout } from '@/lib/api';
 
-const stripePromise = loadStripe(
-  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
-);
 
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
 
 export default function SubscriptionPage() {
   const { firebaseUser } = useAuth();
@@ -37,43 +33,13 @@ export default function SubscriptionPage() {
     try {
       // 1) Firebaseの最新IDトークン
       const idToken = await firebaseUser.getIdToken(true);
-      // 2) Checkout Session 作成（sessionId を受け取る想定）
-      const res = await fetch(
-        `${API_BASE_URL}/api/v1/stripe/checkout-session`,
-        {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${idToken}`,
-          },
-        },
-      );
-
-      if (!res.ok) {
-        const msg = await res.text().catch(() => '');
-        throw new Error(
-          `Failed to create checkout session: ${msg || res.status}`,
-        );
-      }
-
-      const data: { sessionId?: string } = await res.json();
-      if (!data.sessionId) {
-        throw new Error('Response does not include sessionId');
-      }
-
+      
+      // 2) Checkout Session 作成
+      const sessionId = await createCheckoutSession(idToken);
+      
       // 3) Stripe.jsでリダイレクト
-      const stripe = await stripePromise;
-      if (!stripe) {
-        throw new Error('Stripe.js failed to initialize');
-      }
-
-      const { error } = await stripe.redirectToCheckout({
-        sessionId: data.sessionId,
-      });
-
-      if (error) {
-        throw error;
-      }
+      await redirectToStripeCheckout(sessionId);
+      
     } catch (err) {
       console.error('Subscription error:', err);
       alert('決済ページの作成に失敗しました。もう一度お試しください。');
