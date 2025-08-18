@@ -77,6 +77,8 @@ export default function EmotionSelectionPage() {
         const data = await response.json();
         
         if (data.success && data.cards) {
+          console.log('取得された感情データ:', data.cards);
+          console.log('「わからない」の感情データ:', data.cards.find((e: Emotion) => e.label === 'わからない'));
           setEmotions(data.cards);
         } else {
           throw new Error('感情データの形式が正しくありません');
@@ -96,7 +98,16 @@ export default function EmotionSelectionPage() {
 
   // 感情カードをクリックした時の処理
   const handleEmotionSelect = (emotionId: string) => {
-    router.push(`/emotion-confirmation?emotion=${emotionId}`);
+    // 選択された感情のラベルを取得
+    const selectedEmotion = emotions.find(e => e.id === emotionId);
+    
+    // 「わからない」が選択された場合は強度選択画面を飛ばして直接感情確認画面に遷移
+    if (selectedEmotion && selectedEmotion.label === 'わからない') {
+      router.push(`/emotion-confirmation?emotion=${emotionId}&intensity=medium`);
+    } else {
+      // その他の感情は強度選択画面に遷移
+      router.push(`/emotion-intensity?emotion=${emotionId}`);
+    }
   };
 
   // 戻るボタンの処理
