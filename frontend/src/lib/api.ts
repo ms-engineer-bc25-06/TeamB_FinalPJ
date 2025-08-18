@@ -1,10 +1,12 @@
 //NOTE: ドメイン別関数をこちらでまとめる。
 import { loadStripe } from '@stripe/stripe-js';
+import { User } from 'firebase/auth';
 
 // Stripe決済検証関数
-export const verifyPayment = async (sessionId: string) => {
+export const verifyPayment = async (sessionId: string, firebaseUser: User) => {
   try {
-
+    const idToken = await firebaseUser.getIdToken(true); 
+    
     const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
     
     const response = await fetch(
@@ -13,6 +15,7 @@ export const verifyPayment = async (sessionId: string) => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`, 
         },
         body: JSON.stringify({ sessionId }),
       }

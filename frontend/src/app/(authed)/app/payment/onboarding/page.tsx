@@ -7,8 +7,10 @@ import { SpeechBubble, PrimaryButton, Spinner } from '@/components/ui';
 import KokoronBowing from '@/components/ui/KokoronBowing';
 import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
 import { verifyPayment } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
 export default function PaymentOnboardingPage() {
+  const { firebaseUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(true);
@@ -19,8 +21,8 @@ export default function PaymentOnboardingPage() {
       try {
         const sessionId = searchParams.get('session_id');
 
-        if (sessionId) {
-          const result = await verifyPayment(sessionId);
+        if (sessionId && firebaseUser) {
+          const result = await verifyPayment(sessionId, firebaseUser);
 
           if (!result.success) {
             throw new Error('決済の確認に失敗しました');

@@ -19,12 +19,13 @@ export default function SetupPage() {
   const { user } = useAuth();
   const router = useRouter();
   const [childName, setChildName] = useState('');
-  const [childAge] = useState('');
+  const [childAge, setChildAge] = useState('');
+  const [childGender, setChildGender] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!childName.trim() || !childAge) return;
+    if (!childName.trim() || !childAge || !childGender) return;
 
     setIsSubmitting(true);
     try {
@@ -96,7 +97,7 @@ export default function SetupPage() {
                   marginBottom: spacing.sm,
                 }}
               >
-                お名前
+                おなまえ
               </label>
               <input
                 type="text"
@@ -114,6 +115,89 @@ export default function SetupPage() {
                   boxSizing: 'border-box',
                 }}
               />
+            </div>
+
+            <div style={{ marginBottom: spacing.xl }}>
+              <label
+
+
+                style={{
+                  display: 'block',
+                  color: colors.text.primary,
+                  fontSize: fontSize.base,
+
+
+
+                  fontWeight: 'bold',
+                  marginBottom: spacing.sm,
+
+                }}
+              >
+                ねんれい
+              </label>
+              <select
+                value={childAge}
+                onChange={(e) => setChildAge(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: spacing.md,
+                  border: `2px solid ${colors.primary}`,
+                  borderRadius: borderRadius.medium,
+                  fontSize: fontSize.xl,
+                  outline: 'none',
+                  backgroundColor: colors.background.white,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value="">なんさいかな？</option>
+                {Array.from({ length: 10 }, (_, i) => i + 3).map((age) => (
+                  <option key={age} value={age}>
+                    {age}歳
+                  </option>
+                ))}
+              </select>
+            </div>
+            <div style={{ marginBottom: spacing.xl }}>
+              <label
+
+
+                style={{
+                  display: 'block',
+                  color: colors.text.primary,
+                  fontSize: fontSize.base,
+
+
+
+                  fontWeight: 'bold',
+                  marginBottom: spacing.sm,
+
+                }}
+              >
+                せいべつ
+              </label>
+              <select
+                value={childGender}
+                onChange={(e) => setChildGender(e.target.value)}
+                required
+                style={{
+                  width: '100%',
+                  padding: spacing.md,
+                  border: `2px solid ${colors.primary}`,
+                  borderRadius: borderRadius.medium,
+                  fontSize: fontSize.xl,
+                  outline: 'none',
+                  backgroundColor: colors.background.white,
+                  boxSizing: 'border-box',
+                }}
+              >
+                <option value="">せいべつ</option>
+                {Array.from({ length: 2 }, (_, i) => i + 3).map((age) => (
+                  <option key={age} value={age}>
+                    {age}歳
+                  </option>
+                ))}
+              </select>
             </div>
 
             <div style={{ textAlign: 'center' }}>
@@ -134,7 +218,6 @@ export default function SetupPage() {
               >
                 {isSubmitting ? '設定中...' : 'はじめる'}
               </button>
-            </div>
           </form>
           <div
             style={{
@@ -148,7 +231,7 @@ export default function SetupPage() {
             }}
           >
             <p style={{ margin: 0 }}>
-              💡 アプリを使用いただくお子様のお名前をご入力ください
+              💡 アプリを使用いただくお子様の情報をご入力ください
             </p>
           </div>
         </div>
