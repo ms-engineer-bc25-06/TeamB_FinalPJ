@@ -103,16 +103,16 @@ export default function EmotionSelectionPage() {
     
     // 「わからない」が選択された場合は強度選択画面を飛ばして直接感情確認画面に遷移
     if (selectedEmotion && selectedEmotion.label === 'わからない') {
-      router.push(`/emotion-confirmation?emotion=${emotionId}&intensity=medium`);
+      router.push(`/app/emotion-confirmation?emotion=${emotionId}&intensity=medium`);
     } else {
       // その他の感情は強度選択画面に遷移
-      router.push(`/emotion-intensity?emotion=${emotionId}`);
+      router.push(`/app/emotion-intensity?emotion=${emotionId}`);
     }
   };
 
   // 戻るボタンの処理
   const handleBack = () => {
-    router.push('/');
+    router.push('/app');
   };
 
   // ローディング中（認証）

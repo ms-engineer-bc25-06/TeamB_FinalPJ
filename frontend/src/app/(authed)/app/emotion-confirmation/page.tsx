@@ -232,7 +232,7 @@ export default function EmotionConfirmationPage() {
     setSwipeDirection('left');
     // 感情選択画面に戻る
     setTimeout(() => {
-      router.push('/emotion-selection');
+      router.push('/app/emotion-selection');
     }, 1000);
   };
 
@@ -245,10 +245,10 @@ export default function EmotionConfirmationPage() {
   const handleBack = () => {
     // 選択されていた感情IDを渡して感情強度選択画面に戻る
     if (selectedEmotion) {
-      router.push(`/emotion-intensity?emotion=${selectedEmotion.id}`);
+      router.push(`/app/emotion-intensity?emotion=${selectedEmotion.id}`);
     } else {
       // 感情が選択されていない場合は感情選択画面に戻る
-      router.push('/emotion-selection');
+      router.push('/app/emotion-selection');
     }
   };
 

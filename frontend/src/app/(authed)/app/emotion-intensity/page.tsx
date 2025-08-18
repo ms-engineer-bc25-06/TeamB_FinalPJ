@@ -140,12 +140,12 @@ export default function EmotionIntensityPage() {
   // 感情強度を選択した時の処理
   const handleIntensitySelect = (intensity: EmotionIntensity) => {
     // 感情確認画面に遷移（感情IDと強度レベルを含める）
-    router.push(`/emotion-confirmation?emotion=${selectedEmotion?.id}&intensity=${intensity.level}`);
+    router.push(`/app/emotion-confirmation?emotion=${selectedEmotion?.id}&intensity=${intensity.level}`);
   };
 
   // 戻るボタンの処理
   const handleBack = () => {
-    router.push('/emotion-selection');
+    router.push('/app/emotion-selection');
   };
 
   // ローディング中（認証）
