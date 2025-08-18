@@ -54,8 +54,9 @@ async def create_checkout_session(
     db: AsyncSession = Depends(get_db)
 ):
     price_id = os.getenv("STRIPE_PRICE_ID")
-    success_url = "http://localhost:3000/payment/success?session_id={CHECKOUT_SESSION_ID}"
-    cancel_url = "http://localhost:3000/payment/cancel"
+    # 本番環境では、localhost:3000を実際のドメインに変更する必要あり
+    success_url = "http://localhost:3000/app/payment/onboarding?session_id={CHECKOUT_SESSION_ID}"
+    cancel_url = "http://localhost:3000/subscription"
     # DBからStripe顧客IDを取得
     stripe_customer_id = current_user.subscriptions.stripe_customer_id if current_user.subscriptions else None
     # まだStripeの顧客でない場合は、新しく作成する
