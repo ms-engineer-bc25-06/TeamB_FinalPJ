@@ -191,10 +191,10 @@ export default function SetupPage() {
                   boxSizing: 'border-box',
                 }}
               >
-                <option value="">せいべつ</option>
-                {Array.from({ length: 2 }, (_, i) => i + 3).map((age) => (
-                  <option key={age} value={age}>
-                    {age}歳
+                <option value="">せいべつ（こたえなくてもOKだよ）</option>
+                {["おとこのこ", "おんなのこ", "こたえない"].map((gender) => (
+                  <option key={gender} value={gender}>
+                    {gender}
                   </option>
                 ))}
               </select>
@@ -218,6 +218,7 @@ export default function SetupPage() {
               >
                 {isSubmitting ? '設定中...' : 'はじめる'}
               </button>
+            </div>
           </form>
           <div
             style={{
