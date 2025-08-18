@@ -99,10 +99,16 @@ export default function PaymentOnboardingPage() {
   }
 
   return (
-    <div style={commonStyles.page.container}>
+    <div style={{
+      ...commonStyles.page.container,
+      backgroundImage: 'url(/images/background.webp)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    }}>
       <div style={commonStyles.page.mainContent}>
         {/* 吹き出し */}
-        <SpeechBubble text="プレミアムプランをご利用いただき、本当にありがとうございます！" />
+        <SpeechBubble text="サブスクリプションをご利用いただき、本当にありがとうございます！" />
 
         {/* こころんアイコン */}
         <div style={commonStyles.page.kokoronContainer}>
@@ -139,7 +145,7 @@ export default function PaymentOnboardingPage() {
               margin: `0 0 ${spacing.md} 0`,
             }}
           >
-            プレミアム会員になりました！
+            サブスクリプションに登録しました！
           </h1>
 
           <p
