@@ -78,7 +78,7 @@ export default function BillingHelpPage() {
                 💰 料金について
               </h2>
               <div style={{ marginBottom: spacing.md }}>
-                <strong>プレミアムプラン: 月額300円（税込）</strong>
+                <strong>サブスクリプション: 月額300円（税込）</strong>
               </div>
               <ul style={{ paddingLeft: spacing.lg, marginBottom: spacing.md }}>
                 <li>7日間の無料体験期間があります</li>
