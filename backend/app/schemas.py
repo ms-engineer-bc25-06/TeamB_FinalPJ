@@ -121,3 +121,7 @@ class VoiceTranscribeResponse(StrictModel):
         default_factory=lambda: datetime.now(timezone.utc),
         description="処理完了時刻（UTC, timezone-aware）"
     )
+
+
+class SessionStatusRequest(BaseModel):
+    session_id: str

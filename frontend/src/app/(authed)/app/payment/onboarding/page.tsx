@@ -1,3 +1,4 @@
+// 成功戻り&案内ページ
 'use client';
 
 import { useEffect, useState } from 'react';
@@ -5,8 +6,11 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { SpeechBubble, PrimaryButton, Spinner } from '@/components/ui';
 import KokoronBowing from '@/components/ui/KokoronBowing';
 import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
+import { verifyPayment } from '@/lib/api';
+import { useAuth } from '@/contexts/AuthContext';
 
-export default function PaymentSuccessPage() {
+export default function PaymentOnboardingPage() {
+  const { firebaseUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
   const [isProcessing, setIsProcessing] = useState(true);
@@ -17,19 +21,14 @@ export default function PaymentSuccessPage() {
       try {
         const sessionId = searchParams.get('session_id');
 
-        if (sessionId) {
-          const response = await fetch('/api/payment/verify', {
-            method: 'POST',
-            headers: {
-              'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({ sessionId }),
-          });
+        if (sessionId && firebaseUser) {
+          const result = await verifyPayment(sessionId, firebaseUser);
 
-          if (!response.ok) {
+          if (!result.success) {
             throw new Error('決済の確認に失敗しました');
           }
 
+          // ユーザー情報を更新（有料会員フラグをONに）
           console.log(
             'Payment verified successfully - User upgraded to premium',
           );
@@ -48,7 +47,7 @@ export default function PaymentSuccessPage() {
 
   const handleStartUsingAllFeatures = () => {
     // 全機能が使えるホーム画面に戻る
-    router.push('/');
+    router.push('/app');
   };
 
   if (isProcessing) {
@@ -90,7 +89,7 @@ export default function PaymentSuccessPage() {
             >
               {error}
             </p>
-            <PrimaryButton onClick={() => router.push('/')}>
+            <PrimaryButton onClick={() => router.push('/app')}>
               ホームに戻る
             </PrimaryButton>
           </div>
@@ -100,12 +99,18 @@ export default function PaymentSuccessPage() {
   }
 
   return (
-    <div style={commonStyles.page.container}>
+    <div style={{
+      ...commonStyles.page.container,
+      backgroundImage: 'url(/images/background.webp)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+    }}>
       <div style={commonStyles.page.mainContent}>
         {/* 吹き出し */}
-        <SpeechBubble text="プレミアムプランをご利用いただき、本当にありがとうございます！" />
+        <SpeechBubble text="サブスクリプションをご利用いただき、本当にありがとうございます！" />
 
-        {/* こころんキャラクター */}
+        {/* こころんアイコン */}
         <div style={commonStyles.page.kokoronContainer}>
           <KokoronBowing size={200} />
         </div>
@@ -140,7 +145,7 @@ export default function PaymentSuccessPage() {
               margin: `0 0 ${spacing.md} 0`,
             }}
           >
-            プレミアム会員になりました！
+            サブスクリプションに登録しました！
           </h1>
 
           <p
@@ -158,7 +163,7 @@ export default function PaymentSuccessPage() {
             お子さんの心を育む毎日を楽しみましょう。
           </p>
 
-          {/* 解放された機能の紹介 */}
+          {/* 主要機能の紹介 */}
           <div
             style={{
               backgroundColor: '#e8f5e8',
@@ -166,7 +171,6 @@ export default function PaymentSuccessPage() {
               padding: spacing.md,
               margin: `${spacing.md} 0`,
               textAlign: 'left',
-              border: '2px solid #4CAF50',
             }}
           >
             <h3
@@ -178,48 +182,26 @@ export default function PaymentSuccessPage() {
                 textAlign: 'center',
               }}
             >
-              ✨ 今すぐ使える全機能
+              ✨ 主要な機能
             </h3>
             <div
               style={{
-                display: 'grid',
-                gridTemplateColumns: '1fr 1fr',
-                gap: spacing.sm,
                 fontSize: fontSize.small,
                 color: colors.text.primary,
+                lineHeight: 1.5,
               }}
             >
-              <div>
-                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                  📊 レポート機能
-                </div>
-                <div style={{ color: colors.text.secondary, fontSize: '11px' }}>
-                  お子様の感情記録
-                </div>
+              <div style={{ marginBottom: spacing.xs }}>
+                📊 <strong>詳細レポート</strong> - お子様の感情記録
+              </div>
+              <div style={{ marginBottom: spacing.xs }}>
+                🎭 <strong>ロールプレイ</strong> - 様々なシナリオ
+              </div>
+              <div style={{ marginBottom: spacing.xs }}>
+                📈 <strong>成長記録</strong> - 長期間の追跡
               </div>
               <div>
-                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                  🎭 ロールプレイ
-                </div>
-                <div style={{ color: colors.text.secondary, fontSize: '11px' }}>
-                  様々なシナリオ
-                </div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                  📈 成長記録
-                </div>
-                <div style={{ color: colors.text.secondary, fontSize: '11px' }}>
-                  長期間の追跡
-                </div>
-              </div>
-              <div>
-                <div style={{ fontWeight: 'bold', marginBottom: '4px' }}>
-                  🤖 AI分析
-                </div>
-                <div style={{ color: colors.text.secondary, fontSize: '11px' }}>
-                  高度な感情理解
-                </div>
+                🤖 <strong>AI分析</strong> - 高度な感情理解
               </div>
             </div>
           </div>
@@ -236,7 +218,6 @@ export default function PaymentSuccessPage() {
             <PrimaryButton onClick={handleStartUsingAllFeatures}>
               早速使ってみる
             </PrimaryButton>
-
             <div
               style={{
                 display: 'flex',
