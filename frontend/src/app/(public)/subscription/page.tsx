@@ -2,14 +2,10 @@
 'use client';
 
 import { useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import {
-  KokoronDefault,
-  SpeechBubble,
-  PrimaryButton,
-  Spinner,
-} from '@/components/ui';
+import { KokoronDefault, PrimaryButton, Spinner } from '@/components/ui';
 import {
   colors,
   commonStyles,
@@ -18,41 +14,71 @@ import {
   borderRadius,
 } from '@/styles/theme';
 
+const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!,
+);
+
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+
 export default function SubscriptionPage() {
-  const { user, isLoading } = useAuth();
+  const { firebaseUser } = useAuth();
   const router = useRouter();
-  const [isProcessing, setIsProcessing] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleStartSubscription = async () => {
-    if (!user) {
+    if (!firebaseUser) {
+      alert('ログインしてください。');
       router.push('/login');
       return;
     }
 
-    setIsProcessing(true);
+    setIsLoading(true);
+
     try {
-      // Stripe Checkout セッションを作成
-      const response = await fetch('/api/create-checkout-session', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      // 1) Firebaseの最新IDトークン
+      const idToken = await firebaseUser.getIdToken(true);
+      // 2) Checkout Session 作成（sessionId を受け取る想定）
+      const res = await fetch(
+        `${API_BASE_URL}/api/v1/stripe/checkout-session`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${idToken}`,
+          },
         },
-        body: JSON.stringify({
-          userId: user.uid,
-          priceId: process.env.NEXT_PUBLIC_STRIPE_PRICE_ID,
-        }),
+      );
+
+      if (!res.ok) {
+        const msg = await res.text().catch(() => '');
+        throw new Error(
+          `Failed to create checkout session: ${msg || res.status}`,
+        );
+      }
+
+      const data: { sessionId?: string } = await res.json();
+      if (!data.sessionId) {
+        throw new Error('Response does not include sessionId');
+      }
+
+      // 3) Stripe.jsでリダイレクト
+      const stripe = await stripePromise;
+      if (!stripe) {
+        throw new Error('Stripe.js failed to initialize');
+      }
+
+      const { error } = await stripe.redirectToCheckout({
+        sessionId: data.sessionId,
       });
 
-      const { url } = await response.json();
-
-      if (url) {
-        window.location.href = url;
+      if (error) {
+        throw error;
       }
-    } catch (error) {
-      console.error('決済エラー:', error);
-      alert('決済の開始に失敗しました。もう一度お試しください。');
+    } catch (err) {
+      console.error('Subscription error:', err);
+      alert('決済ページの作成に失敗しました。もう一度お試しください。');
     } finally {
-      setIsProcessing(false);
+      setIsLoading(false);
     }
   };
 
@@ -73,7 +99,7 @@ export default function SubscriptionPage() {
     <div style={commonStyles.page.container}>
       <div style={commonStyles.page.mainContent}>
         {/* 戻るボタン */}
-        {user && (
+        {firebaseUser && (
           <button
             onClick={handleBackToApp}
             style={{
@@ -82,7 +108,7 @@ export default function SubscriptionPage() {
               left: spacing.lg,
               background: 'none',
               border: 'none',
-              fontSize: '24px',
+              fontSize: '20px',
               cursor: 'pointer',
               color: colors.text.secondary,
             }}
@@ -90,8 +116,6 @@ export default function SubscriptionPage() {
             ← アプリに戻る
           </button>
         )}
-
-        <SpeechBubble text="プレミアムプランで\nもっと たくさん あそぼう！" />
 
         <div style={commonStyles.page.kokoronContainer}>
           <KokoronDefault size={200} />
@@ -123,7 +147,7 @@ export default function SubscriptionPage() {
               display: 'inline-block',
             }}
           >
-            🌟 おすすめ
+            🌟 7日間完全無料
           </div>
 
           <h1
@@ -145,7 +169,7 @@ export default function SubscriptionPage() {
               marginBottom: spacing.xs,
             }}
           >
-            ¥980
+            300円
             <span
               style={{
                 fontSize: fontSize.base,
@@ -164,7 +188,7 @@ export default function SubscriptionPage() {
               marginBottom: spacing.lg,
             }}
           >
-            7日間無料体験付き
+            8日目から有料プランへ移行します。
           </p>
 
           {/* 機能一覧 */}
@@ -205,17 +229,7 @@ export default function SubscriptionPage() {
                 }}
               >
                 <span>✅</span>
-                <span>無制限の感情記録</span>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                }}
-              >
-                <span>✅</span>
-                <span>詳細な分析レポート</span>
+                <span>お子様の音声付き感情記録</span>
               </div>
               <div
                 style={{
@@ -247,24 +261,14 @@ export default function SubscriptionPage() {
                 <span>✅</span>
                 <span>成長記録の長期保存</span>
               </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                }}
-              >
-                <span>✅</span>
-                <span>優先サポート</span>
-              </div>
             </div>
           </div>
 
           <PrimaryButton
             onClick={handleStartSubscription}
-            disabled={isProcessing}
+            disabled={isLoading}
           >
-            {isProcessing ? '処理中...' : '7日間無料で始める'}
+            {isLoading ? '処理中...' : '7日間無料で始める'}
           </PrimaryButton>
 
           <p
