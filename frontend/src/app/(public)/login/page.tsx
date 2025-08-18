@@ -13,7 +13,7 @@ import {
 } from '@/styles/theme';
 
 export default function LoginPage() {
-  const { isLoading, login, logout } = useAuth(); // logoutを追加
+  const { isLoading, login, logout } = useAuth();
   const router = useRouter();
   const [isLoginLoading, setIsLoginLoading] = useState(false);
 
@@ -22,7 +22,7 @@ export default function LoginPage() {
     setIsLoginLoading(true);
     try {
       await login();
-      router.push('/subscription'); // ログイン後にサブスクリプションページに遷移
+      router.push('/subscription');
     } catch (error) {
       console.error('ログインエラー:', error);
       alert('ログインに失敗しました。もう一度お試しください。');
@@ -33,9 +33,9 @@ export default function LoginPage() {
 
   const handleBackToHome = async () => {
     try {
-      await logout(); // ログアウト処理
+      await logout();
       console.log('ログアウト完了');
-      router.push('/'); // ログアウト後にトップページに遷移
+      router.push('/');
     } catch (error) {
       console.error('ログアウトエラー:', error);
       alert('ログアウトに失敗しました');
@@ -52,7 +52,14 @@ export default function LoginPage() {
   }
 
   return (
-    <div style={commonStyles.page.container}>
+    <div style={{
+      ...commonStyles.page.container,
+      backgroundImage: 'url(/images/background.webp)',
+      backgroundSize: 'cover',
+      backgroundPosition: 'center',
+      backgroundRepeat: 'no-repeat',
+      minHeight: '100vh',
+    }}>
       <div style={commonStyles.page.mainContent}>
         {/* 戻るボタン */}
         <button
@@ -88,7 +95,7 @@ export default function LoginPage() {
           <h1
             style={{
               color: colors.text.primary,
-              fontSize: fontSize.xxl, // fontSize.xl → fontSize.xxl に変更
+              fontSize: fontSize.xxl,
               fontWeight: 'bold',
               marginBottom: spacing.lg,
             }}
@@ -99,7 +106,7 @@ export default function LoginPage() {
           <p
             style={{
               color: colors.text.secondary,
-              fontSize: fontSize.large, // fontSize.base → fontSize.large に変更
+              fontSize: fontSize.large,
               marginBottom: spacing.xl,
               lineHeight: 1.6,
             }}
@@ -136,17 +143,16 @@ export default function LoginPage() {
             )}
           </button>
 
-          {/* ボタンの下の説明文も大きく */}
           <div
             style={{
               marginTop: spacing.lg,
               padding: spacing.md,
               backgroundColor: '#f8f9fa',
               borderRadius: borderRadius.small,
-              fontSize: fontSize.base, // fontSize.small → fontSize.base に変更
+              fontSize: fontSize.base,
               color: colors.text.secondary,
               lineHeight: 1.4,
-              textAlign: 'left', // 左寄せを追加
+              textAlign: 'left',
             }}
           >
             <p style={{ margin: 0 }}>
