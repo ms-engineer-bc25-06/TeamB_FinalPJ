@@ -111,6 +111,7 @@ async def upsert_subscription_customer_id(
             .values(
                 user_id=user_id,
                 stripe_customer_id=stripe_customer_id,
+                trial_started_at=func.now(),
             )
             .on_conflict_do_update(
                 index_elements=[models.Subscription.user_id],
