@@ -15,14 +15,32 @@ from app.schemas import (
     VoiceUploadRequest,
     VoiceSaveRequest,
 )
-from app.services.whisper import WhisperService
-    # Whisper モデルを包むサービス（同期APIなのでスレッドで実行）
-from app.services.s3 import S3Service
-    # S3 への presign, get_url, download_file などのラッパ
+from app.services.whisper import WhisperService  # Whisper モデルを包むサービス（同期APIなのでスレッドで実行）
+from app.services.s3 import S3Service            # S3 への presign, get_url, download_file などのラッパ
 from app.database import get_db
 from app.models import EmotionLog
 
 router = APIRouter(prefix="/voice", tags=["voice"])
+
+# Whisper 実行前の“最小”バリデーション
+def _validate_local_audio_file(path: str, language: str) -> None:
+    ALLOWED_EXT = {"webm", "wav", "mp3", "m4a"}
+    ALLOWED_LANG = {"ja", "en"}
+
+    if not os.path.exists(path):
+        raise HTTPException(status_code=400, detail="Downloaded audio file not found")
+    size = os.path.getsize(path)
+    if size <= 0:
+        raise HTTPException(status_code=400, detail="Audio file is empty")
+    if size > 25 * 1024 * 1024:  # 必要なら調整
+        raise HTTPException(status_code=413, detail="Audio file too large")
+
+    ext = os.path.splitext(path)[1].lower().lstrip(".")
+    if ext and ext not in ALLOWED_EXT:
+        raise HTTPException(status_code=400, detail=f"Unsupported audio format: .{ext}")
+
+    if language not in ALLOWED_LANG:
+        raise HTTPException(status_code=400, detail=f"Unsupported language: {language}")
 
 # WhisperService をプロセス内シングルトンで使い回す
 _whisper_service: Optional[WhisperService] = None
@@ -97,6 +115,9 @@ async def transcribe_voice(
         # 4) http(s) 未対応
         else:
             raise HTTPException(status_code=400, detail="HTTP(S)の音声URLは未対応です。S3キーか s3:// を渡してください。")
+
+        # Whisper 実行前に“最小バリデーション”を適用
+        _validate_local_audio_file(local_path, request.language or "ja")
 
         # Whisper は同期API → スレッドで実行
         result = await anyio.to_thread.run_sync(
@@ -208,7 +229,6 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
                 return p.replace(prefix, "")
             # https://<bucket>.s3.<region>.amazonaws.com/key → key の簡易対応（必要に応じて強化）
             if p.startswith("http://") or p.startswith("https://"):
-                # 最低限：パス部分のみを返す（/bucket/key か /key）
                 from urllib.parse import urlparse, unquote
                 u = urlparse(p)
                 path = unquote(u.path.lstrip("/"))
@@ -218,7 +238,7 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
             return p
 
         voice_record = EmotionLog(
-            user_id=request.user_id,                     # UUID はそのまま
+            user_id=request.user_id,                          # UUID はそのまま
             audio_file_path=to_key(request.audio_file_path),  # ← keyのみ
             text_file_path=to_key(request.text_file_path),    # ← keyのみ（任意）
         )
