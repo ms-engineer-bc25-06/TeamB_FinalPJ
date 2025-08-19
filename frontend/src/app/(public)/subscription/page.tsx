@@ -19,6 +19,29 @@ export default function SubscriptionPage() {
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
+  
+  const logDebugInfo = async () => {
+    console.log('SubscriptionPage render:', { firebaseUser: !!firebaseUser });
+    
+    if (firebaseUser) {
+      try {
+        const idToken = await firebaseUser.getIdToken(true); // 強制更新
+        console.log('Firebase ID Token:', idToken);
+        console.log('Token length:', idToken.length);
+        console.log('Token preview:', idToken.substring(0, 50) + '...');
+      } catch (error) {
+        console.error('Failed to get ID token:', error);
+      }
+    } else {
+      console.log('No Firebase user found');
+    }
+  };
+
+  // コンポーネントがマウントされた時にデバッグ情報を出力
+  useState(() => {
+    logDebugInfo();
+  });
+
   const handleStartSubscription = async () => {
     if (!firebaseUser) {
       alert('ログインしてください。');
@@ -31,6 +54,8 @@ export default function SubscriptionPage() {
     try {
       // 1) Firebaseの最新IDトークン
       const idToken = await firebaseUser.getIdToken(true);
+        
+      console.log('Starting subscription with token:', idToken.substring(0, 50) + '...');
 
       // 2) Checkout Session 作成
       const sessionId = await createCheckoutSession(idToken);
@@ -46,10 +71,10 @@ export default function SubscriptionPage() {
   };
 
   const handleBackToPublicTop = () => {
-    console.log('戻るボタンがクリックされました'); // デバッグログ
-    console.log('現在のパス:', window.location.pathname); // 現在のパスを確認
+    console.log('戻るボタンがクリックされました'); 
+    console.log('現在のパス:', window.location.pathname); 
     router.push('/login');
-    console.log('router.push("/login")が実行されました'); // 遷移処理の確認
+    console.log('router.push("/login")が実行されました'); 
   };
 
   if (isLoading) {
