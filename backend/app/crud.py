@@ -144,3 +144,74 @@ async def update_stripe_customer_id(
     except SQLAlchemyError as e:
         logger.warning("refresh user after subscription upsert failed", exc_info=e)
     return user
+
+async def get_user_by_stripe_customer_id(
+    db: AsyncSession, 
+    stripe_customer_id: str
+) -> Optional[models.User]:
+    """Stripe顧客IDからユーザーを取得"""
+    try:
+        stmt = (
+            select(models.User)
+            .join(models.Subscription)
+            .where(models.Subscription.stripe_customer_id == stripe_customer_id)
+        )
+        res = await db.execute(stmt)
+        return res.scalar_one_or_none()
+    except SQLAlchemyError as e:
+        logger.error("get_user_by_stripe_customer_id failed", exc_info=e)
+        return None
+
+async def update_subscription_status(
+    db: AsyncSession,
+    *,
+    user_id: uuid.UUID,
+    subscription_status: Optional[str] = None,
+    stripe_subscription_id: Optional[str] = None,
+    is_trial: Optional[bool] = None,
+    trial_started_at: Optional[datetime] = None,
+    trial_expires_at: Optional[datetime] = None,
+    is_paid: Optional[bool] = None,
+) -> Optional[models.Subscription]:
+    """サブスクリプション状態を更新"""
+    try:
+        # 既存のサブスクリプションレコードを取得
+        stmt = select(models.Subscription).where(models.Subscription.user_id == user_id)
+        result = await db.execute(stmt)
+        subscription = result.scalar_one_or_none()
+        
+        if not subscription:
+            # 新規作成
+            subscription = models.Subscription(
+                user_id=user_id,
+                subscription_status=subscription_status,
+                stripe_subscription_id=stripe_subscription_id,
+                is_trial=is_trial,
+                trial_started_at=trial_started_at,
+                trial_expires_at=trial_expires_at,
+                is_paid=is_paid,
+            )
+            db.add(subscription)
+        else:
+            # 既存レコードの更新
+            if subscription_status is not None:
+                subscription.subscription_status = subscription_status
+            if stripe_subscription_id is not None:
+                subscription.stripe_subscription_id = stripe_subscription_id
+            if is_trial is not None:
+                subscription.is_trial = is_trial
+            if trial_started_at is not None:
+                subscription.trial_started_at = trial_started_at
+            if trial_expires_at is not None:
+                subscription.trial_expires_at = trial_expires_at
+            if is_paid is not None:
+                subscription.is_paid = is_paid
+        
+        await db.commit()
+        await db.refresh(subscription)
+        return subscription
+        
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error("update_subscription_status failed", exc_info=e)
+        return None
