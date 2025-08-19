@@ -24,7 +24,7 @@ import {
 
 export default function AppHomePage() {
   const { user, logout, login, isLoading } = useAuth();
-  const { subscription, isLoading: subLoading } = useSubscription();
+  const { subscription, loading: subLoading } = useSubscription();
   const { todayEntry } = useTodayEntry();
   const router = useRouter();
 
@@ -111,7 +111,7 @@ export default function AppHomePage() {
 
     if (subscription.status === 'trialing') {
       const daysLeft = Math.ceil(
-        (new Date(subscription.trial_end!).getTime() - Date.now()) /
+        (new Date(subscription.trial_expires_at!).getTime() - Date.now()) /
           (1000 * 60 * 60 * 24),
       );
       return `無料体験あと${daysLeft}日です`;
