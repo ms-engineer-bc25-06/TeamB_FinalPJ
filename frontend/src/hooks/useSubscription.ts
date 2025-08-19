@@ -3,49 +3,51 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
-interface Subscription {
-  id: string;
-  status: 'incomplete' | 'trialing' | 'active' | 'past_due' | 'canceled';
-  trial_end?: string;
-  current_period_end: string;
+interface SubscriptionStatus {
+  has_subscription: boolean;
+  status: string;
+  is_trial: boolean;
+  is_paid: boolean;
+  trial_expires_at: string | null;
+  stripe_subscription_id?: string;
 }
 
-export function useSubscription() {
-  const { user } = useAuth();
-  const [subscription, setSubscription] = useState<Subscription | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+export const useSubscription = () => {
+  const { firebaseUser } = useAuth();
+  const [subscription, setSubscription] = useState<SubscriptionStatus | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const fetchSubscriptionStatus = async () => {
+    if (!firebaseUser) return;
+    
+    try {
+      const idToken = await firebaseUser.getIdToken();
+      const response = await fetch('/api/v1/stripe/subscription/status', {
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+        },
+      });
+      
+      if (!response.ok) throw new Error('Failed to fetch subscription status');
+      
+      const data = await response.json();
+      setSubscription(data);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Unknown error');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!user) {
-      setSubscription(null);
-      setIsLoading(false);
-      return;
-    }
+    fetchSubscriptionStatus();
+  }, [firebaseUser]);
 
-    const fetchSubscription = async () => {
-      try {
-        // ダミーのサブスクリプション状態
-        const dummySubscription: Subscription = {
-          id: 'sub_dummy',
-          status: 'trialing',
-          trial_end: new Date(
-            Date.now() + 7 * 24 * 60 * 60 * 1000,
-          ).toISOString(),
-          current_period_end: new Date(
-            Date.now() + 30 * 24 * 60 * 60 * 1000,
-          ).toISOString(),
-        };
-        setSubscription(dummySubscription);
-      } catch (error) {
-        console.error('サブスクリプション取得エラー:', error);
-        setSubscription(null);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSubscription();
-  }, [user]);
-
-  return { subscription, isLoading };
-}
+  return {
+    subscription,
+    loading,
+    error,
+    refetch: fetchSubscriptionStatus,
+  };
+};
