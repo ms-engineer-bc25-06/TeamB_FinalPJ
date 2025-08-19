@@ -77,8 +77,8 @@ cd ..
 echo 開発環境のセットアップが完了しました！
 echo.
 echo 📋 次のステップ:
-echo 1. backend/ ディレクトリで 'uvicorn app.main:app --reload' を実行
-echo 2. 別のターミナルで 'stripe listen --forward-to localhost:8000/api/v1/stripe/webhook' を実行
-echo 3. frontend/ ディレクトリで 'npm run dev' を実行
+echo 1. backend/ ディレクトリで "docker compose down && docker compose up --build -d" を実行
+echo 2. 別のターミナルで "stripe listen --forward-to localhost:8000/api/v1/stripe/webhook" を実行
+echo 3. frontend/ ディレクトリで "npm run dev" を実行
 echo.
 pause
