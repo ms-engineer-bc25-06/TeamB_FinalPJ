@@ -267,3 +267,44 @@ async def handle_payment_failed(event: dict, db: AsyncSession):
         user_id=user.id,
         is_paid=False
     )
+
+# サブスクリプション状態取得エンドポイント
+@router.get(
+    "/subscription/status",
+    summary="サブスクリプション状態取得",
+    description="現在のユーザーのサブスクリプション状態を取得します。"
+)
+async def get_subscription_status(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        # ユーザーのサブスクリプション情報を取得
+        subscription = await crud.get_subscription_by_user_id(db, current_user.id)
+        
+        if not subscription:
+            return {
+                "has_subscription": False,
+                "status": "none",
+                "is_trial": False,
+                "is_paid": False,
+                "trial_expires_at": None
+            }
+        
+        # トライアル期間の計算
+        trial_expires_at = None
+        if subscription.trial_expires_at:
+            trial_expires_at = subscription.trial_expires_at.isoformat()
+        
+        return {
+            "has_subscription": True,
+            "status": subscription.subscription_status or "unknown",
+            "is_trial": subscription.is_trial,
+            "is_paid": subscription.is_paid,
+            "trial_expires_at": trial_expires_at,
+            "stripe_subscription_id": subscription.stripe_subscription_id
+        }
+        
+    except Exception as e:
+        logging.error(f"Subscription status fetch failed: {str(e)}", exc_info=e)
+        raise HTTPException(status_code=500, detail="Failed to fetch subscription status")
