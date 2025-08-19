@@ -88,17 +88,25 @@ file_path = f"audio/{request.user_id}/audio_{timestamp}_{unique_id}.{file_extens
 backend/firebase-service-account.json
 ```
 
-#### 2.5.2 Firebase認証情報管理
-- **詳細**: Firebaseサービスアカウントキーの適切な管理
-- **実装箇所**: `backend/firebase-service-account.json`
+### 2.6 決済セキュリティ
 
-### 2.6 インフラストラクチャセキュリティ 
+#### 2.6.1 Stripe Webhook署名検証
+- **詳細**: Webhook通知の正当性を検証し、なりすまし攻撃を防止
+- **実装箇所**: `backend/app/stripe_api.py` のWebhookエンドポイント
+- **セキュリティ機能**: HMAC-SHA256署名による検証
 
-#### 2.6.1 Docker設定
+#### 2.6.2 Stripe環境変数の自動管理
+- **詳細**: 開発用スクリプトによるWebhook Secretの自動設定
+- **実装箇所**: `scripts/dev-setup.sh`, `scripts/dev-setup.bat`
+- **セキュリティ効果**: 手動設定による設定ミスの防止
+
+### 2.7 インフラストラクチャセキュリティ 
+
+#### 2.7.1 Docker設定
 - **詳細**: 基本的なDocker設定
 - **実装箇所**: `backend/Dockerfile`, `backend/compose.yaml`
 
-#### 2.6.2 データベースヘルスチェック
+#### 2.7.2 データベースヘルスチェック
 - **詳細**: PostgreSQLのヘルスチェック機能
 - **実装箇所**: `backend/compose.yaml`
 
