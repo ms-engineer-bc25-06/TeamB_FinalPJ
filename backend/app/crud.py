@@ -74,7 +74,6 @@ async def upsert_user_by_uid(
         user_id = res.scalar_one()
         await db.commit()
 
-        # ORMオブジェクトで返す（セッションにバインド）
         return await db.get(models.User, user_id)
 
     except SQLAlchemyError as e:
@@ -102,7 +101,7 @@ async def get_or_create_user(
 async def upsert_subscription_customer_id(
     db: AsyncSession,
     *,
-    user_id: uuid.UUID,              # ← UUID に合わせる
+    user_id: uuid.UUID,             
     stripe_customer_id: str,
 ) -> Optional[models.Subscription]:
     try:
@@ -214,4 +213,17 @@ async def update_subscription_status(
     except SQLAlchemyError as e:
         await db.rollback()
         logger.error("update_subscription_status failed", exc_info=e)
+        return None
+
+async def get_subscription_by_user_id(
+    db: AsyncSession, 
+    user_id: uuid.UUID
+) -> Optional[models.Subscription]:
+    """ユーザーIDからサブスクリプション情報を取得"""
+    try:
+        stmt = select(models.Subscription).where(models.Subscription.user_id == user_id)
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+    except SQLAlchemyError as e:
+        logger.error("get_subscription_by_user_id failed", exc_info=e)
         return None
