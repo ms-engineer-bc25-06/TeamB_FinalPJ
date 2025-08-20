@@ -14,11 +14,13 @@ export const colors = {
     primary: '#333',         // メインテキスト色
     secondary: '#666',       // サブテキスト色
     white: '#ffffff',        // 白テキスト
+    error: '#e74c3c',        // エラーテキスト色
   },
   background: {
     white: '#ffffff',        // 白背景
     transparent: 'transparent', // 透明背景
     gradient: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)', // グラデーション背景
+    light: '#f8f9fa',        // 薄い背景色
   },
   border: {
     light: 'rgba(255,255,255,0.5)', // 薄いボーダー
