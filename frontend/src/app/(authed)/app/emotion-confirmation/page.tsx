@@ -24,6 +24,17 @@ interface EmotionIntensity {
   colorModifier: number;
 }
 
+// 子供の型定義
+interface Child {
+  id: string;
+  nickname: string;
+  birth_date: string;
+  gender: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // 感情名を英語のファイル名にマッピング
 const EMOTION_NAME_TO_FILENAME: Record<string, string> = {
   'うれしい': 'ureshii',
@@ -46,6 +57,8 @@ export default function EmotionConfirmationPage() {
   const searchParams = useSearchParams();
   const [selectedEmotion, setSelectedEmotion] = useState<Emotion | null>(null);
   const [selectedIntensity, setSelectedIntensity] = useState<EmotionIntensity | null>(null);
+  const [children, setChildren] = useState<Child[]>([]);
+  const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showGuide, setShowGuide] = useState(true);
@@ -72,22 +85,36 @@ export default function EmotionConfirmationPage() {
       setError(null);
       
       try {
-        // 感情カードと強度データを並行して取得
-        const [emotionResponse, intensityResponse] = await Promise.all([
+        // 感情カード、強度データ、子供データを並行して取得
+        const [emotionResponse, intensityResponse, childrenResponse] = await Promise.all([
           fetch('http://localhost:8000/emotion/cards'),
-          fetch('http://localhost:8000/emotion/intensities')
+          fetch('http://localhost:8000/emotion/intensities'),
+          fetch(`http://localhost:8000/emotion/children/${user?.uid}`)
         ]);
 
-        if (!emotionResponse.ok || !intensityResponse.ok) {
+        if (!emotionResponse.ok || !intensityResponse.ok || !childrenResponse.ok) {
           throw new Error('データの取得に失敗しました');
         }
 
         const emotionData = await emotionResponse.json();
         const intensityData = await intensityResponse.json();
+        const childrenData = await childrenResponse.json();
         
-        if (emotionData.success && intensityData.success) {
+        if (emotionData.success && intensityData.success && childrenData.success) {
           console.log('🎯 感情確認: 感情データ取得成功');
           console.log('🎯 感情確認: 強度データ取得成功');
+          console.log('🎯 感情確認: 子供データ取得成功');
+          
+          // 子供データを設定
+          setChildren(childrenData.children);
+          
+          // 子供が1人しかいない場合は自動選択
+          if (childrenData.children.length === 1) {
+            setSelectedChild(childrenData.children[0]);
+          } else if (childrenData.children.length === 0) {
+            setError('子供の登録がありません。設定画面で子供を登録してください。');
+            return;
+          }
           
           // 選択された感情を取得
           const emotion = emotionData.cards.find((e: Emotion) => e.id === emotionId);
@@ -135,7 +162,7 @@ export default function EmotionConfirmationPage() {
     };
 
     fetchEmotionData();
-  }, [searchParams]);
+  }, [searchParams, user]);
 
   // HEXカラーをRGBAに変換する関数
   const hexToRgba = (hex: string, alpha: number): string => {
@@ -196,7 +223,6 @@ export default function EmotionConfirmationPage() {
 
   // 右スワイプ（はい）の処理
   const handleSwipeRight = () => {
-    console.log('🎯 感情確認: 右スワイプ（はい）が実行されました');
     setSwipeDirection('right');
     
     // 感情記録を保存
@@ -204,7 +230,7 @@ export default function EmotionConfirmationPage() {
       console.log('🎯 感情確認: 感情ログ保存開始');
       console.log('🎯 感情確認: 保存するデータ:', {
         user_id: user?.uid || "00000000-0000-0000-0000-000000000000",
-        child_id: "327155de-a775-4847-aba9-abbd352d740d", // 実際の子供ID（テストくん）
+        child_id: selectedChild?.id || "00000000-0000-0000-0000-000000000000", // 実際の子供ID
         emotion_card_id: selectedEmotion?.id,
         intensity_id: selectedIntensity?.id,
         voice_note: null, 
@@ -222,7 +248,7 @@ export default function EmotionConfirmationPage() {
           },
           body: JSON.stringify({
             user_id: user?.uid || "00000000-0000-0000-0000-000000000000", // 仮のユーザーID
-            child_id: "327155de-a775-4847-aba9-abbd352d740d", // 実際の子供ID（テストくん）
+            child_id: selectedChild?.id || "00000000-0000-0000-0000-000000000000", // 実際の子供ID
             emotion_card_id: selectedEmotion?.id,
             intensity_id: selectedIntensity?.id,
             voice_note: null, // 使用しないかも

@@ -12,7 +12,8 @@ from datetime import datetime
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
-from app.models import EmotionCard, Intensity, EmotionLog
+from app.models import EmotionCard, Intensity, EmotionLog, Child
+from app.schemas import ChildResponse
 
 # データベース接続を直接定義
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -212,4 +213,67 @@ async def create_emotion_log(
         
     except Exception as e:
         await db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/children/{user_uid}",
+    summary="ユーザーの子供一覧取得",
+    description="""
+    指定されたユーザーUIDに紐づく子供の一覧を取得します。
+
+    ## 使用タイミング
+    - 感情記録作成時の子供選択
+    - ユーザー設定画面での子供一覧表示
+
+    ## レスポンス例
+    ```json
+    {
+      "success": true,
+      "children": [
+        {
+          "id": "327155de-a775-4847-aba9-abbd352d740d",
+          "nickname": "テストくん",
+          "birth_date": "2018-04-15",
+          "gender": "男の子",
+          "user_id": "user-uuid",
+          "created_at": "2024-01-01T00:00:00Z",
+          "updated_at": "2024-01-01T00:00:00Z"
+        }
+      ]
+    }
+    ```
+    """,
+    response_description="ユーザーの子供一覧を返します",
+)
+async def get_user_children(user_uid: str, db: AsyncSession = Depends(get_db)):
+    try:
+        # Firebase UIDからユーザーIDを検索
+        from app.crud import get_user_by_uid
+        user = await get_user_by_uid(db, user_uid)
+        if not user:
+            raise HTTPException(status_code=404, detail="User not found")
+        
+        # ユーザーに紐づく子供を取得
+        result = await db.execute(
+            select(Child).where(Child.user_id == user.id)
+        )
+        children = result.scalars().all()
+        
+        return {
+            "success": True,
+            "children": [
+                ChildResponse(
+                    id=child.id,
+                    nickname=child.nickname,
+                    birth_date=child.birth_date.isoformat(),
+                    gender=child.gender,
+                    user_id=child.user_id,
+                    created_at=child.created_at,
+                    updated_at=child.updated_at
+                ) for child in children
+            ]
+        }
+        
+    except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
