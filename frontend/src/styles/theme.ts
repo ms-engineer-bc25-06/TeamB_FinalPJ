@@ -180,7 +180,7 @@ export const commonStyles = {
       left: 0,
       width: '100vw',
       height: '100vh',
-      background: 'url("images/background.webp") no-repeat center center',
+      background: 'url("/images/background.webp") no-repeat center center',
       backgroundSize: 'cover',
       overflow: 'hidden',
     },
