@@ -90,12 +90,15 @@ export default function EmotionIntensityPage() {
         const intensityData = await intensityResponse.json();
         
         if (emotionData.success && intensityData.success) {
+          console.log('🎯 強度選択: 感情データ取得成功');
+          console.log('🎯 強度選択: 強度データ取得成功');
+          
           // 選択された感情を取得
           const emotion = emotionData.cards.find((e: Emotion) => e.id === emotionId);
           if (emotion) {
             // デバッグ用: 感情データの内容をログ出力
-            console.log('選択された感情データ:', emotion);
-            console.log('感情の画像URL:', emotion.image_url);
+            console.log('🎯 強度選択: 選択された感情データ:', emotion);
+            console.log('🎯 強度選択: 感情の画像URL:', emotion.image_url);
             
             setSelectedEmotion(emotion);
             
@@ -139,8 +142,13 @@ export default function EmotionIntensityPage() {
 
   // 感情強度を選択した時の処理
   const handleIntensitySelect = (intensity: EmotionIntensity) => {
+    console.log('🎯 強度選択: 選択された強度:', intensity);
+    console.log('🎯 強度選択: 選択された感情:', selectedEmotion);
+    
     // 感情確認画面に遷移（感情IDと強度レベルを含める）
-    router.push(`/app/emotion-confirmation?emotion=${selectedEmotion?.id}&intensity=${intensity.level}`);
+    const nextUrl = `/app/emotion-confirmation?emotion=${selectedEmotion?.id}&intensity=${intensity.level}`;
+    console.log('🎯 強度選択: 感情確認画面に遷移:', nextUrl);
+    router.push(nextUrl);
   };
 
   // 戻るボタンの処理

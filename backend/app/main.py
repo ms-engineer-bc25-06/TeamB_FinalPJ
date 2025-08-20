@@ -16,6 +16,7 @@ from app.models import Base, User
 from app.api.v1.endpoints.voice import router as new_voice_router
 from app.utils.error_handlers import register_error_handlers
 from app.emotion_color_api import router as emotion_color_router
+from app.emotion_api import router as emotion_router
 from app.stripe_api import router as stripe_router
 
 
@@ -67,6 +68,7 @@ app.add_middleware(
 
 # ルーター登録
 app.include_router(new_voice_router, prefix="/api/v1")
+app.include_router(emotion_router)
 app.include_router(emotion_color_router)
 app.include_router(stripe_router)
 

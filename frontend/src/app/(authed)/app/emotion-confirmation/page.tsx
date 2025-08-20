@@ -24,6 +24,17 @@ interface EmotionIntensity {
   colorModifier: number;
 }
 
+// 子供の型定義
+interface Child {
+  id: string;
+  nickname: string;
+  birth_date: string;
+  gender: string;
+  user_id: string;
+  created_at: string;
+  updated_at: string;
+}
+
 // 感情名を英語のファイル名にマッピング
 const EMOTION_NAME_TO_FILENAME: Record<string, string> = {
   'うれしい': 'ureshii',
@@ -46,6 +57,8 @@ export default function EmotionConfirmationPage() {
   const searchParams = useSearchParams();
   const [selectedEmotion, setSelectedEmotion] = useState<Emotion | null>(null);
   const [selectedIntensity, setSelectedIntensity] = useState<EmotionIntensity | null>(null);
+  const [children, setChildren] = useState<Child[]>([]);
+  const [selectedChild, setSelectedChild] = useState<Child | null>(null);
   const [isLoadingData, setIsLoadingData] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [showGuide, setShowGuide] = useState(true);
@@ -72,23 +85,41 @@ export default function EmotionConfirmationPage() {
       setError(null);
       
       try {
-        // 感情カードと強度データを並行して取得
-        const [emotionResponse, intensityResponse] = await Promise.all([
+        // 感情カード、強度データ、子供データを並行して取得
+        const [emotionResponse, intensityResponse, childrenResponse] = await Promise.all([
           fetch('http://localhost:8000/emotion/cards'),
-          fetch('http://localhost:8000/emotion/intensities')
+          fetch('http://localhost:8000/emotion/intensities'),
+          fetch(`http://localhost:8000/emotion/children/${user?.uid}`)
         ]);
 
-        if (!emotionResponse.ok || !intensityResponse.ok) {
+        if (!emotionResponse.ok || !intensityResponse.ok || !childrenResponse.ok) {
           throw new Error('データの取得に失敗しました');
         }
 
         const emotionData = await emotionResponse.json();
         const intensityData = await intensityResponse.json();
+        const childrenData = await childrenResponse.json();
         
-        if (emotionData.success && intensityData.success) {
+        if (emotionData.success && intensityData.success && childrenData.success) {
+          console.log('🎯 感情確認: 感情データ取得成功');
+          console.log('🎯 感情確認: 強度データ取得成功');
+          console.log('🎯 感情確認: 子供データ取得成功');
+          
+          // 子供データを設定
+          setChildren(childrenData.children);
+          
+          // 子供が1人しかいない場合は自動選択
+          if (childrenData.children.length === 1) {
+            setSelectedChild(childrenData.children[0]);
+          } else if (childrenData.children.length === 0) {
+            setError('子供の登録がありません。設定画面で子供を登録してください。');
+            return;
+          }
+          
           // 選択された感情を取得
           const emotion = emotionData.cards.find((e: Emotion) => e.id === emotionId);
           if (emotion) {
+            console.log('🎯 感情確認: 選択された感情:', emotion);
             setSelectedEmotion(emotion);
             
             // 強度データと感情ラベルを組み合わせて感情強度リストを作成
@@ -99,15 +130,22 @@ export default function EmotionConfirmationPage() {
             ];
             
             const intensity = intensityLevels.find(level => level.level === intensityLevel);
+            console.log('🎯 感情確認: 強度レベル検索結果:', intensityLevel, intensity);
+            
             if (intensity) {
               const intensityDataItem = intensityData.intensities.find((i: any) => i.id === intensity.id);
-              setSelectedIntensity({
+              console.log('🎯 感情確認: 強度データ検索結果:', intensity.id, intensityDataItem);
+              
+              const selectedIntensityData = {
                 id: intensity.id,
                 level: intensity.level as 'low' | 'medium' | 'high',
                 label: emotion.label,
                 description: intensity.description ? `${intensity.description}${emotion.label}` : emotion.label,
                 colorModifier: intensityDataItem ? intensityDataItem.color_modifier : 1.0
-              });
+              };
+              
+              console.log('🎯 感情確認: 設定する強度データ:', selectedIntensityData);
+              setSelectedIntensity(selectedIntensityData);
             }
           } else {
             throw new Error('選択された感情が見つかりません');
@@ -124,7 +162,7 @@ export default function EmotionConfirmationPage() {
     };
 
     fetchEmotionData();
-  }, [searchParams]);
+  }, [searchParams, user]);
 
   // HEXカラーをRGBAに変換する関数
   const hexToRgba = (hex: string, alpha: number): string => {
@@ -187,10 +225,22 @@ export default function EmotionConfirmationPage() {
   const handleSwipeRight = () => {
     setSwipeDirection('right');
     
-    // TODO: 感情記録をDBに保存しようと思ったけど、音声やテキストのパスも一緒のタイミングで保存した方がスマート？
+    // 感情記録を保存
     const saveEmotionLog = async () => {
+      console.log('🎯 感情確認: 感情ログ保存開始');
+      console.log('🎯 感情確認: 保存するデータ:', {
+        user_id: user?.uid || "00000000-0000-0000-0000-000000000000",
+        child_id: selectedChild?.id || "00000000-0000-0000-0000-000000000000", // 実際の子供ID
+        emotion_card_id: selectedEmotion?.id,
+        intensity_id: selectedIntensity?.id,
+        voice_note: null, 
+        text_file_path: null,
+        audio_file_path: null,
+      });
+      
       try {
         // 既存の感情記録保存APIを使用
+        console.log('🎯 感情確認: APIリクエスト送信中...');
         const response = await fetch('http://localhost:8000/emotion/logs', {
           method: 'POST',
           headers: {
@@ -198,22 +248,26 @@ export default function EmotionConfirmationPage() {
           },
           body: JSON.stringify({
             user_id: user?.uid || "00000000-0000-0000-0000-000000000000", // 仮のユーザーID
-            child_id: "00000000-0000-0000-0000-000000000000", // 仮の子供ID
+            child_id: selectedChild?.id || "00000000-0000-0000-0000-000000000000", // 実際の子供ID
             emotion_card_id: selectedEmotion?.id,
             intensity_id: selectedIntensity?.id,
-            voice_note: "感情確認完了", // 仮の音声メモ
-            text_file_path: "s3://bucket/text/temp.txt", // 仮のテキストファイルパス
-            audio_file_path: null, // 音声ファイルは後で追加
+            voice_note: null, // 使用しないかも
+            text_file_path: null, // 後で追加
+            audio_file_path: null, // 後で追加
           }),
         });
 
+        console.log('🎯 感情確認: APIレスポンス受信:', response.status, response.statusText);
+
         if (response.ok) {
-          console.log('感情記録が保存されました');
+          const responseData = await response.json();
+          console.log('🎯 感情確認: 感情記録が保存されました:', responseData);
         } else {
-          console.error('感情記録の保存に失敗しました');
+          const errorData = await response.text();
+          console.error('🎯 感情確認: 感情記録の保存に失敗しました:', response.status, errorData);
         }
       } catch (error) {
-        console.error('感情記録保存エラー:', error);
+        console.error('🎯 感情確認: 感情記録保存エラー:', error);
       }
     };
 
