@@ -24,12 +24,13 @@ import {
 
 export default function AppHomePage() {
   const { user, logout, login, isLoading } = useAuth();
-  const { subscription, loading: subLoading } = useSubscription();
+  const { has_subscription, status, trial_expires_at, loading: subLoading, error } = useSubscription();
   const { todayEntry } = useTodayEntry();
   const router = useRouter();
 
+  /*
   // サブスク未登録の場合のチェック
-  const needsSubscription = !subscription || subscription.status === 'incomplete';
+  const needsSubscription = !has_subscription || status === 'incomplete';
   
   // 初回セットアップが必要かチェック（サブスク登録済みの場合のみ）
   const needsSetup = !needsSubscription && !user?.nickname;
@@ -43,6 +44,7 @@ export default function AppHomePage() {
       router.push('/app/setup');
     }
   }, [needsSubscription, needsSetup, router]);
+*/
 
   // おしゃべりボタンが押された時の処理
   const handleStartEmotion = () => {
@@ -96,28 +98,23 @@ export default function AppHomePage() {
     );
   }
 
-  // サブスク未登録またはセットアップ中の場合は何も表示しない
-  if (needsSubscription || needsSetup) {
-    return null;
-  }
-
   // サブスクリプション状態に応じたメッセージ
   const getStatusMessage = () => {
     if (subLoading) return '読み込み中...';
 
-    if (!subscription || subscription.status === 'incomplete') {
+    if (!has_subscription) {
       return '7日間の無料体験中です！';
     }
 
-    if (subscription.status === 'trialing') {
+    if (status === 'trialing') {
       const daysLeft = Math.ceil(
-        (new Date(subscription.trial_expires_at!).getTime() - Date.now()) /
+        (new Date(trial_expires_at!).getTime() - Date.now()) /
           (1000 * 60 * 60 * 24),
       );
       return `無料体験あと${daysLeft}日です`;
     }
 
-    if (subscription.status === 'active') {
+    if (status === 'active') {
       return 'サブスクリプション会員です！';
     }
 
@@ -133,6 +130,15 @@ export default function AppHomePage() {
     }
     return 'きょうは どんな きもち？\nおしえて くださいね！';
   };
+
+  // デバッグ情報を表示（一時的に）
+  console.log('=== デバッグ情報 ===');
+  console.log('has_subscription:', has_subscription);
+  console.log('status:', status);
+  console.log('trial_expires_at:', trial_expires_at);
+  console.log('loading:', subLoading);
+  console.log('error:', error);
+  console.log('========================');
 
   return (
     <div style={commonStyles.page.container}>
@@ -161,8 +167,7 @@ export default function AppHomePage() {
         </MenuItem>
 
         {/* サブスクリプション機能 */}
-        {subscription?.status === 'active' ||
-        subscription?.status === 'trialing' ? (
+        {has_subscription || status === 'trialing' ? (
           <>
             <MenuItem onClick={() => router.push('/app/reports')}>
               詳細レポート
@@ -230,7 +235,7 @@ export default function AppHomePage() {
         </div>
 
         {/* サブスクリプション状態表示 */}
-        {(!subscription || subscription.status === 'incomplete') && (
+        {!has_subscription && (
           <div
             style={{
               marginTop: spacing.xl,
