@@ -53,6 +53,7 @@ class Subscription(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     user_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("users.id"), nullable=False, unique=True, index=True)
     stripe_customer_id: Mapped[str] = mapped_column(String, nullable=True, unique=True)
+    stripe_subscription_id: Mapped[str | None] = mapped_column(String, nullable=True)
     subscription_status: Mapped[str] = mapped_column(String, nullable=True)
     is_trial: Mapped[bool] = mapped_column(Boolean, default=True, nullable=False)
     trial_started_at: Mapped[DateTime | None] = mapped_column(DateTime(timezone=True), nullable=True)
