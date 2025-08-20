@@ -340,7 +340,7 @@ async def get_subscription_status(
             "is_trial": subscription.is_trial,
             "is_paid": subscription.is_paid,
             "trial_expires_at": trial_expires_at,
-            "stripe_subscription_id": subscription.stripe_subscription_id
+            "stripe_subscription_id": getattr(subscription, 'stripe_subscription_id', None)
         }
         
     except Exception as e:
