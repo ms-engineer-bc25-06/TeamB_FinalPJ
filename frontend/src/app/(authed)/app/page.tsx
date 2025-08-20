@@ -28,23 +28,35 @@ export default function AppHomePage() {
   const { todayEntry } = useTodayEntry();
   const router = useRouter();
 
-  /*
+ 
   // サブスク未登録の場合のチェック
   const needsSubscription = !has_subscription || status === 'incomplete';
-  
   // 初回セットアップが必要かチェック（サブスク登録済みの場合のみ）
   const needsSetup = !needsSubscription && !user?.nickname;
 
   useEffect(() => {
+    // ローディング中は処理をスキップ
+    if (subLoading) {
+      console.log('ローディング中: 処理をスキップ');
+      return;
+    }
+    
+    console.log('=== useEffect デバッグ ===');
+    console.log('needsSubscription:', needsSubscription);
+    console.log('needsSetup:', needsSetup);
+    console.log('has_subscription:', has_subscription);
+    console.log('status:', status);
+    console.log('========================');
+    
     if (needsSubscription) {
-      // サブスク未登録の場合はStripeチェックアウトへ
+      console.log('リダイレクト: /subscription');
       router.push('/subscription');
     } else if (needsSetup) {
-      // サブスク登録済みでセットアップが必要な場合はセットアップページへ
+      console.log('リダイレクト: /app/setup');
       router.push('/app/setup');
     }
-  }, [needsSubscription, needsSetup, router]);
-*/
+  }, [needsSubscription, needsSetup, router, has_subscription, status, subLoading]); // ← subLoadingも追加
+
 
   // おしゃべりボタンが押された時の処理
   const handleStartEmotion = () => {
