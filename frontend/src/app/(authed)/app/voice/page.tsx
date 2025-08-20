@@ -26,10 +26,19 @@ type TranscriptionResult = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
+// 環境変数を定数に格納
+const isDevMode = process.env.NEXT_PUBLIC_DEV_MODE === 'true';
+const skipAuth = process.env.NEXT_PUBLIC_SKIP_AUTH === 'true';
+
 export default function VoiceEntryPage() {
-  // ← 認可制御に必要なのはこの2行だけ
+  // 認証チェック
   const { user, isLoading } = useAuth();
   const router = useRouter();
+
+  // 開発モードで認証をスキップする場合のモックユーザー
+  const devUser = isDevMode && skipAuth ? { id: 'dev-user-id' } : null;
+  const authUser = isDevMode && skipAuth ? devUser : user;
+  const authLoading = isDevMode && skipAuth ? false : isLoading;
 
   // 以降はログイン済み向けの処理
   const [checkingToday, setCheckingToday] = useState(true);
@@ -49,22 +58,32 @@ export default function VoiceEntryPage() {
 
   // 認証前後の制御
   useEffect(() => {
-    if (!isLoading && !user) {
+    // 開発モード & 認証スキップが有効な場合は処理しない
+    if (isDevMode && skipAuth) {
+      console.log('開発モード: 認証をスキップしています');
+      // ログイン済みとして扱われるため、リダイレクトは不要
+      return;
+    }
+
+    if (!authLoading && !authUser) {
       router.replace('/');
     }
-  }, [isLoading, user, router]);
+  }, [authLoading, authUser, isDevMode, skipAuth, router]);
 
   // 今日の記録有無チェック → あれば edit へ
   useEffect(() => {
+    // 開発モード & 認証スキップが有効な場合はモックユーザーを使用
+    const userToUse = isDevMode && skipAuth ? devUser : user;
+    
     const checkToday = async () => {
-      if (!user) return;
+      if (!userToUse) return;
       if (!API_BASE) {
         setError('環境変数 NEXT_PUBLIC_API_BASE_URL が設定されていません');
         setCheckingToday(false);
         return;
       }
       try {
-        const res = await fetch(`${API_BASE}/api/v1/voice/records/${user.id}`);
+        const res = await fetch(`${API_BASE}/api/v1/voice/records/${userToUse.id}`);
         if (!res.ok) throw new Error(`records 取得失敗: ${res.status}`);
         const data = await res.json();
 
@@ -97,8 +116,8 @@ export default function VoiceEntryPage() {
       }
     };
 
-    if (user) checkToday();
-  }, [user, router]);
+    if (userToUse) checkToday();
+  }, [user, router, isDevMode, skipAuth]);
 
   // --- 録音開始 ---
   const startRecording = async () => {
@@ -155,7 +174,8 @@ export default function VoiceEntryPage() {
   // --- S3アップロード → Whisper → DB保存 ---
   const uploadAndSave = async () => {
     if (!audioBlob) return;
-    if (!user) return;
+    const userToUse = isDevMode && skipAuth ? devUser : user;
+    if (!userToUse) return;
 
     setIsBusy(true);
     setError(null);
@@ -172,7 +192,7 @@ export default function VoiceEntryPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: user.id,
+          user_id: userToUse.id,
           file_type: 'audio',
           file_format: recConfig.ext, // 'webm' を送る
         }),
@@ -196,7 +216,7 @@ export default function VoiceEntryPage() {
         headers: { 'Content-Type': 'application/json' },
         // ← backendは「S3キー」も受け付けるので、key をそのまま送る
         body: JSON.stringify({
-          user_id: user.id,
+          user_id: userToUse.id,
           audio_file_path: upData.file_path,
           language: 'ja',
         }),
@@ -211,7 +231,7 @@ export default function VoiceEntryPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          user_id: user.id,
+          user_id: userToUse.id,
           audio_file_path: upData.file_path,
           text_file_path: null, // 将来: テキストもS3に保存したらここに key を入れる
         }),
@@ -228,8 +248,8 @@ export default function VoiceEntryPage() {
     }
   };
 
-  // まだ認証判定中 or 未ログインでリダイレクト待ち
-  if (isLoading || !user) {
+  // 認証判定中 or 未ログインでリダイレクト待ち
+  if (authLoading || !authUser) {
     return (
       <main style={{
         display: 'grid',
