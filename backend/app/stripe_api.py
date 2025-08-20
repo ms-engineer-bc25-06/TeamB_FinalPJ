@@ -5,7 +5,8 @@ from fastapi import APIRouter, Depends, HTTPException, Security, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from firebase_admin import auth
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
+import uuid
 
 from app import crud, schemas
 from app.models import User
@@ -58,6 +59,18 @@ async def create_checkout_session(
     # 本番環境では、localhost:3000を実際のドメインに変更する必要あり
     success_url = "http://localhost:3000/app/payment/onboarding?session_id={CHECKOUT_SESSION_ID}"
     cancel_url = "http://localhost:3000/subscription"
+    
+    # サブスクリプションレコードが存在しない場合は作成
+    if not current_user.subscriptions:
+        # 初期サブスクリプションレコードを作成（stripe_customer_idは後で設定）
+        await crud.upsert_subscription_customer_id(
+            db, 
+            user_id=current_user.id, 
+            stripe_customer_id="temp_" + str(uuid.uuid4())  # 一時的なID
+        )
+        # ユーザー情報を再取得
+        current_user = await crud.get_user_by_uid(db, current_user.uid)
+    
     # DBからStripe顧客IDを取得
     stripe_customer_id = current_user.subscriptions.stripe_customer_id if current_user.subscriptions else None
     # まだStripeの顧客でない場合は、新しく作成する
@@ -163,6 +176,8 @@ async def handle_stripe_event(event: dict, db: AsyncSession):
     
     if event_type == "checkout.session.completed":
         await handle_checkout_completed(event, db)
+    elif event_type == "customer.subscription.created":
+        await handle_subscription_created(event, db)
     elif event_type == "customer.subscription.updated":
         await handle_subscription_updated(event, db)
     elif event_type == "customer.subscription.deleted":
@@ -266,6 +281,29 @@ async def handle_payment_failed(event: dict, db: AsyncSession):
         db,
         user_id=user.id,
         is_paid=False
+    )
+
+async def handle_subscription_created(event: dict, db: AsyncSession):
+    """サブスクリプション作成時の処理"""
+    subscription = event["data"]["object"]
+    customer_id = subscription["customer"]
+    subscription_id = subscription["id"]
+    
+    # 顧客IDからユーザーを検索
+    user = await crud.get_user_by_stripe_customer_id(db, customer_id)
+    if not user:
+        logging.error(f"User not found for customer_id: {customer_id}")
+        return
+    
+    # サブスクリプション情報を更新
+    await crud.update_subscription_status(
+        db,
+        user_id=user.id,
+        stripe_subscription_id=subscription_id,
+        subscription_status="active",
+        is_trial=True,
+        trial_started_at=datetime.now(timezone.utc),
+        trial_expires_at=datetime.now(timezone.utc).replace(tzinfo=timezone.utc) + timedelta(days=7)
     )
 
 # サブスクリプション状態取得エンドポイント

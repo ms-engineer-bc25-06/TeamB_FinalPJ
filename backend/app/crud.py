@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import uuid
 import logging
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Optional
 
 from sqlalchemy import select, func
@@ -105,16 +105,30 @@ async def upsert_subscription_customer_id(
     stripe_customer_id: str,
 ) -> Optional[models.Subscription]:
     try:
+        # 現在時刻から7日後を計算
+        trial_started_at = now_utc()
+        trial_expires_at = trial_started_at.replace(tzinfo=UTC) + timedelta(days=7)
+        
         stmt = (
             insert(models.Subscription)
             .values(
                 user_id=user_id,
                 stripe_customer_id=stripe_customer_id,
-                trial_started_at=func.now(),
+                subscription_status='trial',
+                is_trial=True,
+                trial_started_at=trial_started_at,
+                trial_expires_at=trial_expires_at,
+                is_paid=False
             )
             .on_conflict_do_update(
                 index_elements=[models.Subscription.user_id],
-                set_={"stripe_customer_id": stripe_customer_id},
+                set_={
+                    "stripe_customer_id": stripe_customer_id,
+                    "subscription_status": 'trial',
+                    "is_trial": True,
+                    "trial_started_at": trial_started_at,
+                    "trial_expires_at": trial_expires_at
+                }
             )
             .returning(models.Subscription.id)
         )
@@ -138,7 +152,6 @@ async def update_stripe_customer_id(
     if sub is None:
         return None
     try:
-        # user.subscriptions を直後に使うなら明示的に最新化
         await db.refresh(user)
     except SQLAlchemyError as e:
         logger.warning("refresh user after subscription upsert failed", exc_info=e)
