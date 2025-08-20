@@ -115,9 +115,9 @@ class EmotionLog(Base):
     child_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("children.id"), nullable=False, index=True)
     emotion_card_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("emotion_cards.id"), nullable=False)
     intensity_id: Mapped[int] = mapped_column(Integer, ForeignKey("intensity.id"), nullable=False)
-    voice_note: Mapped[str] = mapped_column(Text, nullable=False)
+    voice_note: Mapped[str | None] = mapped_column(Text, nullable=True)
 
-    text_file_path: Mapped[str] = mapped_column(String, nullable=False)  # テキストファイルのS3パス
+    text_file_path: Mapped[str | None] = mapped_column(String, nullable=True)  # テキストファイルのS3パス
     audio_file_path: Mapped[str] = mapped_column(String)  # 音声ファイルのS3パス
 
     created_at: Mapped[DateTime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)

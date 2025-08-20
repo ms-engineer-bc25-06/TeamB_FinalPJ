@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import EmotionCard, Intensity
 
@@ -9,73 +10,73 @@ async def seed_emotion_cards(db: AsyncSession):
         {
             "id": uuid.uuid4(),
             "label": "ふゆかい",
-            "image_url": "/images/fuyukai.webp",
+            "image_url": "/images/emotions/fuyukai.webp",
             "color": "#FF0000",
         },
         {
             "id": uuid.uuid4(),
             "label": "いかり",
-            "image_url": "/images/ikari.webp",
+            "image_url": "/images/emotions/ikari.webp",
             "color": "#FF0000",
         },
         {
             "id": uuid.uuid4(),
             "label": "はずかしい",
-            "image_url": "/images/hazukashii.webp",
+            "image_url": "/images/emotions/hazukashii.webp",
             "color": "#FF0000",
         },
         {
             "id": uuid.uuid4(),
             "label": "きんちょう",
-            "image_url": "/images/kinchou.webp",
+            "image_url": "/images/emotions/kinchou.webp",
             "color": "#FF0000",
         },
         {
             "id": uuid.uuid4(),
             "label": "こわい",
-            "image_url": "/images/kowai.webp",
+            "image_url": "/images/emotions/kowai.webp",
             "color": "#0000FF",
         },
         {
             "id": uuid.uuid4(),
             "label": "かなしい",
-            "image_url": "/images/kanashii.webp",
+            "image_url": "/images/emotions/kanashii.webp",
             "color": "#0000FF",
         },
         {
             "id": uuid.uuid4(),
             "label": "こまった",
-            "image_url": "/images/komatta.webp",
+            "image_url": "/images/emotions/komatta.webp",
             "color": "#0000FF",
         },
         {
             "id": uuid.uuid4(),
             "label": "あんしん",
-            "image_url": "/images/anshin.webp",
+            "image_url": "/images/emotions/anshin.webp",
             "color": "#00CC66",
         },
         {
             "id": uuid.uuid4(),
             "label": "びっくり",
-            "image_url": "/images/bikkuri.webp",
+            "image_url": "/images/emotions/bikkuri.webp",
             "color": "#00CC66",
         },
         {
             "id": uuid.uuid4(),
             "label": "わからない",
-            "image_url": "/images/wakaranai.webp",
+            "image_url": "/images/emotions/wakaranai.webp",
             "color": "#999999",
         },
         {
             "id": uuid.uuid4(),
             "label": "うれしい",
-            "image_url": "/images/ureshii.webp",
+            "image_url": "/images/emotions/ureshii.webp",
             "color": "#FFCC00",
         },
         {
             "id": uuid.uuid4(),
             "label": "ゆかい",
-            "image_url": "/images/yukai.webp",
+            "image_url": "/images/emotions/yukai.webp",
             "color": "#FFCC00",
         },
     ]
