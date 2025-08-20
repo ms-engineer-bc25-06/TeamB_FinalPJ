@@ -11,7 +11,7 @@ import stripe
 
 from app import crud, schemas
 from app.database import engine, async_session_local, get_db
-from app.models import Base, User
+from app.models import User
 
 from app.api.v1.endpoints.voice import router as new_voice_router
 from app.utils.error_handlers import register_error_handlers
@@ -35,11 +35,6 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 # --- Lifespan Manager ---
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    # TODO:本番は Alembic マイグレーションでDBを用意する
-    # 開発用にどうしても必要なら、環境変数で切り替え
-    # if os.getenv("DEV_CREATE_ALL") == "1":
-    #     async with engine.begin() as conn:
-    #         await conn.run_sync(Base.metadata.create_all)
     yield
 
 security_schemes = {"bearerAuth": {"type": "http", "scheme": "bearer"}}
