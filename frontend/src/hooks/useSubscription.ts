@@ -23,7 +23,7 @@ export const useSubscription = () => {
     
     try {
       const idToken = await firebaseUser.getIdToken();
-      const response = await fetch('/api/v1/stripe/subscription/status', {
+      const response = await fetch('http://localhost:8000/api/v1/stripe/subscription/status', {
         headers: {
           'Authorization': `Bearer ${idToken}`,
         },
@@ -45,7 +45,12 @@ export const useSubscription = () => {
   }, [firebaseUser]);
 
   return {
-    subscription,
+    has_subscription: subscription?.has_subscription || false,
+    status: subscription?.status || 'none',
+    is_trial: subscription?.is_trial || false,
+    is_paid: subscription?.is_paid || false,
+    trial_expires_at: subscription?.trial_expires_at || null,
+    stripe_subscription_id: subscription?.stripe_subscription_id,
     loading,
     error,
     refetch: fetchSubscriptionStatus,
