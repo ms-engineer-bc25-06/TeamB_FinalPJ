@@ -98,14 +98,19 @@ export default function EmotionSelectionPage() {
 
   // 感情カードをクリックした時の処理
   const handleEmotionSelect = (emotionId: string) => {
+    console.log('🎯 感情選択: emotionId =', emotionId);
+    
     // 選択された感情のラベルを取得
     const selectedEmotion = emotions.find(e => e.id === emotionId);
+    console.log('🎯 選択された感情:', selectedEmotion);
     
     // 「わからない」が選択された場合は強度選択画面を飛ばして直接感情確認画面に遷移
     if (selectedEmotion && selectedEmotion.label === 'わからない') {
+      console.log('🎯 「わからない」が選択されました。感情確認画面に直接遷移');
       router.push(`/app/emotion-confirmation?emotion=${emotionId}&intensity=medium`);
     } else {
       // その他の感情は強度選択画面に遷移
+      console.log('🎯 強度選択画面に遷移:', `/app/emotion-intensity?emotion=${emotionId}`);
       router.push(`/app/emotion-intensity?emotion=${emotionId}`);
     }
   };
