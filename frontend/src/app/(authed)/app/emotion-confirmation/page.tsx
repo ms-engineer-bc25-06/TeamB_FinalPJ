@@ -93,6 +93,39 @@ export default function EmotionConfirmationPage() {
         ]);
 
         if (!emotionResponse.ok || !intensityResponse.ok || !childrenResponse.ok) {
+          // TODO:以下デバッグはあとで削除する
+          console.error('API レスポンスエラー');
+          console.error('感情カードAPI:', {
+            status: emotionResponse.status,
+            statusText: emotionResponse.statusText,
+            url: emotionResponse.url,
+            ok: emotionResponse.ok
+          });
+          console.error('強度API:', {
+            status: intensityResponse.status,
+            statusText: intensityResponse.statusText,
+            url: intensityResponse.url,
+            ok: intensityResponse.ok
+          });
+          console.error('子供API:', {
+            status: childrenResponse.status,
+            statusText: childrenResponse.statusText,
+            url: childrenResponse.url,
+            ok: childrenResponse.ok
+          });
+          
+          try {
+            const emotionErrorText = await emotionResponse.text();
+            const intensityErrorText = await intensityResponse.text();
+            const childrenErrorText = await childrenResponse.text();
+            
+            console.error('感情カードAPI レスポンス内容:', emotionErrorText);
+            console.error('強度API レスポンス内容:', intensityErrorText);
+            console.error('子供API レスポンス内容:', childrenErrorText);
+          } catch (textError) {
+            console.error('レスポンス内容の取得に失敗:', textError);
+          }
+          
           throw new Error('データの取得に失敗しました');
         }
 
@@ -154,7 +187,11 @@ export default function EmotionConfirmationPage() {
           throw new Error('データの形式が正しくありません');
         }
       } catch (err) {
-        console.error('データの取得エラー:', err);
+        console.error('🚨 データの取得エラー詳細:', err);
+        if (err instanceof Error) {
+          console.error('エラーメッセージ:', err.message);
+          console.error('エラースタック:', err.stack);
+        }
         setError('データの読み込みに失敗しました');
       } finally {
         setIsLoadingData(false);
