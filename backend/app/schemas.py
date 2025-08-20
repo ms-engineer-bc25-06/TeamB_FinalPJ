@@ -30,6 +30,24 @@ class UserResponse(UserBase):
     model_config = ConfigDict(from_attributes=True)
 
 
+# -------------------
+# 子供系スキーマ
+# -------------------
+class ChildBase(BaseModel):
+    nickname: str
+    birth_date: str  # YYYY-MM-DD形式
+    gender: str
+
+
+class ChildResponse(ChildBase):
+    id: UUID
+    user_id: UUID
+    created_at: datetime
+    updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
 class CheckoutSessionResponse(BaseModel):
     sessionId: str
 
