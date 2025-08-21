@@ -277,7 +277,7 @@ export default function EmotionConfirmationPage() {
     // 1秒後に次の画面に遷移
     setTimeout(() => {
       // TODO: 音声入力画面に遷移（後でれなさんの用意した画面とくっつける）
-      router.push('/？？');
+      router.push(`/app/voice?emotion=${selectedEmotion?.id}&intensity=${selectedIntensity?.level}`);
     }, 1000);
   };
 
