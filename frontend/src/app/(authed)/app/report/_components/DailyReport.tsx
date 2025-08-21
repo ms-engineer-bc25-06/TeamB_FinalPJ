@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { colors, spacing, borderRadius, fontSize } from '@/styles/theme';
 import { useAuth } from '@/contexts/AuthContext';
-import { getEmotionLogsByMonth } from '@/lib/api';
+import { getEmotionLogsByMonth, getEmotionCards, getIntensities } from '@/lib/api';
 
 interface DailyReportProps {
   onClose: () => void;
@@ -17,7 +17,21 @@ interface EmotionLogData {
   emotion_card?: {
     label: string;
     color: string;
+    image_url: string;
   };
+  intensity_id?: number;
+}
+
+interface EmotionCard {
+  id: string;
+  label: string;
+  image_url: string;
+  color: string;
+}
+
+interface Intensity {
+  id: number;
+  color_modifier: number;
 }
 
 export default function DailyReport({ onClose }: DailyReportProps) {
@@ -25,11 +39,30 @@ export default function DailyReport({ onClose }: DailyReportProps) {
   const [selectedDate, setSelectedDate] = useState<string>('2025-08-18');
   const [currentMonth, setCurrentMonth] = useState(new Date(2025, 7, 12));
   const [emotionLogs, setEmotionLogs] = useState<EmotionLogData[]>([]);
+  const [emotionCards, setEmotionCards] = useState<EmotionCard[]>([]);
+  const [intensities, setIntensities] = useState<Intensity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
-  // 感情ログデータを取得
+  // ファイル名マッピング
+  const EMOTION_NAME_TO_FILENAME: { [key: string]: string } = {
+    'うれしい': 'ureshii',
+    'かなしい': 'kanashii',
+    'こわい': 'kowai',
+    'おこり': 'ikari',
+    'びっくり': 'bikkuri',
+    'しんぱい': 'kinchou',
+    'はずかしい': 'hazukashii',
+    'こまった': 'komatta',
+    'わからない': 'wakaranai',
+    'あんしん': 'anshin',
+    'きんちょう': 'kinchou',
+    'ふゆかい': 'fuyukai',
+    'ゆかい': 'yukai'
+  };
+
+  // 感情ログデータ、感情カード、強度データを取得
   useEffect(() => {
-    const fetchEmotionLogs = async () => {
+    const fetchData = async () => {
       if (!firebaseUser) return;
       
       try {
@@ -37,9 +70,15 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth() + 1;
         
-        const logs = await getEmotionLogsByMonth(firebaseUser, year, month);
+        const [logs, cardsData, intensitiesData] = await Promise.all([
+          getEmotionLogsByMonth(firebaseUser, year, month),
+          getEmotionCards(firebaseUser),
+          getIntensities(firebaseUser)
+        ]);
         
-        // データを変換
+        setEmotionCards(cardsData.cards || []);
+        setIntensities(intensitiesData.intensities || []);
+        
         const transformedLogs: EmotionLogData[] = logs.map((log: {
           id: string;
           created_at: string;
@@ -47,29 +86,97 @@ export default function DailyReport({ onClose }: DailyReportProps) {
           emotion_card?: {
             label: string;
             color: string;
+            image_url: string;
           };
+          intensity_id?: number;
         }) => ({
           id: log.id,
           date: new Date(log.created_at).toISOString().split('T')[0],
           content: log.voice_note || '音声メモがありません',
           mood: getEmotionMood(log.emotion_card?.label),
-          emotion_card: log.emotion_card
+          emotion_card: log.emotion_card,
+          intensity_id: log.intensity_id
         }));
         
         setEmotionLogs(transformedLogs);
       } catch (error) {
-        console.error('Failed to fetch emotion logs:', error);
-        // エラー時は空配列を設定
+        console.error('Failed to fetch data:', error);
         setEmotionLogs([]);
+        setEmotionCards([]);
+        setIntensities([]);
       } finally {
         setIsLoading(false);
       }
     };
 
-    fetchEmotionLogs();
+    fetchData();
   }, [firebaseUser, currentMonth]);
 
-  // 感情ラベルから絵文字を取得
+  // 感情カードの画像URLを取得
+  const getEmotionImageUrl = (emotionCard?: { image_url: string }): string => {
+    if (!emotionCard?.image_url) return '';
+    return emotionCard.image_url;
+  };
+
+  // 強度に応じた感情画像URLを生成
+  const getIntensityBasedImageUrl = (emotionCard?: { label: string }, intensityId?: number): string => {
+    if (!emotionCard?.label) return '';
+    
+    const baseName = EMOTION_NAME_TO_FILENAME[emotionCard.label] || 'ureshii';
+    let fileName = baseName;
+    
+    // 強度に応じてファイル名を変更
+    if (intensityId === 1) {
+      fileName = `${baseName}1`; 
+    } else if (intensityId === 3) {
+      fileName = `${baseName}3`; 
+    }
+    
+    return `/images/emotions/${fileName}.webp`;
+  };
+
+  // 感情と強度を組み合わせた画像表示
+  const renderEmotionWithIntensity = (emotionCard?: { image_url: string; label: string }, intensityId?: number) => {
+    if (!emotionCard?.label) return null;
+    
+    // 強度に応じた画像URLを生成
+    const intensityImageUrl = getIntensityBasedImageUrl(emotionCard, intensityId);
+    
+    return (
+      <div
+        style={{
+          position: 'relative',
+          width: '100%',
+          height: '100%',
+          backgroundColor: colors.background.white,
+          borderRadius: borderRadius.small,
+          overflow: 'hidden',
+        }}
+      >
+        <img
+          src={intensityImageUrl}
+          alt={`${emotionCard.label}の感情カード（強度${intensityId}）`}
+          style={{
+            width: '100%',
+            height: '100%',
+            objectFit: 'cover',
+            borderRadius: borderRadius.small,
+            backgroundColor: colors.background.white,
+          }}
+          onError={(e) => {
+            try {
+              // エラー時は元の画像URLを使用
+              (e.currentTarget as HTMLImageElement).src = emotionCard.image_url;
+            } catch (_) {
+              // no-op
+            }
+          }}
+        />
+      </div>
+    );
+  };
+
+  // 感情ラベルから絵文字を取得（フォールバック用）
   const getEmotionMood = (label?: string): string => {
     if (!label) return '😐';
     
@@ -92,7 +199,6 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     return moodMap[label] || '😐';
   };
 
-  // カレンダーの日付を生成
   const generateCalendarDays = () => {
     const year = currentMonth.getFullYear();
     const month = currentMonth.getMonth();
@@ -126,12 +232,6 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     return emotionLogs.some((report) => report.date === dateStr);
   };
 
-  const getReportMood = (date: Date) => {
-    const dateStr = formatDate(date);
-    const report = emotionLogs.find((report) => report.date === dateStr);
-    return report?.mood || '';
-  };
-
   const formatDisplayDate = (dateStr: string) => {
     const date = new Date(dateStr);
     const month = date.getMonth() + 1;
@@ -141,12 +241,33 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     return `${month}月${day}日(${weekday})`;
   };
 
-  // 月が変更された時の処理
   const handleMonthChange = (newMonth: Date) => {
     setCurrentMonth(newMonth);
-    // 新しい月の最初の日付を選択
     const firstDay = new Date(newMonth.getFullYear(), newMonth.getMonth(), 1);
     setSelectedDate(formatDate(firstDay));
+  };
+
+  const handleDateClick = (dateStr: string) => {
+    setSelectedDate(dateStr);
+  };
+
+  // 選択された日付の枠線色を生成
+  const getEmotionBorderColor = (emotionCard?: { label: string; color: string }, intensityId?: number): string => {
+    if (!emotionCard?.color) return colors.primary; // デフォルトは青
+    
+    // 強度IDからcolor_modifierを取得
+    const intensity = intensities.find(i => i.id === intensityId);
+    const colorModifier = intensity?.color_modifier || 1.0;
+    
+    // HEXカラーをRGBAに変換（colorModifierを透明度として使用）
+    const hexToRgba = (hex: string, alpha: number): string => {
+      const r = parseInt(hex.slice(1, 3), 16);
+      const g = parseInt(hex.slice(3, 5), 16);
+      const b = parseInt(hex.slice(5, 7), 16);
+      return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+    };
+    
+    return hexToRgba(emotionCard.color, colorModifier);
   };
 
   if (isLoading) {
@@ -205,7 +326,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
           position: 'relative',
           border: `3px solid ${colors.primary}`,
           width: '500px',
-          height: '700px',
+          height: '800px', 
         }}
       >
         {/* 閉じるボタン */}
@@ -269,7 +390,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
             padding: spacing.md,
             marginBottom: spacing.lg,
             backgroundColor: colors.background.white,
-            height: '400px',
+            height: '450px',
           }}
         >
           {/* 月表示とナビゲーション */}
@@ -362,7 +483,8 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                 date.getMonth() === currentMonth.getMonth();
               const dateStr = formatDate(date);
               const hasReportData = hasReport(date);
-              const mood = getReportMood(date);
+              const report = emotionLogs.find((log) => log.date === dateStr);
+              const emotionImageUrl = getEmotionImageUrl(report?.emotion_card);
               const isSelected = selectedDate === dateStr;
 
               return (
@@ -370,46 +492,39 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                   key={index}
                   onClick={() => {
                     if (isCurrentMonth) {
-                      setSelectedDate(dateStr);
+                      handleDateClick(dateStr);
                     }
                   }}
                   style={{
                     width: '40px',
-                    height: '40px',
-                    border: 'none',
+                    height: '60px', 
                     borderRadius: borderRadius.small,
-                    backgroundColor: isSelected
-                      ? colors.primary
-                      : hasReportData
-                        ? '#FFF3E0'
-                        : isCurrentMonth
-                          ? colors.background.white
-                          : '#f5f5f5',
-                    color: isSelected
-                      ? colors.text.white
-                      : isCurrentMonth
-                        ? colors.text.primary
-                        : colors.text.secondary,
+                    backgroundColor: colors.background.white, 
+                    color: isCurrentMonth
+                      ? colors.text.primary
+                      : colors.text.secondary,
                     fontSize: fontSize.large,
                     cursor: isCurrentMonth ? 'pointer' : 'default',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'center',
+                    justifyContent: 'space-between', 
                     position: 'relative',
+                    border: isSelected ? `2px solid ${getEmotionBorderColor(report?.emotion_card, report?.intensity_id)}` : 'none',
+                    padding: '4px 0', 
                   }}
                 >
-                  <span>{date.getDate()}</span>
-                  {mood && (
-                    <span
+                  <span style={{ marginTop: '2px' }}>{date.getDate()}</span>
+                  {report && emotionImageUrl && emotionImageUrl !== '' && (
+                    <div
                       style={{
-                        fontSize: '15px',
-                        position: 'absolute',
-                        bottom: '2px',
+                        width: '20px',
+                        height: '20px',
+                        marginBottom: '2px', 
                       }}
                     >
-                      {mood}
-                    </span>
+                      {renderEmotionWithIntensity(report.emotion_card, report.intensity_id)}
+                    </div>
                   )}
                 </button>
               );
@@ -423,9 +538,10 @@ export default function DailyReport({ onClose }: DailyReportProps) {
             border: `3px solid ${colors.primary}`,
             borderRadius: borderRadius.medium,
             padding: spacing.md,
-            backgroundColor: colors.background.white,
-            height: '150px',
+            backgroundColor: colors.background.white, 
+            height: '180px', 
             overflow: 'auto',
+            position: 'relative',
           }}
         >
           {selectedReport ? (
@@ -436,10 +552,30 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                   color: colors.text.primary,
                   lineHeight: 1.6,
                   whiteSpace: 'pre-line',
+                  paddingRight: '60px', // 画像のスペース
                 }}
               >
                 {selectedReport.content}
               </div>
+              
+              {/* 感情カード画像を右下に表示 */}
+              {selectedReport.emotion_card?.image_url && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: spacing.sm,
+                    right: spacing.sm,
+                    width: '50px',
+                    height: '50px',
+                    borderRadius: borderRadius.small,
+                    overflow: 'hidden',
+                    border: `2px solid ${getEmotionBorderColor(selectedReport.emotion_card, selectedReport.intensity_id)}`,
+                    backgroundColor: colors.background.white,
+                  }}
+                >
+                  {renderEmotionWithIntensity(selectedReport.emotion_card, selectedReport.intensity_id)}
+                </div>
+              )}
             </div>
           ) : (
             <div
