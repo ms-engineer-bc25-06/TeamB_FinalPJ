@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from typing import Optional, Literal
 from uuid import UUID
 
@@ -37,12 +37,13 @@ class UserResponse(UserBase):
 class ChildBase(BaseModel):
     nickname: str
     birth_date: str  # YYYY-MM-DD形式
-    gender: str
+    gender: Literal["おとこのこ", "おんなのこ", "こたえない"]
 
 
 class ChildResponse(ChildBase):
     id: UUID
     user_id: UUID
+    birth_date: date  # データベースから返されるDate型
     created_at: datetime
     updated_at: datetime
 
