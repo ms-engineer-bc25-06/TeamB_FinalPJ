@@ -3,24 +3,10 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { KokoronDefault, SpeechBubble, Spinner, HamburgerMenu} from '@/components/ui';
+import { KokoronDefault, SpeechBubble, Spinner, HamburgerMenu, AudioPlayer} from '@/components/ui';
 import { commonStyles } from '@/styles/theme';
 import { useState, useEffect } from 'react';
 
-
-// TODO: 感情データをDBから取得する対応
-// 1. 現在のハードコードされた感情データを削除
-// 2. APIエンドポイント: GET /api/emotions から感情データを取得
-// 3. 取得するデータ構造:
-//    {
-//      id: string,
-//      name: string,
-//      color: string,      // カラーコード（例: '#00D4AA'）
-//      imageUrl: string,   // 画像パス（/assets/emotions/{感情名}-40.webp）
-
-//    }
-// 3. 画像ファイル配置: frontend/public/assets/emotions/ フォルダに各感情のWebP画像を配置
-// 4. エラーハンドリング: API呼び出しに失敗した場合はデフォルトデータを使用
 
 // 感情データの型定義（APIレスポンスに合わせて修正）
 interface Emotion {
@@ -148,7 +134,14 @@ export default function EmotionSelectionPage() {
 
   return (
     <div style={commonStyles.page.container}>
-
+      {/* こころんによる問いかけ音声再生 */}
+      <AudioPlayer 
+        src="/sounds/characterAskFeeling01.mp3"
+        autoPlay={true}
+        volume={0.8}
+        onEnded={() => console.log('音声再生完了')}
+        onError={(error) => console.log('音声エラー:', error)}
+      />
 
       {/* 左上の戻るボタン */}
       <button onClick={handleBack} style={{
