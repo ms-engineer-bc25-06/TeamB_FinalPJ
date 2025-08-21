@@ -14,6 +14,7 @@ interface EmotionLogData {
   date: string;
   content: string;
   mood: string;
+  audio_file_path?: string;
   emotion_card?: {
     label: string;
     color: string;
@@ -42,6 +43,8 @@ export default function DailyReport({ onClose }: DailyReportProps) {
   const [emotionCards, setEmotionCards] = useState<EmotionCard[]>([]);
   const [intensities, setIntensities] = useState<Intensity[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [isPlaying, setIsPlaying] = useState(false);
+  const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
   // ファイル名マッピング
   const EMOTION_NAME_TO_FILENAME: { [key: string]: string } = {
@@ -79,10 +82,12 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         setEmotionCards(cardsData.cards || []);
         setIntensities(intensitiesData.intensities || []);
         
+        // 感情ログデータを変換
         const transformedLogs: EmotionLogData[] = logs.map((log: {
           id: string;
           created_at: string;
           voice_note?: string;
+          audio_file_path?: string;
           emotion_card?: {
             label: string;
             color: string;
@@ -94,6 +99,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
           date: new Date(log.created_at).toISOString().split('T')[0],
           content: log.voice_note || '音声メモがありません',
           mood: getEmotionMood(log.emotion_card?.label),
+          audio_file_path: log.audio_file_path,
           emotion_card: log.emotion_card,
           intensity_id: log.intensity_id
         }));
@@ -247,8 +253,36 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     setSelectedDate(formatDate(firstDay));
   };
 
+  // 日付をクリックした時の処理
   const handleDateClick = (dateStr: string) => {
     setSelectedDate(dateStr);
+  };
+
+  // 音声再生・停止の処理
+  const handleAudioPlay = (audioPath: string) => {
+    if (isPlaying && audio) {
+      // 現在再生中の場合は停止
+      audio.pause();
+      audio.currentTime = 0;
+      setIsPlaying(false);
+      setAudio(null);
+    } else {
+      // 新しい音声を再生
+      const newAudio = new Audio(audioPath);
+      newAudio.addEventListener('ended', () => {
+        setIsPlaying(false);
+        setAudio(null);
+      });
+      newAudio.addEventListener('error', () => {
+        console.error('音声ファイルの再生に失敗しました');
+        setIsPlaying(false);
+        setAudio(null);
+      });
+      
+      newAudio.play();
+      setIsPlaying(true);
+      setAudio(newAudio);
+    }
   };
 
   // 選択された日付の枠線色を生成
@@ -546,6 +580,11 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         >
           {selectedReport ? (
             <div>
+              {/* デバッグ用: データ確認 */}
+              <div style={{ fontSize: fontSize.large, color: colors.text.secondary, marginBottom: spacing.sm }}>
+                ＜Debug:🎙️ = {selectedReport.audio_file_path || 'この日は音声の登録がありません'}＞
+              </div>
+              
               <div
                 style={{
                   fontSize: fontSize.large,
@@ -557,6 +596,41 @@ export default function DailyReport({ onClose }: DailyReportProps) {
               >
                 {selectedReport.content}
               </div>
+              
+              {/* 音声再生ボタン */}
+              {selectedReport.audio_file_path && (
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: spacing.sm,
+                    left: spacing.sm,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: spacing.xs,
+                  }}
+                >
+                  <button
+                    onClick={() => handleAudioPlay(selectedReport.audio_file_path!)}
+                    style={{
+                      background: isPlaying ? '#e74c3c' : colors.primary,
+                      color: colors.background.white,
+                      border: 'none',
+                      borderRadius: borderRadius.small,
+                      padding: `${spacing.xs} ${spacing.sm}`,
+                      cursor: 'pointer',
+                      fontSize: fontSize.small,
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '4px',
+                    }}
+                  >
+                    {isPlaying ? '⏹️ 停止' : '▶️ 再生'}
+                  </button>
+                  <span style={{ fontSize: fontSize.small, color: colors.text.secondary }}>
+                    音声メモ
+                  </span>
+                </div>
+              )}
               
               {/* 感情カード画像を右下に表示 */}
               {selectedReport.emotion_card?.image_url && (
