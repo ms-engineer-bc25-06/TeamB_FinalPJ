@@ -24,8 +24,14 @@ from app.models import EmotionLog
 
 router = APIRouter(prefix="/voice", tags=["voice"])
 
-logger = logging.getLogger(__name__)  # uvicorn側の設定に従って出力されます
+logging.basicConfig(level=logging.INFO, force=True)
+logging.getLogger().setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
+handler = logging.StreamHandler()
+handler.setLevel(logging.INFO)
+logger.addHandler(handler)
 
 # バリデーション
 def _validate_local_audio_file(path: str, language: str) -> None:
@@ -33,19 +39,26 @@ def _validate_local_audio_file(path: str, language: str) -> None:
     ALLOWED_LANG = {"ja", "en"}
 
     if not os.path.exists(path):
+        logger.error(f"❌ バリデーションエラー: ファイルが存在しません - {path}")
         raise HTTPException(status_code=400, detail="Downloaded audio file not found")
     size = os.path.getsize(path)
     if size <= 0:
+        logger.error(f"❌ バリデーションエラー: ファイルが空です - {path}")
         raise HTTPException(status_code=400, detail="Audio file is empty")
     if size > 25 * 1024 * 1024:
+        logger.error(f"❌ バリデーションエラー: ファイルサイズが大きすぎます - {path}, {size} bytes")
         raise HTTPException(status_code=413, detail="Audio file too large")
 
     ext = os.path.splitext(path)[1].lower().lstrip(".")
     if ext and ext not in ALLOWED_EXT:
+        logger.error(f"❌ バリデーションエラー: サポートされていない音声形式 - {ext}")
         raise HTTPException(status_code=400, detail=f"Unsupported audio format: .{ext}")
 
     if language not in ALLOWED_LANG:
+        logger.error(f"❌ バリデーションエラー: サポートされていない言語 - {language}")
         raise HTTPException(status_code=400, detail=f"Unsupported language: {language}")
+    
+    logger.info(f"✅ バリデーション完了: {path}, サイズ: {size} bytes, 形式: {ext}, 言語: {language}")
 
 
 # --- WhisperService をプロセス内シングルトンで使い回す -------------------
@@ -53,8 +66,9 @@ _whisper_service: Optional[WhisperService] = None
 def get_whisper_service() -> WhisperService:
     global _whisper_service
     if _whisper_service is None:
-        logger.info("WhisperService: initialize (singleton)")
+        logger.info(" WhisperService: 初期化開始 (singleton)")
         _whisper_service = WhisperService()
+        logger.info("✅ WhisperService: 初期化完了")
     return _whisper_service
 
 
@@ -74,7 +88,9 @@ def get_whisper_service() -> WhisperService:
     },
 )
 async def health_check():
+    logger.info("🔍 ヘルスチェック開始")
     logger.debug("health_check: ok")
+    logger.info("✅ ヘルスチェック完了")
     return {"status": "healthy", "service": "voice-api"}
 
 
@@ -101,7 +117,7 @@ async def transcribe_voice(
     s3 = S3Service()
     tmp_path: Optional[str] = None
 
-    # 入口ログ（パスの“種類”だけ出す）
+    # 入口ログ（パスの"種類"だけ出す）
     p = request.audio_file_path
     path_kind = (
         "local" if (os.path.isabs(p) and os.path.exists(p))
@@ -110,8 +126,7 @@ async def transcribe_voice(
         else "s3key"
     )
     logger.info(
-        "transcribe: start",
-        extra={"path_kind": path_kind, "language": request.language}
+        f" 音声認識開始: パス種類={path_kind}, 言語={request.language}, ファイル={p}"
     )
 
     t0 = time.monotonic()
@@ -119,7 +134,7 @@ async def transcribe_voice(
         # 1) ローカル絶対パス
         if path_kind == "local":
             local_path = p
-            logger.debug("transcribe: use local path", extra={"path": local_path})
+            logger.info(f"📁 ローカルパスを使用: {local_path}")
 
         # 2) s3://bucket/key
         elif path_kind == "s3uri":
@@ -128,10 +143,10 @@ async def transcribe_voice(
             suffix = os.path.splitext(key)[1] or ".wav"
             fd, tmp_path = tempfile.mkstemp(suffix=suffix)
             os.close(fd)
-            logger.info("s3 download: begin", extra={"bucket": bucket, "key": key, "tmp": tmp_path})
+            logger.info(f" S3ダウンロード開始: bucket={bucket}, key={key}, tmp={tmp_path}")
             s3.download_file(s3_key=key, local_file_path=tmp_path, bucket_name=bucket)
             size = os.path.getsize(tmp_path)
-            logger.info("s3 download: done", extra={"bytes": size})
+            logger.info(f"✅ S3ダウンロード完了: {tmp_path}, サイズ: {size} bytes")
             local_path = tmp_path
 
         # 3) S3キー（例: 'audio/<uuid>/xxx.ext'）
@@ -139,30 +154,35 @@ async def transcribe_voice(
             suffix = os.path.splitext(p)[1] or ".wav"
             fd, tmp_path = tempfile.mkstemp(suffix=suffix)
             os.close(fd)
-            logger.info("s3 download: begin", extra={"bucket": s3.bucket_name, "key": p, "tmp": tmp_path})
+            logger.info(f" S3ダウンロード開始: bucket={s3.bucket_name}, key={p}, tmp={tmp_path}")
             try:
                 s3.download_file(s3_key=p, local_file_path=tmp_path, bucket_name=s3.bucket_name)
+                logger.info(f"✅ S3ダウンロード完了: {tmp_path}")
             except Exception as e:
+                logger.error(f"❌ S3ダウンロードエラー: {e}")
                 logger.exception("s3 download: error")
                 raise HTTPException(status_code=500, detail=f"S3ダウンロードエラー: {str(e)}")
-            size = os.path.getsize(tmp_path) if os.path.exists(tmp_path) else 0
-            logger.info("s3 download: done", extra={"bytes": size})
-            if size == 0:
+            
+            if not os.path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
+                logger.error(f"❌ S3からのファイルダウンロードに失敗しました: {tmp_path}")
                 raise HTTPException(status_code=400, detail="S3からのファイルダウンロードに失敗しました")
+            
+            size = os.path.getsize(tmp_path)
+            logger.info(f"✅ S3ダウンロード完了: {tmp_path}, サイズ: {size} bytes")
             local_path = tmp_path
 
         # 4) http(s) 未対応
         else:
-            logger.warning("transcribe: http(s) not supported")
+            logger.warning(f"⚠️ HTTP(S)は未対応: {p}")
             raise HTTPException(status_code=400, detail="HTTP(S)の音声URLは未対応です。S3キーか s3:// を渡してください。")
 
         # 事前バリデーション
+        logger.info(f"🔍 ファイルバリデーション開始: {local_path}")
         _validate_local_audio_file(local_path, request.language)
-        logger.debug("transcribe: local file validated", extra={"path": local_path})
 
         # Whisper は同期API → スレッドで実行
         t1 = time.monotonic()
-        logger.info("whisper: begin")
+        logger.info(f"🤖 Whisper処理開始: {local_path}")
         result = await anyio.to_thread.run_sync(
             lambda: whisper.transcribe_audio(
                 local_path,
@@ -170,13 +190,11 @@ async def transcribe_voice(
             )
         )
         t2 = time.monotonic()
+        whisper_time = round(t2 - t1, 2)
+        text_length = len(result.get("text", ""))
+        detected_lang = result.get("language")
         logger.info(
-            "whisper: done",
-            extra={
-                "sec": round(t2 - t1, 2),
-                "text_len": len(result.get("text", "")),
-                "det_lang": result.get("language"),
-            },
+            f"✅ Whisper処理完了: 処理時間={whisper_time}秒, 文字数={text_length}, 検出言語={detected_lang}"
         )
 
         resp = VoiceTranscribeResponse(
@@ -190,21 +208,24 @@ async def transcribe_voice(
             duration=float(result.get("duration", 0.0)),
             processed_at=datetime.now(timezone.utc),
         )
-        logger.info("transcribe: success", extra={"total_sec": round(time.monotonic() - t0, 2)})
+        total_time = round(time.monotonic() - t0, 2)
+        logger.info(f"🎉 音声認識完了: 総処理時間={total_time}秒, 文字数={text_length}")
         return resp
 
     except HTTPException:
+        logger.error(f"❌ HTTPException発生: 音声認識失敗")
         raise
     except Exception as e:
+        logger.error(f"❌ 予期しないエラー: {type(e).__name__}: {e}")
         logger.exception("transcribe: failed")
         raise HTTPException(status_code=500, detail=f"Transcription failed: {type(e).__name__}: {e}")
     finally:
         if tmp_path and os.path.exists(tmp_path):
             try:
                 os.remove(tmp_path)
-                logger.debug("transcribe: tmp cleaned", extra={"tmp": tmp_path})
+                logger.debug(f"🧹 一時ファイル削除完了: {tmp_path}")
             except Exception:
-                logger.warning("transcribe: tmp cleanup failed", extra={"tmp": tmp_path})
+                logger.warning(f"⚠️ 一時ファイル削除失敗: {tmp_path}")
 
 
 @router.post(
@@ -226,8 +247,7 @@ async def get_upload_url(request: VoiceUploadRequest, db: AsyncSession = Depends
         import uuid
         unique_id = str(uuid.uuid4())[:8]
         logger.info(
-            "presign: begin",
-            extra={"user_id": str(request.user_id), "file_type": request.file_type, "file_format": request.file_format},
+            f" Presigned URL生成開始: user_id={request.user_id}, file_type={request.file_type}, file_format={request.file_format}"
         )
 
         # ---- file_type ごとに拡張子とContent-Typeを決定 ----
@@ -244,24 +264,28 @@ async def get_upload_url(request: VoiceUploadRequest, db: AsyncSession = Depends
                 ext, content_type = "wav", "audio/wav"
 
             file_path = f"audio/{request.user_id}/audio_{timestamp}_{unique_id}.{ext}"
+            logger.info(f" 音声ファイル設定: 拡張子={ext}, Content-Type={content_type}")
 
         elif request.file_type == "text":
             ext, content_type = "txt", "text/plain"
             file_path = f"text/{request.user_id}/transcript_{timestamp}_{unique_id}.{ext}"
+            logger.info(f"📝 テキストファイル設定: 拡張子={ext}, Content-Type={content_type}")
 
         else:
-            logger.warning("presign: invalid file_type", extra={"file_type": request.file_type})
+            logger.warning(f"❌ 無効なfile_type: {request.file_type}")
             raise HTTPException(status_code=400, detail="Invalid file type")
 
+        logger.info(f" S3 Presigned URL生成中: {file_path}")
         presigned_url = s3.generate_presigned_upload_url(file_path, content_type)
         if not presigned_url:
-            logger.error("presign: failed to generate url", extra={"key": file_path})
+            logger.error(f"❌ Presigned URL生成失敗: {file_path}")
             raise HTTPException(status_code=500, detail="Failed to generate upload URL")
 
         # URL本体はログに出さない（秘匿）→長さのみ
+        url_length = len(presigned_url)
+        processing_time = round(time.monotonic() - t0, 2)
         logger.info(
-            "presign: success",
-            extra={"key": file_path, "content_type": content_type, "url_len": len(presigned_url), "sec": round(time.monotonic() - t0, 2)},
+            f"✅ Presigned URL生成完了: key={file_path}, content_type={content_type}, url_length={url_length}, 処理時間={processing_time}秒"
         )
         return {
             "success": True,
@@ -272,8 +296,10 @@ async def get_upload_url(request: VoiceUploadRequest, db: AsyncSession = Depends
         }
 
     except HTTPException:
+        logger.error(f"❌ HTTPException発生: Presigned URL生成失敗")
         raise
     except Exception as e:
+        logger.error(f"❌ 予期しないエラー: {type(e).__name__}: {e}")
         logger.exception("presign: failed")
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -287,7 +313,7 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
     s3 = S3Service()
     t0 = time.monotonic()
     try:
-        # “s3://<bucket>/...” や “https://...” が来た場合も key に正規化して保存
+        # "s3://<bucket>/..." や "https://..." が来た場合も key に正規化して保存
         def to_key(p: Optional[str]) -> Optional[str]:
             if not p:
                 return None
@@ -306,8 +332,7 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
         audio_key = to_key(request.audio_file_path)
         text_key = to_key(request.text_file_path)
         logger.info(
-            "save-record: begin",
-            extra={"user_id": str(request.user_id), "audio_key": bool(audio_key), "text_key": bool(text_key)},
+            f"💾 記録保存開始: user_id={request.user_id}, audio_key={bool(audio_key)}, text_key={bool(text_key)}"
         )
 
         voice_record = EmotionLog(
@@ -316,11 +341,14 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
             text_file_path=text_key,
         )
 
+        logger.info(f" EmotionLog作成: id={voice_record.id}")
         db.add(voice_record)
         await db.commit()
         await db.refresh(voice_record)
+        logger.info(f"✅ データベース保存完了: record_id={voice_record.id}")
 
-        logger.info("save-record: success", extra={"record_id": str(voice_record.id), "sec": round(time.monotonic() - t0, 2)})
+        processing_time = round(time.monotonic() - t0, 2)
+        logger.info(f"🎉 記録保存完了: record_id={voice_record.id}, 処理時間={processing_time}秒")
         return {
             "success": True,
             "record_id": voice_record.id,
@@ -328,6 +356,7 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
         }
 
     except Exception as e:
+        logger.error(f"❌ 記録保存エラー: {type(e).__name__}: {e}")
         await db.rollback()
         logger.exception("save-record: failed")
         raise HTTPException(status_code=500, detail=str(e))
@@ -342,7 +371,7 @@ async def get_records(user_id: UUID, db: AsyncSession = Depends(get_db)):
     s3 = S3Service()
     t0 = time.monotonic()
     try:
-        logger.info("records: begin", extra={"user_id": str(user_id)})
+        logger.info(f"📋 記録一覧取得開始: user_id={user_id}")
         query = (
             select(EmotionLog)
             .where(EmotionLog.user_id == user_id)
@@ -350,7 +379,8 @@ async def get_records(user_id: UUID, db: AsyncSession = Depends(get_db)):
         )
         result = await db.execute(query)
         records = result.scalars().all()
-        logger.info("records: fetched", extra={"count": len(records), "sec": round(time.monotonic() - t0, 2)})
+        record_count = len(records)
+        logger.info(f"📊 データベースから記録取得完了: {record_count}件")
 
         def to_key(p: Optional[str]) -> Optional[str]:
             if not p:
@@ -391,9 +421,11 @@ async def get_records(user_id: UUID, db: AsyncSession = Depends(get_db)):
                 for r in records
             ],
         }
-        logger.info("records: success", extra={"count": len(payload["records"])})
+        processing_time = round(time.monotonic() - t0, 2)
+        logger.info(f"✅ 記録一覧取得完了: {record_count}件, 処理時間={processing_time}秒")
         return payload
 
     except Exception as e:
+        logger.error(f"❌ 記録一覧取得エラー: {type(e).__name__}: {e}")
         logger.exception("records: failed")
         raise HTTPException(status_code=500, detail=str(e))
