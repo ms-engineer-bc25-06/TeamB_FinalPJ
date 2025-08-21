@@ -293,3 +293,55 @@ export const getEmotionLogsByMonth = async (
     throw error;
   }
 };
+
+// 感情カード一覧取得
+export const getEmotionCards = async (firebaseUser: User) => {
+  try {
+    const idToken = await firebaseUser.getIdToken(true);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    const response = await fetch(`${API_BASE_URL}/emotion/cards`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Get emotion cards error:', error);
+    throw error;
+  }
+};
+
+// 強度一覧取得
+export const getIntensities = async (firebaseUser: User) => {
+  try {
+    const idToken = await firebaseUser.getIdToken(true);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    const response = await fetch(`${API_BASE_URL}/emotion/intensities`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Get intensities error:', error);
+    throw error;
+  }
+};
