@@ -1,40 +1,96 @@
-'use client'
+'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { colors, spacing, borderRadius, fontSize } from '@/styles/theme';
+import { useAuth } from '@/contexts/AuthContext';
+import { getEmotionLogsByMonth } from '@/lib/api';
 
 interface DailyReportProps {
   onClose: () => void;
 }
 
-interface ReportData {
+interface EmotionLogData {
+  id: string;
   date: string;
   content: string;
   mood: string;
+  emotion_card?: {
+    label: string;
+    color: string;
+  };
 }
 
-// モックデータ
-const sampleReports: ReportData[] = [
-  {
-    date: '2024-01-15',
-    content: 'きょうはねきぶんがよかったよ　あたらしいおともだちとあそんだんだ',
-    mood: '😊'
-  },
-  {
-    date: '2024-01-20',
-    content: 'おともだちにおもちゃをとられちゃってかなしかった',
-    mood: '😭'
-  },
-  {
-    date: '2024-01-24',
-    content: 'またおともだちにおもちゃをとられちゃった',
-    mood: '😡'
-  }
-];
-
 export default function DailyReport({ onClose }: DailyReportProps) {
-  const [selectedDate, setSelectedDate] = useState<string>('2024-01-24');
-  const [currentMonth, setCurrentMonth] = useState(new Date(2024, 0, 1)); // 2024年1月
+  const { firebaseUser } = useAuth();
+  const [selectedDate, setSelectedDate] = useState<string>('2025-08-18');
+  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 7, 12));
+  const [emotionLogs, setEmotionLogs] = useState<EmotionLogData[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 感情ログデータを取得
+  useEffect(() => {
+    const fetchEmotionLogs = async () => {
+      if (!firebaseUser) return;
+      
+      try {
+        setIsLoading(true);
+        const year = currentMonth.getFullYear();
+        const month = currentMonth.getMonth() + 1;
+        
+        const logs = await getEmotionLogsByMonth(firebaseUser, year, month);
+        
+        // データを変換
+        const transformedLogs: EmotionLogData[] = logs.map((log: {
+          id: string;
+          created_at: string;
+          voice_note?: string;
+          emotion_card?: {
+            label: string;
+            color: string;
+          };
+        }) => ({
+          id: log.id,
+          date: new Date(log.created_at).toISOString().split('T')[0],
+          content: log.voice_note || '音声メモがありません',
+          mood: getEmotionMood(log.emotion_card?.label),
+          emotion_card: log.emotion_card
+        }));
+        
+        setEmotionLogs(transformedLogs);
+      } catch (error) {
+        console.error('Failed to fetch emotion logs:', error);
+        // エラー時は空配列を設定
+        setEmotionLogs([]);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEmotionLogs();
+  }, [firebaseUser, currentMonth]);
+
+  // 感情ラベルから絵文字を取得
+  const getEmotionMood = (label?: string): string => {
+    if (!label) return '😐';
+    
+    const moodMap: { [key: string]: string } = {
+      'うれしい': '😊',
+      'かなしい': '😭',
+      'こわい': '😨',
+      'おこり': '😡',
+      'びっくり': '😲',
+      'しんぱい': '😰',
+      'はずかしい': '😳',
+      'こまった': '😅',
+      'わからない': '🤔',
+      'あんしん': '😌',
+      'きんちょう': '😰',
+      'ふゆかい': '😞',
+      'ゆかい': '😄'
+    };
+    
+    return moodMap[label] || '😐';
+  };
 
   // カレンダーの日付を生成
   const generateCalendarDays = () => {
@@ -57,7 +113,9 @@ export default function DailyReport({ onClose }: DailyReportProps) {
   };
 
   const calendarDays = generateCalendarDays();
-  const selectedReport = sampleReports.find(report => report.date === selectedDate);
+  const selectedReport = emotionLogs.find(
+    (report) => report.date === selectedDate,
+  );
 
   const formatDate = (date: Date) => {
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -65,12 +123,12 @@ export default function DailyReport({ onClose }: DailyReportProps) {
 
   const hasReport = (date: Date) => {
     const dateStr = formatDate(date);
-    return sampleReports.some(report => report.date === dateStr);
+    return emotionLogs.some((report) => report.date === dateStr);
   };
 
   const getReportMood = (date: Date) => {
     const dateStr = formatDate(date);
-    const report = sampleReports.find(report => report.date === dateStr);
+    const report = emotionLogs.find((report) => report.date === dateStr);
     return report?.mood || '';
   };
 
@@ -83,31 +141,73 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     return `${month}月${day}日(${weekday})`;
   };
 
+  // 月が変更された時の処理
+  const handleMonthChange = (newMonth: Date) => {
+    setCurrentMonth(newMonth);
+    // 新しい月の最初の日付を選択
+    const firstDay = new Date(newMonth.getFullYear(), newMonth.getMonth(), 1);
+    setSelectedDate(formatDate(firstDay));
+  };
+
+  if (isLoading) {
+    return (
+      <div
+        style={{
+          position: 'fixed',
+          top: 0,
+          left: 0,
+          width: '100vw',
+          height: '100vh',
+          backgroundColor: 'rgba(0, 0, 0, 0.5)',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+        }}
+      >
+        <div
+          style={{
+            backgroundColor: colors.background.white,
+            borderRadius: borderRadius.large,
+            padding: spacing.xl,
+            textAlign: 'center',
+          }}
+        >
+          <div>データを読み込み中...</div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div style={{
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      width: '100vw',
-      height: '100vh',
-      backgroundColor: 'rgba(0, 0, 0, 0.5)',
-      display: 'flex',
-      justifyContent: 'center',
-      alignItems: 'center',
-      zIndex: 1000,
-    }}>
-      <div style={{
-        backgroundColor: colors.background.white,
-        borderRadius: borderRadius.large,
-        padding: spacing.xl,
-        maxWidth: '90vw',
-        maxHeight: '90vh',
-        overflow: 'auto',
-        position: 'relative',
-        border: `3px solid ${colors.primary}`,
-        width: '500px',
-        height: '700px',
-      }}>
+    <div
+      style={{
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        width: '100vw',
+        height: '100vh',
+        backgroundColor: 'rgba(0, 0, 0, 0.5)',
+        display: 'flex',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+      }}
+    >
+      <div
+        style={{
+          backgroundColor: colors.background.white,
+          borderRadius: borderRadius.large,
+          padding: spacing.xl,
+          maxWidth: '90vw',
+          maxHeight: '90vh',
+          overflow: 'auto',
+          position: 'relative',
+          border: `3px solid ${colors.primary}`,
+          width: '500px',
+          height: '700px',
+        }}
+      >
         {/* 閉じるボタン */}
         <button
           onClick={onClose}
@@ -127,52 +227,69 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         </button>
 
         {/* タイトル */}
-        <div style={{
-          textAlign: 'center',
-          marginBottom: spacing.lg,
-        }}>
-          <h2 style={{
-            color: colors.secondary,
-            fontSize: fontSize.large,
-            fontWeight: 'bold',
-            margin: 0,
-          }}>
+        <div
+          style={{
+            textAlign: 'center',
+            marginBottom: spacing.lg,
+          }}
+        >
+          <h2
+            style={{
+              color: colors.secondary,
+              fontSize: fontSize.large,
+              fontWeight: 'bold',
+              margin: 0,
+            }}
+          >
             まいにちのきろく
           </h2>
         </div>
 
         {/* 選択された日付の表示 */}
-        <div style={{
-          backgroundColor: colors.primary,
-          color: colors.background.white,
-          padding: `${spacing.sm} ${spacing.md}`,
-          borderRadius: borderRadius.small,
-          textAlign: 'center',
-          marginBottom: spacing.md,
-          fontSize: fontSize.base,
-          fontWeight: 'bold',
-        }}>
+        <div
+          style={{
+            backgroundColor: colors.primary,
+            color: colors.background.white,
+            padding: `${spacing.sm} ${spacing.md}`,
+            borderRadius: borderRadius.small,
+            textAlign: 'center',
+            marginBottom: spacing.md,
+            fontSize: fontSize.large,
+            fontWeight: 'bold',
+          }}
+        >
           {formatDisplayDate(selectedDate)}
         </div>
 
         {/* カレンダー部分 */}
-        <div style={{
-          border: `2px solid ${colors.primary}`,
-          borderRadius: borderRadius.medium,
-          padding: spacing.md,
-          marginBottom: spacing.lg,
-          backgroundColor: colors.background.white,
-          height: '400px',
-        }}>
+        <div
+          style={{
+            border: `2px solid ${colors.primary}`,
+            borderRadius: borderRadius.medium,
+            padding: spacing.md,
+            marginBottom: spacing.lg,
+            backgroundColor: colors.background.white,
+            height: '400px',
+          }}
+        >
           {/* 月表示とナビゲーション */}
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: spacing.md,
-          }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              alignItems: 'center',
+              marginBottom: spacing.md,
+            }}
+          >
             <button
-              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() - 1, 1))}
+              onClick={() => {
+                const newMonth = new Date(
+                  currentMonth.getFullYear(),
+                  currentMonth.getMonth() - 1,
+                  1,
+                );
+                handleMonthChange(newMonth);
+              }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -187,7 +304,14 @@ export default function DailyReport({ onClose }: DailyReportProps) {
               {currentMonth.getFullYear()}年{currentMonth.getMonth() + 1}月
             </span>
             <button
-              onClick={() => setCurrentMonth(new Date(currentMonth.getFullYear(), currentMonth.getMonth() + 1, 1))}
+              onClick={() => {
+                const newMonth = new Date(
+                  currentMonth.getFullYear(),
+                  currentMonth.getMonth() + 1,
+                  1,
+                );
+                handleMonthChange(newMonth);
+              }}
               style={{
                 background: 'none',
                 border: 'none',
@@ -201,33 +325,41 @@ export default function DailyReport({ onClose }: DailyReportProps) {
           </div>
 
           {/* 曜日ヘッダー */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: '2px',
-            marginBottom: spacing.sm,
-          }}>
-            {['日', '月', '火', '水', '木', '金', '土'].map(day => (
-              <div key={day} style={{
-                textAlign: 'center',
-                fontSize: fontSize.small,
-                fontWeight: 'bold',
-                color: colors.text.secondary,
-                padding: spacing.xs,
-              }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: '2px',
+              marginBottom: spacing.sm,
+            }}
+          >
+            {['日', '月', '火', '水', '木', '金', '土'].map((day) => (
+              <div
+                key={day}
+                style={{
+                  textAlign: 'center',
+                  fontSize: fontSize.large,
+                  fontWeight: 'bold',
+                  color: colors.text.secondary,
+                  padding: spacing.xs,
+                }}
+              >
                 {day}
               </div>
             ))}
           </div>
 
           {/* カレンダーグリッド */}
-          <div style={{
-            display: 'grid',
-            gridTemplateColumns: 'repeat(7, 1fr)',
-            gap: '2px',
-          }}>
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(7, 1fr)',
+              gap: '2px',
+            }}
+          >
             {calendarDays.map((date, index) => {
-              const isCurrentMonth = date.getMonth() === currentMonth.getMonth();
+              const isCurrentMonth =
+                date.getMonth() === currentMonth.getMonth();
               const dateStr = formatDate(date);
               const hasReportData = hasReport(date);
               const mood = getReportMood(date);
@@ -246,12 +378,19 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                     height: '40px',
                     border: 'none',
                     borderRadius: borderRadius.small,
-                    backgroundColor: isSelected ? colors.primary : 
-                                   hasReportData ? '#FFF3E0' : 
-                                   isCurrentMonth ? colors.background.white : '#f5f5f5',
-                    color: isSelected ? colors.text.white :
-                           isCurrentMonth ? colors.text.primary : colors.text.secondary,
-                    fontSize: fontSize.small,
+                    backgroundColor: isSelected
+                      ? colors.primary
+                      : hasReportData
+                        ? '#FFF3E0'
+                        : isCurrentMonth
+                          ? colors.background.white
+                          : '#f5f5f5',
+                    color: isSelected
+                      ? colors.text.white
+                      : isCurrentMonth
+                        ? colors.text.primary
+                        : colors.text.secondary,
+                    fontSize: fontSize.large,
                     cursor: isCurrentMonth ? 'pointer' : 'default',
                     display: 'flex',
                     flexDirection: 'column',
@@ -262,7 +401,13 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                 >
                   <span>{date.getDate()}</span>
                   {mood && (
-                    <span style={{ fontSize: '12px', position: 'absolute', bottom: '2px' }}>
+                    <span
+                      style={{
+                        fontSize: '15px',
+                        position: 'absolute',
+                        bottom: '2px',
+                      }}
+                    >
                       {mood}
                     </span>
                   )}
@@ -273,34 +418,40 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         </div>
 
         {/* レポート表示部分 */}
-        <div style={{
-          border: `3px solid ${colors.primary}`,
-          borderRadius: borderRadius.medium,
-          padding: spacing.md,
-          backgroundColor: colors.background.white,
-          height: '150px',
-          overflow: 'auto',
-        }}>
+        <div
+          style={{
+            border: `3px solid ${colors.primary}`,
+            borderRadius: borderRadius.medium,
+            padding: spacing.md,
+            backgroundColor: colors.background.white,
+            height: '150px',
+            overflow: 'auto',
+          }}
+        >
           {selectedReport ? (
             <div>
-              <div style={{
-                fontSize: fontSize.base,
-                color: colors.text.primary,
-                lineHeight: 1.6,
-                whiteSpace: 'pre-line',
-              }}>
+              <div
+                style={{
+                  fontSize: fontSize.large,
+                  color: colors.text.primary,
+                  lineHeight: 1.6,
+                  whiteSpace: 'pre-line',
+                }}
+              >
                 {selectedReport.content}
               </div>
             </div>
           ) : (
-            <div style={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              color: colors.text.secondary,
-              fontSize: fontSize.base,
-            }}>
+            <div
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: '100%',
+                color: colors.text.secondary,
+                fontSize: fontSize.large,
+              }}
+            >
               この日付にはレポートがありません
             </div>
           )}
