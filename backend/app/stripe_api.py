@@ -1,10 +1,12 @@
 import os
 import stripe
 import logging
-from fastapi import APIRouter, Depends, HTTPException, Security
+from fastapi import APIRouter, Depends, HTTPException, Security, Request
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from firebase_admin import auth
+from datetime import datetime, timezone, timedelta
+import uuid
 
 from app import crud, schemas
 from app.models import User
@@ -57,6 +59,18 @@ async def create_checkout_session(
     # 本番環境では、localhost:3000を実際のドメインに変更する必要あり
     success_url = "http://localhost:3000/app/payment/onboarding?session_id={CHECKOUT_SESSION_ID}"
     cancel_url = "http://localhost:3000/subscription"
+    
+    # サブスクリプションレコードが存在しない場合は作成
+    if not current_user.subscriptions:
+        # 初期サブスクリプションレコードを作成（stripe_customer_idは後で設定）
+        await crud.upsert_subscription_customer_id(
+            db, 
+            user_id=current_user.id, 
+            stripe_customer_id="temp_" + str(uuid.uuid4())  # 一時的なID
+        )
+        # ユーザー情報を再取得
+        current_user = await crud.get_user_by_uid(db, current_user.uid)
+    
     # DBからStripe顧客IDを取得
     stripe_customer_id = current_user.subscriptions.stripe_customer_id if current_user.subscriptions else None
     # まだStripeの顧客でない場合は、新しく作成する
@@ -119,3 +133,216 @@ async def get_session_status(
             status_code=500,
             detail=f"Internal server error: {str(e)}"
         ) from e
+
+# Webhookエンドポイント
+@router.post(
+    "/webhook",
+    summary="Stripe Webhook受信",
+    description="Stripeからの決済状態変更通知を受信し、DBを更新します。"
+)
+async def stripe_webhook(
+    request: Request,
+    db: AsyncSession = Depends(get_db)
+):
+    # リクエストボディを取得
+    payload = await request.body()
+    sig_header = request.headers.get("stripe-signature")
+    
+    if not sig_header:
+        raise HTTPException(status_code=400, detail="Missing stripe-signature header")
+    
+    try:
+        # Webhook署名の検証
+        webhook_secret = os.getenv("STRIPE_WEBHOOK_SECRET")
+        event = stripe.Webhook.construct_event(
+            payload, sig_header, webhook_secret
+        )
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail="Invalid payload")
+    except stripe.error.SignatureVerificationError as e:
+        raise HTTPException(status_code=400, detail="Invalid signature")
+    
+    # イベントタイプに応じた処理
+    try:
+        await handle_stripe_event(event, db)
+        return {"status": "success"}
+    except Exception as e:
+        logging.error(f"Webhook processing failed: {str(e)}", exc_info=e)
+        raise HTTPException(status_code=500, detail="Webhook processing failed")
+
+async def handle_stripe_event(event: dict, db: AsyncSession):
+    """Stripeイベントの種類に応じて適切な処理を実行"""
+    event_type = event["type"]
+    
+    if event_type == "checkout.session.completed":
+        await handle_checkout_completed(event, db)
+    elif event_type == "customer.subscription.created":
+        await handle_subscription_created(event, db)
+    elif event_type == "customer.subscription.updated":
+        await handle_subscription_updated(event, db)
+    elif event_type == "customer.subscription.deleted":
+        await handle_subscription_deleted(event, db)
+    elif event_type == "invoice.payment_succeeded":
+        await handle_payment_succeeded(event, db)
+    elif event_type == "invoice.payment_failed":
+        await handle_payment_failed(event, db)
+    else:
+        logging.info(f"Unhandled event type: {event_type}")
+
+async def handle_checkout_completed(event: dict, db: AsyncSession):
+    """チェックアウト完了時の処理"""
+    session = event["data"]["object"]
+    customer_id = session["customer"]
+    subscription_id = session["subscription"]
+    
+    # 顧客IDからユーザーを検索
+    user = await crud.get_user_by_stripe_customer_id(db, customer_id)
+    if not user:
+        logging.error(f"User not found for customer_id: {customer_id}")
+        return
+    
+    # サブスクリプション情報を更新
+    await crud.update_subscription_status(
+        db,
+        user_id=user.id,
+        stripe_subscription_id=subscription_id,
+        subscription_status="active",
+        is_trial=True,
+        trial_started_at=datetime.now(timezone.utc)
+    )
+
+async def handle_subscription_updated(event: dict, db: AsyncSession):
+    """サブスクリプション更新時の処理"""
+    subscription = event["data"]["object"]
+    customer_id = subscription["customer"]
+    status = subscription["status"]
+    trial_end = subscription.get("trial_end")
+    
+    user = await crud.get_user_by_stripe_customer_id(db, customer_id)
+    if not user:
+        return
+    
+    # トライアル終了日の設定
+    trial_expires_at = None
+    if trial_end:
+        trial_expires_at = datetime.fromtimestamp(trial_end, tz=timezone.utc)
+    
+    await crud.update_subscription_status(
+        db,
+        user_id=user.id,
+        subscription_status=status,
+        trial_expires_at=trial_expires_at,
+        is_trial=status == "trialing"
+    )
+
+async def handle_subscription_deleted(event: dict, db: AsyncSession):
+    """サブスクリプション削除時の処理"""
+    subscription = event["data"]["object"]
+    customer_id = subscription["customer"]
+    
+    user = await crud.get_user_by_stripe_customer_id(db, customer_id)
+    if not user:
+        return
+    
+    await crud.update_subscription_status(
+        db,
+        user_id=user.id,
+        subscription_status="canceled",
+        is_trial=False,
+        is_paid=False
+    )
+
+async def handle_payment_succeeded(event: dict, db: AsyncSession):
+    """支払い成功時の処理"""
+    invoice = event["data"]["object"]
+    customer_id = invoice["customer"]
+    
+    user = await crud.get_user_by_stripe_customer_id(db, customer_id)
+    if not user:
+        return
+    
+    await crud.update_subscription_status(
+        db,
+        user_id=user.id,
+        is_paid=True,
+        is_trial=False
+    )
+
+async def handle_payment_failed(event: dict, db: AsyncSession):
+    """支払い失敗時の処理"""
+    invoice = event["data"]["object"]
+    customer_id = invoice["customer"]
+    
+    user = await crud.get_user_by_stripe_customer_id(db, customer_id)
+    if not user:
+        return
+    
+    await crud.update_subscription_status(
+        db,
+        user_id=user.id,
+        is_paid=False
+    )
+
+async def handle_subscription_created(event: dict, db: AsyncSession):
+    """サブスクリプション作成時の処理"""
+    subscription = event["data"]["object"]
+    customer_id = subscription["customer"]
+    subscription_id = subscription["id"]
+    
+    # 顧客IDからユーザーを検索
+    user = await crud.get_user_by_stripe_customer_id(db, customer_id)
+    if not user:
+        logging.error(f"User not found for customer_id: {customer_id}")
+        return
+    
+    # サブスクリプション情報を更新
+    await crud.update_subscription_status(
+        db,
+        user_id=user.id,
+        stripe_subscription_id=subscription_id,
+        subscription_status="active",
+        is_trial=True,
+        trial_started_at=datetime.now(timezone.utc),
+        trial_expires_at=datetime.now(timezone.utc).replace(tzinfo=timezone.utc) + timedelta(days=7)
+    )
+
+# サブスクリプション状態取得エンドポイント
+@router.get(
+    "/subscription/status",
+    summary="サブスクリプション状態取得",
+    description="現在のユーザーのサブスクリプション状態を取得します。"
+)
+async def get_subscription_status(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        # ユーザーのサブスクリプション情報を取得
+        subscription = await crud.get_subscription_by_user_id(db, current_user.id)
+        
+        if not subscription:
+            return {
+                "has_subscription": False,
+                "status": "none",
+                "is_trial": False,
+                "is_paid": False,
+                "trial_expires_at": None
+            }
+        
+        # トライアル期間の計算
+        trial_expires_at = None
+        if subscription.trial_expires_at:
+            trial_expires_at = subscription.trial_expires_at.isoformat()
+        
+        return {
+            "has_subscription": True,
+            "status": subscription.subscription_status or "unknown",
+            "is_trial": subscription.is_trial,
+            "is_paid": subscription.is_paid,
+            "trial_expires_at": trial_expires_at,
+            "stripe_subscription_id": getattr(subscription, 'stripe_subscription_id', None)
+        }
+        
+    except Exception as e:
+        logging.error(f"Subscription status fetch failed: {str(e)}", exc_info=e)
+        raise HTTPException(status_code=500, detail="Failed to fetch subscription status")
