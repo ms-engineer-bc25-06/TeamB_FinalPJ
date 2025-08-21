@@ -1,8 +1,9 @@
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { colors, commonStyles, animation, spacing } from '@/styles/theme';
 
 interface HamburgerMenuProps {
-  children: React.ReactNode;
+  children?: React.ReactNode;
   className?: string;
   style?: React.CSSProperties;
   position?: 'left' | 'right';
@@ -17,6 +18,7 @@ export default function HamburgerMenu({
   width = '300px'
 }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
+  const router = useRouter();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -24,6 +26,11 @@ export default function HamburgerMenu({
 
   const closeMenu = () => {
     setIsOpen(false);
+  };
+
+  const handleNavigation = (path: string) => {
+    router.push(path);
+    closeMenu();
   };
 
   // ハンバーガーボタンのスタイル
@@ -91,8 +98,6 @@ export default function HamburgerMenu({
     zIndex: 1002,
   };
 
-  // オーバーレイのスタイル（削除済み）
-
   return (
     <>
       {/* ハンバーガーボタン */}
@@ -129,11 +134,60 @@ export default function HamburgerMenu({
           flexDirection: 'column',
           gap: spacing.xs,
         }}>
+          {/* 使い方 */}
+          <MenuItem onClick={() => handleNavigation('/app/usage')}>
+            使い方
+          </MenuItem>
+
+          {/* 保護者向けTips */}
+          <MenuItem onClick={() => handleNavigation('/app/tips')}>
+            保護者向けTips
+          </MenuItem>
+
+          {/* レポートページの見かた */}
+          <MenuItem onClick={() => handleNavigation('/app/report-guide')}>
+            レポートページの見かた
+          </MenuItem>
+
+          {/* 感情教育について */}
+          <MenuItem onClick={() => handleNavigation('/app/emotion-education')}>
+            感情教育について
+          </MenuItem>
+
+          {/* 非認知能力について */}
+          <MenuItem onClick={() => handleNavigation('/app/non-cognitive')}>
+            非認知能力について
+          </MenuItem>
+
+          {/* プライバシーポリシー */}
+          <MenuItem onClick={() => handleNavigation('/app/privacy')}>
+            プライバシーポリシー
+          </MenuItem>
+
+          {/* FAQ */}
+          <MenuItem onClick={() => handleNavigation('/app/faq')}>
+            FAQ
+          </MenuItem>
+
+          {/* 設定 */}
+          <MenuItem onClick={() => handleNavigation('/app/setup')}>
+            設定
+          </MenuItem>
+
+          {/* レポート */}
+          <MenuItem onClick={() => handleNavigation('/app/report')}>
+            レポート
+          </MenuItem>
+
+          {/* ロールプレイ */}
+          <MenuItem onClick={() => handleNavigation('/app/roleplay')}>
+            ロールプレイ
+          </MenuItem>
+
+          {/* カスタムコンテンツ */}
           {children}
         </div>
       </div>
-
-      {/* オーバーレイを削除 */}
     </>
   );
 }
