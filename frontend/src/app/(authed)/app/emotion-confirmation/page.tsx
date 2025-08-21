@@ -3,7 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { KokoronDefault, SpeechBubble, Spinner } from '@/components/ui';
+import { KokoronDefault, SpeechBubble, Spinner, AudioPlayer } from '@/components/ui';
 import { commonStyles } from '@/styles/theme';
 import { useState, useEffect, useRef } from 'react';
 
@@ -414,6 +414,15 @@ export default function EmotionConfirmationPage() {
 
   return (
     <div style={commonStyles.page.container}>
+      {/* こころんによる感情確認の問いかけ音声再生 */}
+      <AudioPlayer 
+        src="/sounds/characterConfirmFeeling03.mp3"
+        autoPlay={true}
+        volume={0.8}
+        onEnded={() => console.log('感情確認音声再生完了')}
+        onError={(error) => console.log('音声エラー:', error)}
+      />
+      
       {/* 左上の戻るボタン */}
       <button onClick={handleBack} style={{
         position: 'fixed',

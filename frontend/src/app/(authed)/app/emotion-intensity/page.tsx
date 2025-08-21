@@ -3,7 +3,7 @@
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Image from 'next/image';
-import { KokoronDefault, Spinner } from '@/components/ui';
+import { KokoronDefault, Spinner, AudioPlayer } from '@/components/ui';
 import { commonStyles } from '@/styles/theme';
 import { useState, useEffect } from 'react';
 
@@ -358,6 +358,15 @@ export default function EmotionIntensityPage() {
 
     return (
     <div style={commonStyles.page.container}>
+      {/* こころんによる強度選択の問いかけ音声再生 */}
+      <AudioPlayer 
+        src="/sounds/characterAskIntensity02.mp3"
+        autoPlay={true}
+        volume={0.8}
+        onEnded={() => console.log('強度選択音声再生完了')}
+        onError={(error) => console.log('音声エラー:', error)}
+      />
+      
       {/* 左上の戻るボタン */}
       <button onClick={handleBack} style={{
         position: 'fixed',
