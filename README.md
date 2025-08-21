@@ -17,6 +17,7 @@
 バックエンドの整形（Black）や静的解析（pylint）などをローカルに環境構築せずに実行できるよう、**VSCode の Dev Container 機能の利用を推奨**しています。
 
 Dev Container を使うことで、チーム全体で共通の開発環境（パッケージ、フォーマッターなど）を使い、保存時整形や import 整理などをローカルに依存せず行えます。
+
 | ツール | 目的 | インストール方法・情報源 |
 | ----------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | **Git** | ソースコードのバージョン管理 | [公式サイト](https://git-scm.com/downloads) からダウンロード。 |
@@ -24,6 +25,65 @@ Dev Container を使うことで、チーム全体で共通の開発環境（パ
 | **Docker** & **Docker Compose** | コンテナ技術による環境の分離・再現性向上 | [Docker Desktop 公式サイト](https://www.docker.com/products/docker-desktop/) からインストール |
 | **Visual Studio Code** | コードエディタ | [公式サイト](https://code.visualstudio.com/) より。以下の拡張機能も併せて導入。 |
 | └ **ESLint**, **Prettier**, **Python**, **Pylance**, **Docker**, **Dev Containers（推奨）** | コーディング支援、保存時整形、Lint、DevContainer 接続など | VSCode の拡張機能マーケットプレイスからインストール |
+
+### ⚡️ Stripe CLI のセットアップ
+
+**Stripe CLI**は、ローカル開発環境でStripeのWebhook通知をテストするために必要です。
+
+#### 自動セットアップ
+
+開発用スクリプトを使用して、OSに応じた自動セットアップが可能です：
+
+```bash
+# macOS
+chmod +x scripts/dev-setup.sh
+./scripts/dev-setup.sh
+
+# Windows
+scripts\dev-setup.bat
+```
+
+このスクリプトは以下を自動で実行します：
+- Stripe CLIのインストール（OS判定による自動選択）
+- Stripe CLIへのログイン
+- 依存関係のインストール確認
+- 環境変数の自動設定
+
+#### 手動インストール（スクリプトが失敗した場合）
+
+**macOS**
+```bash
+# Homebrewを使用（推奨）
+brew install stripe/stripe-cli/stripe
+
+# または、公式サイトからダウンロード
+# https://stripe.com/docs/stripe-cli
+```
+
+**Windows**
+```bash
+# Chocolateyを使用
+choco install stripe-cli
+
+# または、公式サイトからダウンロード
+# https://stripe.com/docs/stripe-cli
+```
+
+#### ログイン設定
+```bash
+# Stripeアカウントにログイン
+stripe login
+```
+ブラウザが開いて、Stripeアカウントでの認証が求められます。
+
+#### 動作確認
+```bash
+# バージョン確認
+stripe --version
+
+# ログイン状態確認
+stripe config --list
+```
 
 ## ⚡️ バックエンドのセットアップ（DevContainer あり・なし共通）
 
@@ -41,6 +101,12 @@ Dev Container を使うことで、チーム全体で共通の開発環境（パ
 2. **環境変数ファイルの設定**
    - `backend`ディレクトリにある`.env.example`ファイルを使い、`.env`という名前のファイルを作成します。
    - `.env`ファイルを開き、`POSTGRES_USER`や`POSTGRES_PASSWORD`など、Notion の㊙️ページを参考に、ご自身の環境に合わせて値を設定してください。
+   - **Stripe Webhook設定**: 以下の環境変数も設定してください：
+     ```bash
+     STRIPE_WEBHOOK_SECRET=開発用スクリプト実行後に自動設定される
+     ```
+   - **注意**: `STRIPE_WEBHOOK_SECRET`は、開発用スクリプト実行時に自動で設定されます。手動で設定する必要はありません。
+
 3. **待機スクリプトに実行権限を付与**
 
    - `backend`ディレクトリに移動し、以下のコマンドを実行して、データベースの起動を待つためのシェルスクリプトに実行権限を与えます。**この手順は初回のみ必要です。**
@@ -89,6 +155,22 @@ Dev Container を使うことで、チーム全体で共通の開発環境（パ
    - Web ブラウザで `http://localhost:8000/docs` にアクセスし、FastAPI の Swagger UI が表示されれば成功です。
    - Swagger UI の使い方補足：
      > 表示されたページで、テストしたい API（例: POST /api/v1/login）をクリックして展開。「Try it out」ボタンを押し、必要な情報（ID トークンなど）を入力して「Execute」ボタンを押すと、実際に API を実行して結果を確認できます。
+
+8. **Stripe Webhook の設定（決済機能テスト用）**
+
+   - 開発用スクリプトを実行済みの場合、Webhook設定は自動で完了しています。
+   - 手動で設定する場合は、別のターミナルで以下のコマンドを実行してStripe Webhookをローカル環境に転送します：
+     ```
+     stripe listen --forward-to localhost:8000/api/v1/stripe/webhook
+     ```
+   - このコマンドを実行すると、以下のような出力が表示されます：
+     ```
+     > Ready! Your webhook signing secret is whsec_1234567890abcdef1234567890abcdef1234567890abcdef
+     > Forwarding events to http://localhost:8000/api/v1/stripe/webhook
+     ```
+   - 表示された`whsec_...`の文字列を`backend/.env`ファイルの`STRIPE_WEBHOOK_SECRET`に設定してください。
+   - **重要**: このWebhook転送は、ローカル開発環境での決済機能テストに必要です。
+   - **推奨**: 開発用スクリプトを使用することで、これらの設定が自動化されます。
 
 ### ⚡️ バックエンドのセットアップ続き（DevContainer あり）
 

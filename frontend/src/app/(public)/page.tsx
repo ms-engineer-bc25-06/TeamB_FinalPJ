@@ -19,7 +19,7 @@ import {
 
 export default function LandingPage() {
   const { user } = useAuth();
-  const { subscription, isLoading: subLoading } = useSubscription();
+  const { subscription, loading: subLoading } = useSubscription();
   const router = useRouter();
 
   // デバッグログを追加
