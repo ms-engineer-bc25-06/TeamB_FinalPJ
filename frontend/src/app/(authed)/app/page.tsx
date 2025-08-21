@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { useSubscription } from '@/hooks/useSubscription';
 import { useTodayEntry } from '@/hooks/useTodayEntry';
+import { useChildren } from '@/hooks/useChildren';
 import {
   KokoronDefault,
   SpeechBubble,
@@ -26,17 +27,19 @@ export default function AppHomePage() {
   const { user, logout, login, isLoading } = useAuth();
   const { has_subscription, status, trial_expires_at, loading: subLoading, error } = useSubscription();
   const { todayEntry } = useTodayEntry();
+  const { children, loading: childrenLoading } = useChildren();
   const router = useRouter();
 
  
   // サブスク未登録の場合のチェック
   const needsSubscription = !has_subscription || status === 'incomplete';
-  // 初回セットアップが必要かチェック（サブスク登録済みの場合のみ）
-  const needsSetup = !needsSubscription && !user?.nickname;
+
+  // childrenのニックネームがあるかどうかで判定
+  const needsSetup = !needsSubscription && children.length === 0;
 
   useEffect(() => {
     // ローディング中は処理をスキップ
-    if (subLoading) {
+    if (subLoading || childrenLoading) {
       console.log('ローディング中: 処理をスキップ');
       return;
     }
@@ -46,6 +49,7 @@ export default function AppHomePage() {
     console.log('needsSetup:', needsSetup);
     console.log('has_subscription:', has_subscription);
     console.log('status:', status);
+    console.log('children count:', children.length);
     console.log('========================');
     
     if (needsSubscription) {
@@ -55,7 +59,7 @@ export default function AppHomePage() {
       console.log('リダイレクト: /app/setup');
       router.push('/app/setup');
     }
-  }, [needsSubscription, needsSetup, router, has_subscription, status, subLoading]); // ← subLoadingも追加
+  }, [needsSubscription, needsSetup, router, has_subscription, status, subLoading, childrenLoading, children.length]); // childrenLoadingとchildren.lengthも追加
 
 
   // おしゃべりボタンが押された時の処理
@@ -83,7 +87,7 @@ export default function AppHomePage() {
   };
 
   // ローディング中
-  if (isLoading || subLoading) {
+  if (isLoading || subLoading || childrenLoading) {
     return (
       <div style={commonStyles.loading.container}>
         <Spinner size="medium" />
@@ -112,7 +116,7 @@ export default function AppHomePage() {
 
   // サブスクリプション状態に応じたメッセージ
   const getStatusMessage = () => {
-    if (subLoading) return '読み込み中...';
+    if (subLoading || childrenLoading) return '読み込み中...';
 
     if (!has_subscription) {
       return '7日間の無料体験中です！';
@@ -138,9 +142,9 @@ export default function AppHomePage() {
   }
   const getSpeechBubbleText = () => {
     if (todayEntry) {
-      return 'きょうも きもちを\nきろくしてくれて ありがとう！';
+      return `${children[0]?.nickname || ''}、\nきょうも きもちを\nきろくしてくれて ありがとう！`;
     }
-    return 'きょうは どんな きもち？\nおしえて くださいね！';
+    return `${children[0]?.nickname || ''}、\nきょうは どんな きもち？\nおしえて くださいね！`;
   };
 
   // デバッグ情報を表示（一時的に）

@@ -90,3 +90,99 @@ export const redirectToStripeCheckout = async (sessionId: string) => {
 // サブスクリプション状態取得
 export const getSubscriptionStatus = async () => {
 };
+
+// 子どものプロフィール作成
+export const createChild = async (
+  childData: {
+    nickname: string;
+    birth_date: string; // YYYY-MM-DD形式
+    gender: string;
+  },
+  firebaseUser: User
+) => {
+  try {
+    const idToken = await firebaseUser.getIdToken(true);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/children`,
+      {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(childData),
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Create child error:', error);
+    throw error;
+  }
+};
+
+// ユーザーに紐づく子どものリスト取得
+export const getChildren = async (firebaseUser: User) => {
+  try {
+    const idToken = await firebaseUser.getIdToken(true);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/children`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Get children error:', error);
+    throw error;
+  }
+};
+
+// 子供の数を取得
+export const getChildrenCount = async (firebaseUser: User) => {
+  try {
+    const idToken = await firebaseUser.getIdToken(true);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    const response = await fetch(
+      `${API_BASE_URL}/api/v1/children/count`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+        },
+      }
+    );
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result.count;
+  } catch (error) {
+    console.error('Get children count error:', error);
+    throw error;
+  }
+};
