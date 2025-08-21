@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAudioConstraints, selectRecorderConfig, getErrorMessage } from '@/utils/audio';
 import { colors, commonStyles, spacing, borderRadius, animation } from '@/styles/theme';
@@ -30,6 +30,11 @@ export default function VoiceEntryPage() {
   // 認証チェック
   const { user, isLoading } = useAuth();
   const router = useRouter();
+  
+  // URLパラメータから感情データを取得
+  const searchParams = useSearchParams();
+  const emotionId = searchParams.get('emotion');
+  const intensityLevel = searchParams.get('intensity');
 
   // 以降はログイン済み向けの処理
   const [checkingToday, setCheckingToday] = useState(true);
@@ -157,6 +162,12 @@ export default function VoiceEntryPage() {
     if (!audioBlob) return;
     if (!user) return;
 
+    // 感情データの確認
+    if (!emotionId || !intensityLevel) {
+      setError('感情データが不足しています。感情選択画面から再度お試しください。');
+      return;
+    }
+
     setIsBusy(true);
     setError(null);
     setStatus('API接続確認中…');
@@ -205,7 +216,7 @@ export default function VoiceEntryPage() {
       const trData: TranscriptionResult = await tr.json();
       setTranscription(trData);
 
-      // 5) DB に key を保存（URLではなく key）
+      // 5) DB に key を保存（感情データ付き）
       setStatus('記録を保存中…');
       const save = await fetch(`${API_BASE}/api/v1/voice/save-record`, {
         method: 'POST',
@@ -214,6 +225,10 @@ export default function VoiceEntryPage() {
           user_id: user.id,
           audio_file_path: upData.file_path,
           text_file_path: null, // 将来: テキストもS3に保存したらここに key を入れる
+          // 感情データを追加
+          emotion_card_id: emotionId,
+          intensity_id: intensityLevel,
+          child_id: '41489976-63ee-4332-85f4-6d9200a79bfc', // 作成した子供のID
         }),
       });
       if (!save.ok) throw new Error(`記録保存失敗: ${save.status} ${await save.text()}`);
@@ -256,6 +271,49 @@ export default function VoiceEntryPage() {
     );
   }
 
+  // 感情データが不足している場合
+  if (!emotionId || !intensityLevel) {
+    return (
+      <main style={{
+        maxWidth: 720,
+        margin: '0 auto',
+        padding: spacing.xl,
+        background: 'url("/images/background.webp") no-repeat center center',
+        backgroundSize: 'cover',
+        minHeight: '100vh',
+      }}>
+        <h1 style={{
+          fontSize: '22px',
+          fontWeight: 700,
+          marginBottom: spacing.sm,
+          color: colors.text.primary,
+        }}>
+          感情データが不足しています
+        </h1>
+        <p style={{
+          marginBottom: spacing.md,
+          color: colors.text.secondary,
+        }}>
+          感情選択画面から再度お試しください。
+        </p>
+        <button
+          onClick={() => router.push('/app/emotion-selection')}
+          style={{
+            ...commonStyles.button.base,
+            padding: `${spacing.md} ${spacing.lg}`,
+            borderRadius: borderRadius.medium,
+            backgroundColor: colors.primary,
+            color: colors.text.white,
+            fontWeight: 700,
+            cursor: 'pointer',
+          }}
+        >
+          感情選択に戻る
+        </button>
+      </main>
+    );
+  }
+
   // 録音UI
   return (
     <main style={{
@@ -280,6 +338,30 @@ export default function VoiceEntryPage() {
       }}>
         ここで録音してS3に保存 → Whisperで文字起こし → DBに「S3キー」を記録します。
       </p>
+
+      {/* 感情データの表示 */}
+      <div style={{
+        marginBottom: spacing.md,
+        padding: spacing.md,
+        borderRadius: borderRadius.medium,
+        border: `1px solid ${colors.border.light}`,
+        background: colors.background.white,
+        boxShadow: colors.shadow.light,
+      }}>
+        <div style={{
+          fontWeight: 700,
+          marginBottom: spacing.xs,
+          color: colors.text.primary,
+        }}>
+          選択された感情
+        </div>
+        <div style={{
+          fontSize: '14px',
+          color: colors.text.secondary,
+        }}>
+          感情ID: {emotionId} / 強度: {intensityLevel}
+        </div>
+      </div>
 
       {/* ステータス */}
       {(status || error) && (

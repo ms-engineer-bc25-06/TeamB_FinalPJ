@@ -90,6 +90,22 @@ class VoiceSaveRequest(StrictModel):
         description="テキストファイルの S3 キー or s3://URI（任意）",
         example="text/06c0c0fa-261f-4033-a40f-29c0724abdc4/transcription_audio_20250818_210836_5135bbf0.txt",
     )
+    # 感情データのフィールドを追加
+    emotion_card_id: str = Field(
+        ...,
+        description="感情カードID（必須）",
+        example="1"
+    )
+    intensity_id: str = Field(
+        ...,
+        description="感情強度ID（必須）",
+        example="2"
+    )
+    child_id: str = Field(
+        ...,
+        description="子供ID（必須）",
+        example="41489976-63ee-4332-85f4-6d9200a79bfc"
+    )
 
     @field_validator("audio_file_path")
     @classmethod

@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from typing import Optional
 from uuid import UUID
+import uuid
 import os
 import tempfile
 import time
@@ -244,7 +245,6 @@ async def get_upload_url(request: VoiceUploadRequest, db: AsyncSession = Depends
     try:
         # ファイル名用の一意ID
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        import uuid
         unique_id = str(uuid.uuid4())[:8]
         logger.info(
             f" Presigned URL生成開始: user_id={request.user_id}, file_type={request.file_type}, file_format={request.file_format}"
@@ -335,10 +335,21 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
             f"💾 記録保存開始: user_id={request.user_id}, audio_key={bool(audio_key)}, text_key={bool(text_key)}"
         )
 
+        # 感情データのフィールドを追加
+        if not request.emotion_card_id or not request.intensity_id or not request.child_id:
+            raise HTTPException(
+                status_code=400, 
+                detail="emotion_card_id, intensity_id, and child_id are required"
+            )
+        
         voice_record = EmotionLog(
             user_id=request.user_id,
             audio_file_path=audio_key,
             text_file_path=text_key,
+            # 感情データのフィールドを追加
+            emotion_card_id=uuid.UUID(request.emotion_card_id),
+            intensity_id=int(request.intensity_id),
+            child_id=uuid.UUID(request.child_id),
         )
 
         logger.info(f" EmotionLog作成: id={voice_record.id}")
