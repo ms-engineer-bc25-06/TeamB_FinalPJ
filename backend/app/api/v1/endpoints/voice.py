@@ -34,6 +34,17 @@ handler = logging.StreamHandler()
 handler.setLevel(logging.INFO)
 logger.addHandler(handler)
 
+# 強度レベルの文字列を数値IDに変換する関数
+def convert_intensity_level(level_str: str) -> int:
+    intensity_mapping = {
+        'low': 1,
+        'medium': 2,
+        'high': 3
+    }
+    # デフォルトは2（中程度）を返す
+    logger.info(f"🔢 強度レベル変換: '{level_str}' → {intensity_mapping.get(level_str, 2)}")
+    return intensity_mapping.get(level_str, 2)
+
 # バリデーション
 def _validate_local_audio_file(path: str, language: str) -> None:
     ALLOWED_EXT = {"webm", "wav", "mp3", "m4a"}
@@ -348,7 +359,7 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
             text_file_path=text_key,
             # 感情データのフィールドを追加
             emotion_card_id=uuid.UUID(request.emotion_card_id),
-            intensity_id=int(request.intensity_id),
+            intensity_id=convert_intensity_level(request.intensity_id),
             child_id=uuid.UUID(request.child_id),
         )
 
