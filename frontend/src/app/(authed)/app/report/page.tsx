@@ -26,7 +26,7 @@ export default function ReportPage() {
 
   // 戻るボタンの処理
   const handleBack = () => {
-    router.push('/');
+    router.push('/app');
   };
 
   // ログアウト処理
@@ -111,15 +111,11 @@ export default function ReportPage() {
             alignItems: 'center',
           }}
         >
-          <PrimaryButton
-            onClick={() => setShowDailyReport(true)}
-          >
+          <PrimaryButton onClick={() => setShowDailyReport(true)}>
             毎日のきろく
           </PrimaryButton>
 
-          <PrimaryButton
-            onClick={() => setShowWeeklyReport(true)}
-          >
+          <PrimaryButton onClick={() => setShowWeeklyReport(true)}>
             今週のきろく
           </PrimaryButton>
         </div>
