@@ -60,28 +60,28 @@ async def create_checkout_session(
     success_url = "http://localhost:3000/app/payment/onboarding?session_id={CHECKOUT_SESSION_ID}"
     cancel_url = "http://localhost:3000/subscription"
     
-    # サブスクリプションレコードが存在しない場合は作成
-    if not current_user.subscriptions:
-        # 初期サブスクリプションレコードを作成（stripe_customer_idは後で設定）
-        await crud.upsert_subscription_customer_id(
-            db, 
-            user_id=current_user.id, 
-            stripe_customer_id="temp_" + str(uuid.uuid4())  # 一時的なID
-        )
-        # ユーザー情報を再取得
-        current_user = await crud.get_user_by_uid(db, current_user.uid)
-    
     # DBからStripe顧客IDを取得
     stripe_customer_id = current_user.subscriptions.stripe_customer_id if current_user.subscriptions else None
+    
     # まだStripeの顧客でない場合は、新しく作成する
     if not stripe_customer_id:
+        # まずStripe顧客を作成
         customer = stripe.Customer.create(
             email=current_user.email,
             name=current_user.nickname,
         )
         stripe_customer_id = customer.id
-        # 作成した顧客IDをDBに保存
-        await crud.update_stripe_customer_id(db, user=current_user, stripe_customer_id=stripe_customer_id)
+        
+        # サブスクリプションレコードが存在しない場合は作成
+        if not current_user.subscriptions:
+            await crud.upsert_subscription_customer_id(
+                db, 
+                user_id=current_user.id, 
+                stripe_customer_id=stripe_customer_id  # 実際のStripe顧客ID
+            )
+        else:
+            # 既存のレコードに顧客IDを更新
+            await crud.update_stripe_customer_id(db, user=current_user, stripe_customer_id=stripe_customer_id)
 
     try:
         checkout_session = stripe.checkout.Session.create(
