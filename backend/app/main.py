@@ -19,11 +19,10 @@ from app.utils.error_handlers import register_error_handlers
 from app.emotion_color_api import router as emotion_color_router
 from app.emotion_api import router as emotion_router
 from app.stripe_api import router as stripe_router
-<<<<<<< HEAD
+
 logging.basicConfig(level=logging.INFO, force=True)
 logging.getLogger().setLevel(logging.INFO)
-=======
->>>>>>> develop
+
 
 load_dotenv()
 
