@@ -186,3 +186,162 @@ export const getChildrenCount = async (firebaseUser: User) => {
     throw error;
   }
 };
+
+// 感情ログ一覧取得
+export const getEmotionLogs = async (
+  firebaseUser: User,
+  child_id?: string,
+  limit: number = 100,
+  offset: number = 0
+) => {
+  try {
+    const idToken = await firebaseUser.getIdToken(true);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    let url = `${API_BASE_URL}/emotion/logs/list?limit=${limit}&offset=${offset}`;
+    if (child_id) {
+      url += `&child_id=${child_id}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Get emotion logs error:', error);
+    throw error;
+  }
+};
+
+// 指定日の感情ログ取得
+export const getEmotionLogsByDate = async (
+  firebaseUser: User,
+  date: string,
+  child_id?: string
+) => {
+  try {
+    const idToken = await firebaseUser.getIdToken(true);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    let url = `${API_BASE_URL}/emotion/logs/daily/${date}`;
+    if (child_id) {
+      url += `?child_id=${child_id}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Get emotion logs by date error:', error);
+    throw error;
+  }
+};
+
+// 指定月の感情ログ取得
+export const getEmotionLogsByMonth = async (
+  firebaseUser: User,
+  year: number,
+  month: number,
+  child_id?: string
+) => {
+  try {
+    const idToken = await firebaseUser.getIdToken(true);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    let url = `${API_BASE_URL}/emotion/logs/monthly/${year}/${month}`;
+    if (child_id) {
+      url += `?child_id=${child_id}`;
+    }
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Get emotion logs by month error:', error);
+    throw error;
+  }
+};
+
+// 感情カード一覧取得
+export const getEmotionCards = async (firebaseUser: User) => {
+  try {
+    const idToken = await firebaseUser.getIdToken(true);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    const response = await fetch(`${API_BASE_URL}/emotion/cards`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Get emotion cards error:', error);
+    throw error;
+  }
+};
+
+// 強度一覧取得
+export const getIntensities = async (firebaseUser: User) => {
+  try {
+    const idToken = await firebaseUser.getIdToken(true);
+    const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL ?? '';
+    
+    const response = await fetch(`${API_BASE_URL}/emotion/intensities`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${idToken}`,
+      },
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text().catch(() => '');
+      throw new Error(`HTTP error! status: ${response.status}, message: ${errorText}`);
+    }
+
+    const result = await response.json();
+    return result;
+  } catch (error) {
+    console.error('Get intensities error:', error);
+    throw error;
+  }
+};

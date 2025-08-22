@@ -1,9 +1,9 @@
-// レポートページ
 'use client';
 
 import { useState } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useChildren } from '@/hooks/useChildren';
 import DailyReport from '@/app/(authed)/app/report/_components/DailyReport';
 import WeeklyReport from '@/app/(authed)/app/report/_components/WeeklyReport';
 import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
@@ -19,12 +19,13 @@ import KokoronReadingReport from '@/components/ui/KokoronReadingReport';
 export default function ReportPage() {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
+  const { children } = useChildren();
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
 
   // 戻るボタンの処理
   const handleBack = () => {
-    router.push('/');
+    router.push('/app');
   };
 
   // ログアウト処理
@@ -87,14 +88,14 @@ export default function ReportPage() {
         <h1
           style={{
             color: colors.text.primary,
-            fontSize: fontSize.xxl,
+            fontSize: fontSize.lg,
             fontWeight: 'bold',
-            marginBottom: spacing.xl,
+            marginBottom: spacing.xxl,
             textAlign: 'center',
             textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
           }}
         >
-          〇〇のこころん
+          {children[0]?.nickname || ''}のこころん
         </h1>
         {/* こころんを表示 */}
         <div style={commonStyles.page.kokoronContainer}>
@@ -109,15 +110,11 @@ export default function ReportPage() {
             alignItems: 'center',
           }}
         >
-          <PrimaryButton
-            onClick={() => setShowDailyReport(true)}
-          >
+          <PrimaryButton onClick={() => setShowDailyReport(true)}>
             毎日のきろく
           </PrimaryButton>
 
-          <PrimaryButton
-            onClick={() => setShowWeeklyReport(true)}
-          >
+          <PrimaryButton onClick={() => setShowWeeklyReport(true)}>
             今週のきろく
           </PrimaryButton>
         </div>

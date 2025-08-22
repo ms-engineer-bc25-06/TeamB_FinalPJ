@@ -1,10 +1,10 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, and_
 from sqlalchemy.orm import selectinload
 from datetime import datetime
 import uuid
-from typing import Optional
+from typing import Optional, List
 from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import datetime
@@ -12,8 +12,9 @@ from datetime import datetime
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
-from app.models import EmotionCard, Intensity, EmotionLog, Child
-from app.schemas import ChildResponse
+from app.models import EmotionCard, Intensity, EmotionLog, Child, User
+from app.schemas import ChildResponse, EmotionLogResponse
+from app.children import get_current_user
 
 # データベース接続を直接定義
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -214,6 +215,131 @@ async def create_emotion_log(
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.get(
+    "/logs/list",
+    response_model=List[EmotionLogResponse],
+    summary="感情ログ一覧取得",
+    description="ユーザーに紐づく感情ログを取得します。child_idが指定された場合は、その子どものログのみを取得します。"
+)
+async def get_emotion_logs(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    child_id: Optional[str] = None,
+    limit: int = 100,
+    offset: int = 0
+):
+    try:
+        # クエリの構築（リレーションシップデータも含める）
+        query = select(EmotionLog).options(
+            selectinload(EmotionLog.emotion_card),
+            selectinload(EmotionLog.intensity)
+        ).where(EmotionLog.user_id == current_user.id)
+        
+        if child_id:
+            query = query.where(EmotionLog.child_id == child_id)
+        
+        query = query.order_by(EmotionLog.created_at.desc()).limit(limit).offset(offset)
+        
+        result = await db.execute(query)
+        emotion_logs = result.scalars().all()
+        
+        return emotion_logs
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch emotion logs: {str(e)}")
+
+
+@router.get(
+    "/logs/daily/{date}",
+    response_model=List[EmotionLogResponse],
+    summary="指定日の感情ログ取得",
+    description="指定された日付の感情ログを取得します。日付はYYYY-MM-DD形式で指定してください。"
+)
+async def get_emotion_logs_by_date(
+    date: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    child_id: Optional[str] = None
+):
+    try:
+        # 日付文字列をパース
+        target_date = datetime.strptime(date, "%Y-%m-%d").date()
+        
+        # クエリの構築（リレーションシップデータも含める）
+        query = select(EmotionLog).options(
+            selectinload(EmotionLog.emotion_card),
+            selectinload(EmotionLog.intensity)
+        ).where(
+            and_(
+                EmotionLog.user_id == current_user.id,
+                EmotionLog.created_at >= datetime.combine(target_date, datetime.min.time()),
+                EmotionLog.created_at < datetime.combine(target_date, datetime.max.time())
+            )
+        )
+        
+        if child_id:
+            query = query.where(EmotionLog.child_id == child_id)
+        
+        query = query.order_by(EmotionLog.created_at.desc())
+        
+        result = await db.execute(query)
+        emotion_logs = result.scalars().all()
+        
+        return emotion_logs
+        
+    except ValueError:
+        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch emotion logs: {str(e)}")
+
+
+@router.get(
+    "/logs/monthly/{year}/{month}",
+    response_model=List[EmotionLogResponse],
+    summary="指定月の感情ログ取得",
+    description="指定された年月の感情ログを取得します。"
+)
+async def get_emotion_logs_by_month(
+    year: int,
+    month: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+    child_id: Optional[str] = None
+):
+    try:
+        # 月の開始日と終了日を計算
+        start_date = datetime(year, month, 1)
+        if month == 12:
+            end_date = datetime(year + 1, 1, 1)
+        else:
+            end_date = datetime(year, month + 1, 1)
+        
+        # クエリの構築（リレーションシップデータも含める）
+        query = select(EmotionLog).options(
+            selectinload(EmotionLog.emotion_card),
+            selectinload(EmotionLog.intensity)
+        ).where(
+            and_(
+                EmotionLog.user_id == current_user.id,
+                EmotionLog.created_at >= start_date,
+                EmotionLog.created_at < end_date
+            )
+        )
+        
+        if child_id:
+            query = query.where(EmotionLog.child_id == child_id)
+        
+        query = query.order_by(EmotionLog.created_at.desc())
+        
+        result = await db.execute(query)
+        emotion_logs = result.scalars().all()
+        
+        return emotion_logs
+        
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to fetch emotion logs: {str(e)}")
 
 
 @router.get(
