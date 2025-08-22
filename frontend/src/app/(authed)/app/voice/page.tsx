@@ -38,9 +38,9 @@ export default function VoiceEntryPage() {
 
   // ログ出力を追加
   useEffect(() => {
-    console.log('🎯 音声録音: 感情データ確認');
-    console.log('�� 音声録音: emotionId:', emotionId);
-    console.log('🎤 音声録音: intensityLevel:', intensityLevel);
+    console.log('[EMOTION] 音声録音: 感情データ確認');
+    console.log('[EMOTION] 音声録音: emotionId:', emotionId);
+    console.log('[EMOTION] 音声録音: intensityLevel:', intensityLevel);
   }, [emotionId, intensityLevel]);
 
   // 以降はログイン済み向けの処理
@@ -115,7 +115,7 @@ export default function VoiceEntryPage() {
   // --- 録音開始 ---
   const startRecording = async () => {
     try {
-      console.log('🎤 録音開始: 処理開始');
+      console.log('[RECORDING] 録音開始: 処理開始');
       setError(null);
       setStatus('マイク起動中…');
       setAudioBlob(null);
@@ -137,12 +137,12 @@ export default function VoiceEntryPage() {
         setStatus('録音完了。アップロードできます。');
       };
 
-      console.log('🎤 録音開始: マイク起動成功');
+      console.log('[RECORDING] 録音開始: マイク起動成功');
       rec.start();
       setIsRecording(true);
       setStatus('録音中…');
     } catch (err: any) {
-      console.error('🎤 録音開始: エラー発生', err);
+      console.error('[RECORDING] 録音開始: エラー発生', err);
       stopStream();
       setError(getErrorMessage(err));
       setStatus('録音できませんでした');
@@ -172,14 +172,14 @@ export default function VoiceEntryPage() {
     if (!audioBlob) return;
     if (!user) return;
 
-    console.log('�� アップロード保存: 処理開始');
-    console.log('🎤 アップロード保存: 感情データ確認');
-    console.log('🎤 アップロード保存: emotionId:', emotionId);
-    console.log('🎤 アップロード保存: intensityLevel:', intensityLevel);
+    console.log('[UPLOAD] アップロード保存: 処理開始');
+    console.log('[EMOTION] アップロード保存: 感情データ確認');
+    console.log('[EMOTION] アップロード保存: emotionId:', emotionId);
+    console.log('[EMOTION] アップロード保存: intensityLevel:', intensityLevel);
 
     // 感情データの確認
     if (!emotionId || !intensityLevel) {
-      console.error('🎤 アップロード保存: 感情データ不足');
+      console.error('[EMOTION] アップロード保存: 感情データ不足');
       setError('感情データが不足しています。感情選択画面から再度お試しください。');
       return;
     }
@@ -190,13 +190,13 @@ export default function VoiceEntryPage() {
 
     try {
       // 1) ヘルスチェック
-      console.log('🎤 アップロード保存: ヘルスチェック開始');
+      console.log('[HEALTH] アップロード保存: ヘルスチェック開始');
       const health = await fetch(`${API_BASE}/api/v1/voice/health`);
       if (!health.ok) throw new Error(`ヘルスチェック失敗: ${health.status}`);
-      console.log('🎤 アップロード保存: ヘルスチェック成功');
+      console.log('[HEALTH] アップロード保存: ヘルスチェック成功');
 
       // 2) PUT用URL取得
-      console.log('�� アップロード保存: S3アップロードURL取得開始');
+      console.log('[S3] アップロード保存: S3アップロードURL取得開始');
       setStatus('S3アップロード用URLを取得中…');
       const upRes = await fetch(`${API_BASE}/api/v1/voice/get-upload-url`, {
         method: 'POST',
@@ -209,10 +209,10 @@ export default function VoiceEntryPage() {
       });
       if (!upRes.ok) throw new Error(`アップロードURL取得失敗: ${upRes.status} ${await upRes.text()}`);
       const upData: GetUploadUrlResponse = await upRes.json();
-      console.log('�� アップロード保存: S3アップロードURL取得成功:', upData.file_path);
+      console.log('[S3] アップロード保存: S3アップロードURL取得成功:', upData.file_path);
 
       // 3) S3 に PUT
-      console.log('�� アップロード保存: S3アップロード開始');
+      console.log('[S3] アップロード保存: S3アップロード開始');
       setStatus('S3へアップロード中…');
       const put = await fetch(upData.upload_url, {
         method: 'PUT',
@@ -220,10 +220,10 @@ export default function VoiceEntryPage() {
         body: audioBlob,
       });
       if (!put.ok) throw new Error(`S3アップロード失敗: ${put.status} ${await put.text()}`);
-      console.log('�� アップロード保存: S3アップロード成功');
+      console.log('[S3] アップロード保存: S3アップロード成功');
 
       // 4) Whisper 文字起こし
-      console.log('🎤 アップロード保存: 音声認識開始');
+      console.log('[TRANSCRIPTION] アップロード保存: 音声認識開始');
       setStatus('音声を文字に変換中…');
       const tr = await fetch(`${API_BASE}/api/v1/voice/transcribe`, {
         method: 'POST',
@@ -238,10 +238,10 @@ export default function VoiceEntryPage() {
       if (!tr.ok) throw new Error(`音声認識失敗: ${tr.status} ${await tr.text()}`);
       const trData: TranscriptionResult = await tr.json();
       setTranscription(trData);
-      console.log('🎤 アップロード保存: 音声認識成功:', trData.text);
+      console.log('[TRANSCRIPTION] アップロード保存: 音声認識成功:', trData.text);
 
       // 5) DB に key を保存（感情データ付き）
-      console.log('�� アップロード保存: データベース保存開始');
+      console.log('[DATABASE] アップロード保存: データベース保存開始');
       setStatus('記録を保存中…');
       const save = await fetch(`${API_BASE}/api/v1/voice/save-record`, {
         method: 'POST',
@@ -257,12 +257,12 @@ export default function VoiceEntryPage() {
         }),
       });
       if (!save.ok) throw new Error(`記録保存失敗: ${save.status} ${await save.text()}`);
-      console.log('�� アップロード保存: データベース保存成功');
+      console.log('[DATABASE] アップロード保存: データベース保存成功');
 
       setStatus('保存完了！「きょうの記録」に移動します…');
       setTimeout(() => router.replace('/app/entries/today'), 600);
     } catch (e: any) {
-      console.error('🎤 アップロード保存: エラー発生', e);
+      console.error('[ERROR] アップロード保存: エラー発生', e);
       setError(e?.message || '処理中にエラーが発生しました');
       setStatus('エラーが発生しました');
     } finally {
@@ -531,7 +531,7 @@ export default function VoiceEntryPage() {
                 fontSize: '24px',
                 fontWeight: 'bold',
               }}>
-                {isRecording ? '⏹ 停止' : '🎤 録音開始'}
+                {isRecording ? '[STOP] 停止' : '[RECORD] 録音開始'}
               </span>
             </div>
           </button>
