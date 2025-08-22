@@ -36,6 +36,13 @@ export default function VoiceEntryPage() {
   const emotionId = searchParams.get('emotion');
   const intensityLevel = searchParams.get('intensity');
 
+  // ログ出力を追加
+  useEffect(() => {
+    console.log('🎯 音声録音: 感情データ確認');
+    console.log('�� 音声録音: emotionId:', emotionId);
+    console.log('🎤 音声録音: intensityLevel:', intensityLevel);
+  }, [emotionId, intensityLevel]);
+
   // 以降はログイン済み向けの処理
   const [checkingToday, setCheckingToday] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -108,6 +115,7 @@ export default function VoiceEntryPage() {
   // --- 録音開始 ---
   const startRecording = async () => {
     try {
+      console.log('🎤 録音開始: 処理開始');
       setError(null);
       setStatus('マイク起動中…');
       setAudioBlob(null);
@@ -129,10 +137,12 @@ export default function VoiceEntryPage() {
         setStatus('録音完了。アップロードできます。');
       };
 
+      console.log('🎤 録音開始: マイク起動成功');
       rec.start();
       setIsRecording(true);
       setStatus('録音中…');
     } catch (err: any) {
+      console.error('🎤 録音開始: エラー発生', err);
       stopStream();
       setError(getErrorMessage(err));
       setStatus('録音できませんでした');
@@ -162,8 +172,14 @@ export default function VoiceEntryPage() {
     if (!audioBlob) return;
     if (!user) return;
 
+    console.log('�� アップロード保存: 処理開始');
+    console.log('🎤 アップロード保存: 感情データ確認');
+    console.log('🎤 アップロード保存: emotionId:', emotionId);
+    console.log('🎤 アップロード保存: intensityLevel:', intensityLevel);
+
     // 感情データの確認
     if (!emotionId || !intensityLevel) {
+      console.error('🎤 アップロード保存: 感情データ不足');
       setError('感情データが不足しています。感情選択画面から再度お試しください。');
       return;
     }
@@ -174,10 +190,13 @@ export default function VoiceEntryPage() {
 
     try {
       // 1) ヘルスチェック
+      console.log('🎤 アップロード保存: ヘルスチェック開始');
       const health = await fetch(`${API_BASE}/api/v1/voice/health`);
       if (!health.ok) throw new Error(`ヘルスチェック失敗: ${health.status}`);
+      console.log('🎤 アップロード保存: ヘルスチェック成功');
 
       // 2) PUT用URL取得
+      console.log('�� アップロード保存: S3アップロードURL取得開始');
       setStatus('S3アップロード用URLを取得中…');
       const upRes = await fetch(`${API_BASE}/api/v1/voice/get-upload-url`, {
         method: 'POST',
@@ -190,8 +209,10 @@ export default function VoiceEntryPage() {
       });
       if (!upRes.ok) throw new Error(`アップロードURL取得失敗: ${upRes.status} ${await upRes.text()}`);
       const upData: GetUploadUrlResponse = await upRes.json();
+      console.log('�� アップロード保存: S3アップロードURL取得成功:', upData.file_path);
 
       // 3) S3 に PUT
+      console.log('�� アップロード保存: S3アップロード開始');
       setStatus('S3へアップロード中…');
       const put = await fetch(upData.upload_url, {
         method: 'PUT',
@@ -199,8 +220,10 @@ export default function VoiceEntryPage() {
         body: audioBlob,
       });
       if (!put.ok) throw new Error(`S3アップロード失敗: ${put.status} ${await put.text()}`);
+      console.log('�� アップロード保存: S3アップロード成功');
 
       // 4) Whisper 文字起こし
+      console.log('🎤 アップロード保存: 音声認識開始');
       setStatus('音声を文字に変換中…');
       const tr = await fetch(`${API_BASE}/api/v1/voice/transcribe`, {
         method: 'POST',
@@ -215,8 +238,10 @@ export default function VoiceEntryPage() {
       if (!tr.ok) throw new Error(`音声認識失敗: ${tr.status} ${await tr.text()}`);
       const trData: TranscriptionResult = await tr.json();
       setTranscription(trData);
+      console.log('🎤 アップロード保存: 音声認識成功:', trData.text);
 
       // 5) DB に key を保存（感情データ付き）
+      console.log('�� アップロード保存: データベース保存開始');
       setStatus('記録を保存中…');
       const save = await fetch(`${API_BASE}/api/v1/voice/save-record`, {
         method: 'POST',
@@ -232,10 +257,12 @@ export default function VoiceEntryPage() {
         }),
       });
       if (!save.ok) throw new Error(`記録保存失敗: ${save.status} ${await save.text()}`);
+      console.log('�� アップロード保存: データベース保存成功');
 
       setStatus('保存完了！「きょうの記録」に移動します…');
       setTimeout(() => router.replace('/app/entries/today'), 600);
     } catch (e: any) {
+      console.error('🎤 アップロード保存: エラー発生', e);
       setError(e?.message || '処理中にエラーが発生しました');
       setStatus('エラーが発生しました');
     } finally {
@@ -316,199 +343,371 @@ export default function VoiceEntryPage() {
 
   // 録音UI
   return (
-    <main style={{
-      maxWidth: 720,
-      margin: '0 auto',
-      padding: spacing.xl,
+    // 背景全体をカバーするラッパー
+    <div style={{
       background: 'url("/images/background.webp") no-repeat center center',
       backgroundSize: 'cover',
-      minHeight: '100vh', // 画面全体をカバー
+      minHeight: '100vh',
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      justifyContent: 'center',
     }}>
-      <h1 style={{
-        fontSize: '22px',
-        fontWeight: 700,
-        marginBottom: spacing.sm,
-        color: colors.text.primary,
-      }}>
-        音声のきろく（新規）
-      </h1>
-      <p style={{
-        marginBottom: spacing.md,
-        color: colors.text.secondary,
-      }}>
-        ここで録音してS3に保存 → Whisperで文字起こし → DBに「S3キー」を記録します。
-      </p>
-
-      {/* 感情データの表示 */}
-      <div style={{
-        marginBottom: spacing.md,
-        padding: spacing.md,
-        borderRadius: borderRadius.medium,
-        border: `1px solid ${colors.border.light}`,
-        background: colors.background.white,
-        boxShadow: colors.shadow.light,
-      }}>
-        <div style={{
-          fontWeight: 700,
-          marginBottom: spacing.xs,
-          color: colors.text.primary,
-        }}>
-          選択された感情
-        </div>
-        <div style={{
-          fontSize: '14px',
-          color: colors.text.secondary,
-        }}>
-          感情ID: {emotionId} / 強度: {intensityLevel}
-        </div>
-      </div>
-
-      {/* ステータス */}
-      {(status || error) && (
-        <div
-          style={{
-            margin: `${spacing.md} 0`,
-            padding: spacing.md,
-            borderRadius: borderRadius.medium,
-            border: `1px solid ${error ? '#f5c2c7' : colors.border.light}`,
-            background: error ? '#fdecee' : '#fafafa',
-            color: error ? '#842029' : colors.text.primary,
-          }}
-        >
-          <div style={{ fontWeight: 600 }}>{status}</div>
-          {error && <div style={{ marginTop: spacing.xs }}>{error}</div>}
-        </div>
-      )}
-
-      {/* 録音ボタン */}
-      <div style={{
+      <main style={{
+        position: 'fixed',
+        top: '0',
+        left: '50%',
+        transform: 'translateX(-50%)',
+        bottom: 0,
+        padding: '10px 0 0 0',
+        zIndex: 50,
+        boxSizing: 'border-box',
+        width: '100%',
+        maxWidth: '600px',
+        overflowX: 'hidden',
         display: 'flex',
-        gap: spacing.md,
-        marginTop: spacing.sm,
+        flexDirection: 'column',
+        justifyContent: 'center',
+        alignItems: 'center',
+        backdropFilter: 'blur(10px)',
+        background: 'transparent',
+        gap: '8px',
       }}>
-        <button
-          onClick={isRecording ? stopRecording : startRecording}
-          disabled={isBusy}
-          style={{
-            ...commonStyles.button.base,
-            padding: `${spacing.md} ${spacing.lg}`,
-            borderRadius: borderRadius.medium,
-            backgroundColor: isRecording ? '#ffb3b3' : colors.primary,
-            color: colors.text.white,
-            fontWeight: 700,
-            cursor: isBusy ? 'not-allowed' : 'pointer',
-            minWidth: 140,
-            ...(isBusy && {
-              backgroundColor: '#ccc',
-              cursor: 'not-allowed',
-              transform: 'none',
-              boxShadow: 'none',
-            }),
-          }}
-        >
-          {isRecording ? '⏹ 停止' : '🎤 録音開始'}
-        </button>
 
-        <button
-          onClick={uploadAndSave}
-          disabled={!audioBlob || isBusy}
-          style={{
-            ...commonStyles.button.base,
-            padding: `${spacing.md} ${spacing.lg}`,
-            borderRadius: borderRadius.medium,
-            backgroundColor: '#10b981',
-            color: colors.text.white,
-            fontWeight: 700,
-            cursor: !audioBlob || isBusy ? 'not-allowed' : 'pointer',
-            minWidth: 220,
-            ...((!audioBlob || isBusy) && {
-              backgroundColor: '#ccc',
-              cursor: 'not-allowed',
-              transform: 'none',
-              boxShadow: 'none',
-            }),
-          }}
-        >
-          ⬆︎ アップロード → 保存
-        </button>
+        {/* こころんキャラクター */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          gap: '16px',
+          marginBottom: '20px',
+          marginTop: '20px',
+        }}>
+          <img
+            src="/images/kokoron/kokoron_mic.webp"
+            alt="マイクを持つこころん"
+            style={{
+              width: '250px',
+              height: '250px',
+              objectFit: 'contain',
+            }}
+          />
+        </div>
 
-        <button
-          onClick={() => {
-            setAudioBlob(null);
-            setTranscription(null);
-            setStatus('');
-            setError(null);
-          }}
-          disabled={isBusy}
-          style={{
-            ...commonStyles.button.base,
-            ...commonStyles.button.secondary,
-            padding: `${spacing.md} ${spacing.md}`,
-            borderRadius: borderRadius.medium,
-            backgroundColor: colors.background.white,
-            color: colors.text.primary,
-            cursor: isBusy ? 'not-allowed' : 'pointer',
-            ...(isBusy && {
-              cursor: 'not-allowed',
-              opacity: 0.6,
-            }),
-          }}
-        >
-          取り直す
-        </button>
-      </div>
-
-      {/* プレビュー */}
-      {audioBlob && (
-        <div style={{ marginTop: spacing.md }}>
-          <audio controls src={URL.createObjectURL(audioBlob)} style={{ width: '100%' }} />
+        {/* 白枠の囲い（こころんおしゃべりコメント） */}
+        <div style={{
+          background: '#ffffff',
+          borderRadius: '16px',
+          padding: '16px 20px',
+          boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
+          width: '80%',
+          maxWidth: '320px',
+          boxSizing: 'border-box',
+          textAlign: 'center',
+          marginBottom: '20px',
+        }}>
           <div style={{
-            fontSize: '12px',
-            color: colors.text.secondary,
-            marginTop: spacing.xs,
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '8px',
+            alignItems: 'center',
           }}>
-            形式: {recConfig.ext} / {(audioBlob.size / 1024).toFixed(1)} KB
+            <span style={{
+              fontWeight: 'bold',
+              fontSize: '24px',
+              lineHeight: 1.2,
+              margin: 0,
+              color: '#333',
+            }}>
+              どうしてそのきもちになったのかな？
+            </span>
           </div>
         </div>
-      )}
 
-      {/* 文字起こし結果 */}
-      {transcription && (
-        <div
-          style={{
-            marginTop: spacing.md,
-            padding: spacing.md,
-            borderRadius: borderRadius.medium,
-            border: `1px solid ${colors.border.light}`,
-            background: colors.background.white,
-            boxShadow: colors.shadow.light,
-          }}
-        >
+        {/* 感情データの表示 */}
+        <div style={{
+          marginBottom: spacing.md,
+          padding: spacing.md,
+          borderRadius: borderRadius.medium,
+          border: `1px solid ${colors.border.light}`,
+          background: colors.background.white,
+          boxShadow: colors.shadow.light,
+          width: '100%',
+          maxWidth: '320px',
+          textAlign: 'center',
+        }}>
           <div style={{
             fontWeight: 700,
             marginBottom: spacing.xs,
             color: colors.text.primary,
           }}>
-            文字起こし
+            選択された感情
           </div>
           <div style={{
-            whiteSpace: 'pre-wrap',
-            lineHeight: 1.6,
-            color: colors.text.primary,
+            fontSize: '14px',
+            color: colors.text.secondary,
           }}>
-            {transcription.text || '—'}
+            感情ID: {emotionId} / 強度: {intensityLevel}
           </div>
-          {typeof transcription.confidence === 'number' && (
+        </div>
+
+        {/* ステータス */}
+        {(status || error) && (
+          <div
+            style={{
+              margin: `${spacing.md} 0`,
+              padding: spacing.md,
+              borderRadius: borderRadius.medium,
+              border: `1px solid ${error ? '#f5c2c7' : colors.border.light}`,
+              background: error ? '#fdecee' : '#fafafa',
+              color: error ? '#842029' : colors.text.primary,
+              width: '100%',
+              maxWidth: '320px',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{ fontWeight: 600 }}>{status}</div>
+            {error && <div style={{ marginTop: spacing.xs }}>{error}</div>}
+          </div>
+        )}
+
+        {/* ボタンコンテナ */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '19px',
+          width: '100%',
+          maxWidth: '320px',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: '20px',
+        }}>
+          {/* 録音ボタン */}
+          <button
+            onClick={isRecording ? stopRecording : startRecording}
+            disabled={isBusy}
+            style={{
+              background: '#ffffff',
+              border: `8px solid ${isRecording ? '#ffb3b3' : colors.primary}`,
+              borderRadius: '12px',
+              padding: '16px 12px',
+              cursor: isBusy ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.3s ease',
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: '#000000',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              minHeight: '100px',
+              justifyContent: 'center',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden',
+              position: 'relative',
+              ...(isBusy && {
+                backgroundColor: '#ccc',
+                cursor: 'not-allowed',
+                transform: 'none',
+                boxShadow: 'none',
+              }),
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+              gap: '12px',
+            }}>
+              <span style={{
+                fontSize: '24px',
+                fontWeight: 'bold',
+              }}>
+                {isRecording ? '⏹ 停止' : '🎤 録音開始'}
+              </span>
+            </div>
+          </button>
+
+          {/* アップロード・保存ボタン */}
+          <button
+            onClick={uploadAndSave}
+            disabled={!audioBlob || isBusy}
+            style={{
+              background: '#ffffff',
+              border: `8px solid ${!audioBlob || isBusy ? '#ccc' : '#10b981'}`,
+              borderRadius: '12px',
+              padding: '8px 16px',
+              cursor: !audioBlob || isBusy ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.3s ease',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#000000',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              minHeight: '60px',
+              justifyContent: 'center',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden',
+              position: 'relative',
+              ...((!audioBlob || isBusy) && {
+                backgroundColor: '#ccc',
+                cursor: 'not-allowed',
+                transform: 'none',
+                boxShadow: 'none',
+              }),
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+              gap: '12px',
+            }}>
+              <span style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+              }}>
+                ⬆︎ アップロード → 保存
+              </span>
+            </div>
+          </button>
+
+          {/* 取り直すボタン（子供でも分かりやすい） */}
+          <button
+            onClick={() => {
+              setAudioBlob(null);
+              setTranscription(null);
+              setStatus('');
+              setError(null);
+            }}
+            disabled={isBusy}
+            style={{
+              background: '#ffffff',
+              border: `8px solid ${isBusy ? '#ccc' : colors.border.light}`,
+              borderRadius: '12px',
+              padding: '8px 16px',
+              cursor: isBusy ? 'not-allowed' : 'pointer',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '8px',
+              transition: 'all 0.3s ease',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              color: '#000000',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
+              minHeight: '60px',
+              justifyContent: 'center',
+              touchAction: 'manipulation',
+              WebkitTapHighlightColor: 'transparent',
+              width: '100%',
+              maxWidth: '100%',
+              boxSizing: 'border-box',
+              overflow: 'hidden',
+              position: 'relative',
+              ...(isBusy && {
+                cursor: 'not-allowed',
+                opacity: 0.6,
+              }),
+            }}
+          >
+            <div style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: '100%',
+              height: '100%',
+              gap: '12px',
+            }}>
+              <span style={{
+                fontSize: '18px',
+                fontWeight: 'bold',
+              }}>
+                もどる
+              </span>
+            </div>
+          </button>
+        </div>
+
+        {/* プレビュー */}
+        {audioBlob && (
+          <div style={{ 
+            marginTop: spacing.md,
+            width: '100%',
+            maxWidth: '320px',
+            textAlign: 'center',
+          }}>
+            <audio controls src={URL.createObjectURL(audioBlob)} style={{ width: '100%' }} />
             <div style={{
               fontSize: '12px',
               color: colors.text.secondary,
-              marginTop: spacing.sm,
+              marginTop: spacing.xs,
             }}>
-              信頼度: {(transcription.confidence * 100).toFixed(1)}%
+              形式: {recConfig.ext} / {(audioBlob.size / 1024).toFixed(1)} KB
             </div>
-          )}
-        </div>
-      )}
-    </main>
+          </div>
+        )}
+
+        {/* 文字起こし結果 */}
+        {transcription && (
+          <div
+            style={{
+              marginTop: spacing.md,
+              padding: spacing.md,
+              borderRadius: borderRadius.medium,
+              border: `1px solid ${colors.border.light}`,
+              background: colors.background.white,
+              boxShadow: colors.shadow.light,
+              width: '100%',
+              maxWidth: '320px',
+              textAlign: 'center',
+            }}
+          >
+            <div style={{
+              fontWeight: 700,
+              marginBottom: spacing.xs,
+              color: colors.text.primary,
+            }}>
+              文字起こし
+            </div>
+            <div style={{
+              whiteSpace: 'pre-wrap',
+              lineHeight: 1.6,
+              color: colors.text.primary,
+            }}>
+              {transcription.text || '—'}
+            </div>
+            {typeof transcription.confidence === 'number' && (
+              <div style={{
+                fontSize: '12px',
+                color: colors.text.secondary,
+                marginTop: spacing.sm,
+              }}>
+                信頼度: {(transcription.confidence * 100).toFixed(1)}%
+              </div>
+            )}
+          </div>
+        )}
+      </main>
+    </div>
   );
 }
