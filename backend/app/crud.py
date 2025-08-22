@@ -240,3 +240,52 @@ async def get_subscription_by_user_id(
     except SQLAlchemyError as e:
         logger.error("get_subscription_by_user_id failed", exc_info=e)
         return None
+
+
+# Childrenテーブルにデータを挿入
+async def create_child(
+    db: AsyncSession,
+    *,
+    user_id: uuid.UUID,
+    nickname: str,
+    birth_date: str,  # YYYY-MM-DD形式
+    gender: str,
+) -> Optional[models.Child]:
+    """子どものプロフィールを作成"""
+    try:
+        # 誕生日をDate型に変換
+        birth_date_obj = datetime.strptime(birth_date, "%Y-%m-%d").date()
+        
+        child = models.Child(
+            user_id=user_id,
+            nickname=nickname,
+            birth_date=birth_date_obj,
+            gender=gender,
+        )
+        
+        db.add(child)
+        await db.commit()
+        await db.refresh(child)
+        return child
+        
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error("create_child failed", exc_info=e)
+        return None
+    except ValueError as e:
+        logger.error("Invalid birth_date format", exc_info=e)
+        return None
+
+
+async def get_children_by_user_id(
+    db: AsyncSession, 
+    user_id: uuid.UUID
+) -> list[models.Child]:
+    """ユーザーIDから子どものリストを取得"""
+    try:
+        stmt = select(models.Child).where(models.Child.user_id == user_id)
+        result = await db.execute(stmt)
+        return result.scalars().all()
+    except SQLAlchemyError as e:
+        logger.error("get_children_by_user_id failed", exc_info=e)
+        return []

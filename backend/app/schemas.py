@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import datetime, timezone
+from datetime import datetime, timezone, date
 from typing import Optional, Literal
 from uuid import UUID
 
@@ -36,14 +36,53 @@ class UserResponse(UserBase):
 class ChildBase(BaseModel):
     nickname: str
     birth_date: str  # YYYY-MM-DD形式
-    gender: str
+    gender: Literal["おとこのこ", "おんなのこ", "こたえない"]
 
 
 class ChildResponse(ChildBase):
     id: UUID
     user_id: UUID
+    birth_date: date  # データベースから返されるDate型
     created_at: datetime
     updated_at: datetime
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+# -------------------
+# 感情ログ系スキーマ
+# -------------------
+class EmotionCardResponse(BaseModel):
+    id: UUID
+    label: str
+    image_url: str
+    color: str
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class IntensityResponse(BaseModel):
+    id: int
+    color_modifier: int
+
+    model_config = ConfigDict(from_attributes=True)
+
+
+class EmotionLogResponse(BaseModel):
+    id: UUID
+    user_id: UUID
+    child_id: UUID
+    emotion_card_id: UUID
+    intensity_id: int
+    voice_note: Optional[str] = None
+    text_file_path: Optional[str] = None
+    audio_file_path: Optional[str] = None  # オプショナルに変更
+    created_at: datetime
+    updated_at: datetime
+    
+    # リレーションシップデータ
+    emotion_card: Optional[EmotionCardResponse] = None
+    intensity: Optional[IntensityResponse] = None
 
     model_config = ConfigDict(from_attributes=True)
 

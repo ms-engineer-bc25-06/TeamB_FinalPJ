@@ -1,11 +1,11 @@
-// 初期設定ページ TODO: 仮実装なのであとで変更すること
 'use client';
 
 import type React from 'react';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
+import { createChild, getChildrenCount } from '@/lib/api';
 import { KokoronDefault, SpeechBubble } from '@/components/ui';
 import {
   colors,
@@ -16,7 +16,7 @@ import {
 } from '@/styles/theme';
 
 export default function SetupPage() {
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const router = useRouter();
   const [childName, setChildName] = useState('');
   const [childBirthYear, setChildBirthYear] = useState('');
@@ -24,10 +24,57 @@ export default function SetupPage() {
   const [childBirthDay, setChildBirthDay] = useState('');
   const [childGender, setChildGender] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [childrenCount, setChildrenCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // 既存の子供の数をチェック
+  useEffect(() => {
+    const checkExistingChildren = async () => {
+      if (firebaseUser) {
+        try {
+          const count = await getChildrenCount(firebaseUser);
+          setChildrenCount(count);
+
+          // 既に子供がいる場合は、アプリホームにリダイレクト
+          if (count > 0) {
+            router.push('/app');
+            return;
+          }
+        } catch (error) {
+          console.error('子供の数取得エラー:', error);
+        } finally {
+          setIsLoading(false);
+        }
+      }
+    };
+
+    checkExistingChildren();
+  }, [firebaseUser, router]);
+
+  // ローディング中
+  if (isLoading) {
+    return (
+      <div style={commonStyles.loading.container}>
+        <p>読み込み中...</p>
+      </div>
+    );
+  }
+
+  // 既に子供がいる場合は何も表示しない（リダイレクト中）
+  if (childrenCount > 0) {
+    return null;
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!childName.trim() || !childBirthYear || !childBirthMonth || !childBirthDay || !childGender) return;
+    if (
+      !childName.trim() ||
+      !childBirthYear ||
+      !childBirthMonth ||
+      !childBirthDay ||
+      !childGender
+    )
+      return;
 
     setIsSubmitting(true);
     try {
@@ -35,29 +82,41 @@ export default function SetupPage() {
       const birthDate = new Date(
         parseInt(childBirthYear),
         parseInt(childBirthMonth) - 1,
-        parseInt(childBirthDay)
+        parseInt(childBirthDay),
       );
 
-      // プロフィール情報を保存
-      console.log('プロフィール保存:', { 
-        childName, 
+      console.log('プロフィール保存:', {
+        childName,
         birthDate: birthDate.toISOString().split('T')[0], // YYYY-MM-DD形式
-        childGender 
+        childGender,
       });
 
-      // ダミーでユーザー情報を更新
-      localStorage.setItem(
-        'user',
-        JSON.stringify({
-          ...user,
-          displayName: childName,
-          birthDate: birthDate.toISOString().split('T')[0], // YYYY-MM-DD形式
-          childGender: childGender,
-        }),
-      );
+      if (firebaseUser) {
+        const childData = {
+          nickname: childName,
+          birth_date: birthDate.toISOString().split('T')[0], // YYYY-MM-DD形式
+          gender: childGender,
+        };
 
-      // セットアップ完了後、アプリホームに遷移
-      router.push('/app');
+        const createdChild = await createChild(childData, firebaseUser);
+        console.log('子どもプロフィール作成完了:', createdChild);
+
+        // ダミーでユーザー情報を更新（既存のコードとの互換性のため）
+        localStorage.setItem(
+          'user',
+          JSON.stringify({
+            ...user,
+            displayName: childName,
+            birthDate: birthDate.toISOString().split('T')[0], // YYYY-MM-DD形式
+            childGender: childGender,
+          }),
+        );
+
+        // セットアップ完了後、アプリホームに遷移
+        router.push('/app');
+      } else {
+        throw new Error('Firebase user not found');
+      }
     } catch (error) {
       console.error('セットアップエラー:', error);
       alert('セットアップに失敗しました。もう一度お試しください。');
@@ -67,13 +126,15 @@ export default function SetupPage() {
   };
 
   return (
-    <div style={{
-      ...commonStyles.page.container,
-      backgroundImage: 'url(/images/background.webp)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-    }}>
+    <div
+      style={{
+        ...commonStyles.page.container,
+        backgroundImage: 'url(/images/background.webp)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
       <div style={commonStyles.page.mainContent}>
         <SpeechBubble text="はじめまして！なんてよんだらいいかな？" />
 
@@ -105,6 +166,19 @@ export default function SetupPage() {
             初期設定
           </h1>
 
+          <p
+            style={{
+              color: colors.text.secondary,
+              fontSize: fontSize.base,
+              textAlign: 'center',
+              marginBottom: spacing.lg,
+              lineHeight: 1.5,
+            }}
+          >
+            アプリを使用いただくお子様の情報をご入力ください。
+            <br />
+          </p>
+
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: spacing.lg }}>
               <label
@@ -116,7 +190,7 @@ export default function SetupPage() {
                   marginBottom: spacing.sm,
                 }}
               >
-                おなまえ
+                こころんに呼んでほしいおなまえ
               </label>
               <input
                 type="text"
@@ -148,7 +222,7 @@ export default function SetupPage() {
               >
                 おたんじょうび
               </label>
-              
+
               <div style={{ display: 'flex', gap: spacing.sm }}>
                 {/* 年選択 */}
                 <select
@@ -167,7 +241,10 @@ export default function SetupPage() {
                   }}
                 >
                   <option value="">年</option>
-                  {Array.from({ length: 18 }, (_, i) => new Date().getFullYear() - i).map((year) => (
+                  {Array.from(
+                    { length: 18 },
+                    (_, i) => new Date().getFullYear() - i,
+                  ).map((year) => (
                     <option key={year} value={year}>
                       {year}年
                     </option>
@@ -192,7 +269,10 @@ export default function SetupPage() {
                 >
                   <option value="">月</option>
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
-                    <option key={month} value={month.toString().padStart(2, '0')}>
+                    <option
+                      key={month}
+                      value={month.toString().padStart(2, '0')}
+                    >
                       {month}月
                     </option>
                   ))}

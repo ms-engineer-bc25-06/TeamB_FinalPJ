@@ -34,15 +34,48 @@ export default function NonCognitivePage() {
   const nonCognitiveContent = {
     what: {
       title: '非認知能力とは？',
-      content: `非認知能力とは、<strong>テストの点数やIQなどでは測れない、人間の内面的な力</strong>のことで、具体的には、以下のような<strong>意欲・感情・社会性</strong>に関わるスキルが含まれます。<br><br>🧩 非認知能力に含まれる力<br><br>🎯 目標に向かって粘り強く取り組む力（やり抜く力）<br>🛠️ 状況に応じて工夫し行動を調整する力（柔軟性、自己調整力）<br>🤝 他者と協力して取り組む力（共感力、協調性、コミュニケーション）<br>❤️ 感情のコントロールと自己肯定感（情動制御、自尊感情）<br><br>これらは、「<strong>学びに向かう力・人間性</strong>」として認識され、<strong>「知識・技能」「思考力・判断力・表現力」</strong>と並ぶ重要な教育目標とされています。`
+      content: `テストの点数やIQなどでは測れない、人間の内面的な力のことで、具体的には、以下のような意欲・感情・社会性に関わるスキルが含まれます。
+
+### 🎯 目標に向かって粘り強く取り組む力
+### 🛠️ 状況に応じて工夫し行動を調整する力
+### 🤝 他者と協力して取り組む力
+### ❤️ 感情のコントロールと自己肯定感
+
+これらは、「学びに向かう力・人間性」として認識され、「知識・技能」「思考力・判断力・表現力」と並ぶ重要な教育目標とされています。`
     },
     importance: {
       title: '非認知能力の重要性',
-      content: `### 🌱 心の発達・人格形成に不可欠<br><br>- 自己肯定感や情動のコントロール力が、<strong>健全な人格形成の土台</strong>になる。<br><br>### 🗣️ 社会生活の基盤<br><br>- 他者との関係を築き、<strong>信頼や協力を生むコミュニケーション力</strong>の基礎に。<br>- チームでの活動や集団生活でも適応しやすくなる。<br><br>### 💪 レジリエンスと問題解決力<br><br>- ストレスや困難に直面した時も、<strong>感情をコントロールし柔軟に対応する力</strong>として働く。<br><br>### 🎓 長期的な成功・幸福感に寄与<br><br>- 学業成績や職業的な成功だけでなく、<strong>生涯を通じた幸福感や社会的適応力</strong>にまで影響！`
+      content: `### 🌱 心の発達・人格形成に不可欠
+
+自己肯定感や感情のコントロール力は、健全な人格を育てる土台になります。
+
+### 🗣️ 社会生活の基盤
+
+他者との関係を築き、信頼や協力を生むコミュニケーション力の基礎となります。
+チームでの活動や集団生活でも、適応しやすくなります。
+
+### 💪 レジリエンスと問題解決力
+
+ストレスや困難に直面したときも、感情をコントロールして柔軟に対応する力として役立ちます。
+
+### 🎓 長期的な成功・幸福感に寄与
+
+学業や仕事での成果だけでなく、生涯を通しての幸福感や社会的適応力にも影響します。`
+
     },
     development: {
       title: 'どうやって育つの？',
-      content: `- 🏡 <strong>家庭での関わり</strong>：共感を持った対話や、感情を言語化する習慣<br>- 🎨 <strong>遊びや体験活動</strong>：ロールプレイ、感情カード遊び、集団遊びなど<br>- 🧸 <strong>日常のやりとり</strong>：小さな挑戦や失敗体験を通じて、「自分で考える力」が育つ<br>- 📊 「21世紀出生児縦断調査」などでも、<strong>幼児期の体験活動が非認知能力の発達に直結する</strong>ことが明らかになっています。`
+      content: `### 🏡 家庭での関わり
+
+家庭での会話がとても大切です。子どもが「かなしい」や「うれしい」など自分の気持ちを言葉で表せるように、**共感を持って話しかけて**ください。
+
+### 🎨 遊びや体験活動
+
+ごっこ遊びや感情カードを使った遊び、お友だちとの集団遊びを通して、「**相手はどう思っているのだろう？**」と考える力が育ちます。
+
+### 🧸 日常のやりとり
+
+小さな挑戦や失敗を経験することも重要です。「**こうしたらうまくいくかな？**」と自分で考えて行動する力が身についていきます。`
     }
   };
 
@@ -56,18 +89,17 @@ export default function NonCognitivePage() {
       {/* 左上の戻るボタン */}
       <button onClick={handleBack} style={{
         position: 'fixed',
-        top: spacing.lg,
-        left: spacing.lg,
+        top: '20px',
+        left: '20px',
         background: 'none',
         border: 'none',
-        fontSize: fontSize.base,
+        fontSize: '16px',
         cursor: 'pointer',
-        padding: spacing.sm,
-        borderRadius: borderRadius.small,
-        color: colors.text.primary,
+        padding: '6px',
+        borderRadius: '6px',
+        color: '#000000',
         zIndex: 200,
         fontWeight: 'bold',
-        transition: animation.transition,
       }}>
         ← もどる
       </button>
@@ -75,61 +107,52 @@ export default function NonCognitivePage() {
       {/* メインコンテンツ */}
       <div style={{
         position: 'fixed',
-        top: 0,
+        top: '0',
         left: '50%',
         transform: 'translateX(-50%)',
         bottom: 0,
-        padding: spacing.lg,
+        padding: '20px',
         zIndex: 50,
         boxSizing: 'border-box',
         width: '100%',
-        maxWidth: '370px',
+        maxWidth: '600px',
         overflowX: 'hidden',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
-        gap: spacing.lg,
+        gap: '20px',
       }}>
         {/* タイトル */}
         <h1 style={{
-          fontSize: fontSize.xxl,
+          fontSize: '24px',
           fontWeight: 'bold',
           textAlign: 'center',
-          margin: `${spacing.xl} 0 ${spacing.lg} 0`,
-          color: colors.text.primary,
+          margin: '40px 0 20px 0',
+          color: '#333',
         }}>
           非認知能力について
         </h1>
 
-        {/* こころん */}
-        <div style={{ margin: `${spacing.lg} 0` }}>
-          <KokoronDefault size={120} />
-        </div>
-
         {/* ナビゲーションタブ */}
         <div style={{
           display: 'flex',
-          gap: spacing.sm,
-          marginBottom: spacing.lg,
-          flexWrap: 'wrap',
-          justifyContent: 'center',
+          gap: '8px',
+          marginBottom: '20px',
         }}>
           {Object.entries(nonCognitiveContent).map(([key, content]) => (
             <button
               key={key}
               onClick={() => setActiveSection(key)}
               style={{
-                background: activeSection === key ? colors.primary : '#f0f0f0',
+                background: activeSection === key ? colors.primary : colors.background.light,
                 color: activeSection === key ? colors.text.white : colors.text.primary,
-                border: 'none',
-                borderRadius: borderRadius.button,
-                padding: `${spacing.sm} ${spacing.md}`,
-                fontSize: fontSize.small,
+                border: activeSection === key ? 'none' : `1px solid ${colors.border.light}`,
+                borderRadius: '20px',
+                padding: '8px 16px',
+                fontSize: '14px',
                 cursor: 'pointer',
                 fontWeight: 'bold',
-                transition: animation.transition,
-                whiteSpace: 'nowrap',
-                boxShadow: activeSection === key ? colors.shadow.medium : 'none',
+                transition: 'all 0.3s ease',
               }}
             >
               {content.title}
@@ -138,12 +161,7 @@ export default function NonCognitivePage() {
         </div>
 
         {/* コンテンツ表示 */}
-        <div style={{
-          ...commonStyles.card,
-          width: '100%',
-          maxWidth: '400px',
-          minHeight: '400px',
-        }}>
+        <div style={{ width: '100%', maxWidth: '500px' }}>
           <h2 style={{
             fontSize: fontSize.xl,
             fontWeight: 'bold',
@@ -154,15 +172,12 @@ export default function NonCognitivePage() {
             {currentContent.title}
           </h2>
           
-          <div 
-            style={{
-              fontSize: fontSize.small,
-              color: colors.text.primary,
-              lineHeight: '1.6',
-              marginBottom: spacing.lg,
-            }}
-            dangerouslySetInnerHTML={{ __html: currentContent.content }}
-          />
+          <SpeechBubble text={currentContent.content} />
+        </div>
+
+        {/* こころん */}
+        <div style={{ margin: '20px 0 0 0' }}>
+          <KokoronDefault size={200} />
         </div>
 
         {/* 次のステップ */}
@@ -171,12 +186,24 @@ export default function NonCognitivePage() {
           marginTop: spacing.lg,
         }}>
           <button
-            onClick={() => router.push('/app・')}
+            onClick={() => router.push('/app/emotion-selection')}
             style={{
+              ...commonStyles.button.base,
               ...commonStyles.button.primary,
-              padding: `${spacing.md} ${spacing.lg}`,
-              fontSize: fontSize.small,
-              transition: animation.transition,
+              fontSize: '25px',
+              padding: '30px 60px',
+              minWidth: '240px',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = colors.primaryHover;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(255,107,107,0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = colors.primary;
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = colors.shadow.medium;
             }}
           >
             感情記録を始める
