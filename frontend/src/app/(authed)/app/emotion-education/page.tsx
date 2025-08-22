@@ -34,15 +34,42 @@ export default function EmotionEducationPage() {
   const educationContent = {
     what: {
       title: '感情教育とは？',
-      content: `感情教育とは、<strong>感情を理解し、適切に表現し、コントロールする力を育てる教育</strong>のことです。<br><br>🧩 感情教育の目的<br><br>🎯 自分の感情を正確に認識できるようになる<br>🛠️ 感情を適切に表現できるようになる<br>🤝 他者の感情を理解し、共感できるようになる<br>❤️ 感情をコントロールし、適切な行動を選択できるようになる<br><br>これらは、<strong>健全な心の発達と社会性の育成</strong>に不可欠な要素です。`
+      content: `### 感情教育とは
+
+非認知能力の中でも「感情と人間関係」に関わる力を集中的に伸ばす教育で、非認知能力全体を育む土台となります。
+
+### 育てる力
+
+感情教育では、以下の力を育むことを目的としています：
+
+- 自分の感情を理解する力
+- 感情を適切に表現・コントロールする力
+- 他者と健全な関係を築く力
+
+### 多様な感情を理解する
+
+怒りや悲しみといったネガティブな感情だけでなく、喜びや驚きなど多様な感情も理解し、言葉で表現できるようにすることで、共感力や信頼、社会的スキル全般の向上も期待できます。`
     },
     importance: {
-      title: '感情教育の重要性',
-      content: `### 🌱 心の発達・人格形成に不可欠<br><br>- 感情の理解と表現が、<strong>健全な人格形成の土台</strong>になる。<br><br>### 🗣️ コミュニケーション力の向上<br><br>- 自分の感情を適切に表現し、<strong>他者との関係を築く力</strong>が身につく。<br>- 感情の言語化により、より深い理解と信頼関係が生まれる。<br><br>### 💪 ストレス対処力の向上<br><br>- 感情をコントロールする力が、<strong>ストレスや困難への対応力</strong>として働く。<br><br>### 🎓 学習効果の向上<br><br>- 感情が安定することで、<strong>集中力や学習意欲</strong>が向上する。`
-    },
-    methods: {
-      title: '感情教育の方法',
-      content: `- 🏡 <strong>家庭での関わり</strong>：感情を言語化する習慣、共感を持った対話<br>- 🎨 <strong>遊びや体験活動</strong>：感情カード遊び、ロールプレイ、絵本の読み聞かせ<br>- 🧸 <strong>日常のやりとり</strong>：感情の名前を教える、感情の理由を聞く<br>- 📊 <strong>感情記録</strong>：日々の感情を記録し、パターンを理解する<br><br>感情教育は、<strong>継続的な取り組み</strong>が大切です。お子様のペースに合わせて、無理なく進めていきましょう。`
+      title: 'なぜ大切なのか？',
+      content: 
+      `### 自己理解・自己肯定感の向上
+
+感情に気づき、名前をつけて表現できるようになることで、自己理解が深まり、「自分はこれでいい」と思える自己肯定感が育まれます。
+
+### 対人関係・コミュニケーション力の向上
+
+自分の感情を適切に伝え、相手の感情にも気づけるようになることで、友だちや家族との信頼関係がスムーズに築けます。共感や思いやりも育まれます。
+
+### 問題解決力・ストレス耐性の強化
+
+感情を調整できる力は、ストレスがかかる場面でも冷静に対応するためのレジリエンス（困難を乗り越える力）や、問題解決力の土台になります。
+
+### 学業・将来の成功への影響
+
+幼児期から感情教育に取り組むことで、学びの姿勢、人間関係、仕事など、将来の社会的成功にも良い影響を与えることが研究でも示されています。
+
+これらは「学びに向かう力・人間性」として、「知識・技能」「思考力・判断力・表現力」と並び、学校教育の重要な目標とされています。`
     }
   };
 
@@ -100,11 +127,6 @@ export default function EmotionEducationPage() {
           感情教育について
         </h1>
 
-        {/* こころん */}
-        <div style={{ margin: '20px 0' }}>
-          <KokoronDefault size={120} />
-        </div>
-
         {/* ナビゲーションタブ */}
         <div style={{
           display: 'flex',
@@ -116,9 +138,9 @@ export default function EmotionEducationPage() {
               key={key}
               onClick={() => setActiveSection(key)}
               style={{
-                background: activeSection === key ? '#4CAF50' : '#f0f0f0',
-                color: activeSection === key ? 'white' : '#333',
-                border: 'none',
+                background: activeSection === key ? colors.primary : colors.background.light,
+                color: activeSection === key ? colors.text.white : colors.text.primary,
+                border: activeSection === key ? 'none' : `1px solid ${colors.border.light}`,
                 borderRadius: '20px',
                 padding: '8px 16px',
                 fontSize: '14px',
@@ -133,12 +155,7 @@ export default function EmotionEducationPage() {
         </div>
 
         {/* コンテンツ表示 */}
-        <div style={{
-          ...commonStyles.card,
-          width: '100%',
-          maxWidth: '500px',
-          minHeight: '400px',
-        }}>
+        <div style={{ width: '100%', maxWidth: '500px' }}>
           <h2 style={{
             fontSize: fontSize.xl,
             fontWeight: 'bold',
@@ -149,15 +166,14 @@ export default function EmotionEducationPage() {
             {currentContent.title}
           </h2>
           
-          <div 
-            style={{
-              fontSize: fontSize.small,
-              color: colors.text.primary,
-              lineHeight: '1.6',
-              marginBottom: spacing.lg,
-            }}
-            dangerouslySetInnerHTML={{ __html: currentContent.content }}
-          />
+          <div style={{ textAlign: 'left' }}>
+            <SpeechBubble text={currentContent.content} />
+          </div>
+        </div>
+
+        {/* こころん */}
+        <div style={{ margin: '20px 0 0 0' }}>
+          <KokoronDefault size={200} />
         </div>
 
         {/* 次のステップ */}
@@ -168,10 +184,22 @@ export default function EmotionEducationPage() {
           <button
             onClick={() => router.push('/app/emotion-selection')}
             style={{
+              ...commonStyles.button.base,
               ...commonStyles.button.primary,
-              padding: `${spacing.md} ${spacing.lg}`,
-              fontSize: fontSize.small,
-              transition: animation.transition,
+              fontSize: '25px',
+              padding: '30px 60px',
+              minWidth: '240px',
+              transition: 'all 0.3s ease',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = colors.primaryHover;
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(255,107,107,0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = colors.primary;
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = colors.shadow.medium;
             }}
           >
             感情記録を始める
