@@ -9,9 +9,9 @@ import os
 MAX_FILE_SIZE = 5 * 1024 * 1024  # 5MB
 MAX_RECORDING_DURATION = 60       # 60秒
 
-# 利用制限
-MAX_DAILY_UPLOADS = 5             # 1日5回
-MAX_MONTHLY_UPLOADS = 100         # 1ヶ月100回
+# 利用制限 NOTE: 開発用に無効化
+# MAX_DAILY_UPLOADS = 5             # 1日5回
+# MAX_MONTHLY_UPLOADS = 100         # 1ヶ月100回
 
 # 音声品質設定
 AUDIO_QUALITY = {
