@@ -108,7 +108,7 @@ class StrictModel(BaseModel):
 # ===== Request =====
 class VoiceUploadRequest(StrictModel):
     user_id: UUID = Field(..., description="ユーザーID（UUID）",
-                          example="06c0c0fa-261f-4033-a40f-29c0724abdc4")
+                          example="user-uuid-example")
     file_type: AllowedFileType = Field(..., description="ファイルタイプ", example="audio")
     file_format: AllowedFileFormat = Field(
         default="webm", description="ファイル形式（webm/wav/mp3/m4a）", example="webm"
@@ -117,17 +117,17 @@ class VoiceUploadRequest(StrictModel):
 
 class VoiceSaveRequest(StrictModel):
     user_id: UUID = Field(..., description="ユーザーID（UUID）",
-                          example="06c0c0fa-261f-4033-a40f-29c0724abdc4")
+                          example="user-uuid-example")
     # 「S3キー or s3://URI」を受ける（https は未対応）
     audio_file_path: str = Field(
         ...,
         description="音声ファイルの S3 キー or s3://URI（例: audio/<uuid>/audio_YYYYMMDD_HHMMSS_xxx.webm または s3://bucket/key.webm）",
-        example="audio/06c0c0fa-261f-4033-a40f-29c0724abdc4/audio_20250818_210836_5135bbf0.webm",
+        example="audio/user-uuid-example/audio_YYYYMMDD_HHMMSS_xxx.webm",
     )
     text_file_path: Optional[str] = Field(
         None,
         description="テキストファイルの S3 キー or s3://URI（任意）",
-        example="text/06c0c0fa-261f-4033-a40f-29c0724abdc4/transcription_audio_20250818_210836_5135bbf0.txt",
+        example="text/user-uuid-example/transcription_audio_YYYYMMDD_HHMMSS_xxx.txt",
     )
     # 感情データのフィールドを追加
     emotion_card_id: str = Field(
@@ -143,7 +143,7 @@ class VoiceSaveRequest(StrictModel):
     child_id: str = Field(
         ...,
         description="子供ID（必須）",
-        example="41489976-63ee-4332-85f4-6d9200a79bfc"
+        example="child-uuid-example"
     )
 
     @field_validator("audio_file_path")
@@ -169,11 +169,11 @@ class VoiceSaveRequest(StrictModel):
 
 class VoiceTranscribeRequest(StrictModel):
     user_id: UUID = Field(..., description="ユーザーID（UUID）",
-                          example="06c0c0fa-261f-4033-a40f-29c0724abdc4")
+                          example="user-uuid-example")
     audio_file_path: str = Field(
         ...,
         description="音声ファイルの S3 キー or s3://URI（例: audio/<uuid>/xxx.webm または s3://bucket/key.webm）",
-        example="audio/06c0c0fa-261f-4033-a40f-29c0724abdc4/audio_20250818_210836_5135bbf0.webm",
+        example="audio/user-uuid-example/audio_YYYYMMDD_HHMMSS_xxx.webm",
     )
     # Whisper に 'auto' を渡す運用は外し、ja/en に限定
     language: Literal["ja", "en"] = Field(
@@ -197,7 +197,7 @@ class VoiceUploadResponse(StrictModel):
     file_path: str = Field(
         ...,
         description="保存用の S3 キー（例: audio/<uuid>/audio_YYYYMMDD_HHMMSS_xxx.webm）",
-        example="audio/06c0c0fa-261f-4033-a40f-29c0724abdc4/audio_20250818_210836_5135bbf0.webm",
+        example="audio/user-uuid-example/audio_YYYYMMDD_HHMMSS_xxx.webm",
     )
     s3_url: AnyUrl = Field(..., description="S3上/HTTPSのファイルURL（https:// または s3://）")
     content_type: str = Field(..., description="ファイルのContent-Type（例: audio/webm）", example="audio/webm")
