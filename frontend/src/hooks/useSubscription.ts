@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 
 interface SubscriptionStatus {
@@ -18,7 +18,7 @@ export const useSubscription = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchSubscriptionStatus = async () => {
+  const fetchSubscriptionStatus = useCallback(async () => {
     if (!firebaseUser) return;
     
     try {
@@ -38,11 +38,11 @@ export const useSubscription = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [firebaseUser]);
 
   useEffect(() => {
     fetchSubscriptionStatus();
-  }, [firebaseUser]);
+  }, [fetchSubscriptionStatus]);
 
   return {
     has_subscription: subscription?.has_subscription || false,
