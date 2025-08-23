@@ -134,8 +134,8 @@ async def health_check():
     summary="音声認識実行",
     description=(
         "S3に置いた音声ファイルをWhisperで文字起こし\n"
-        "- `audio_file_path`: S3キー推奨（例: `audio/<uuid>/xxx.webm`）。\n"
-        "- `s3://bucket/key` も可。HTTP(S)直URLは未対応。"
+        "- `audio_file_path`: S3キー（例: `audio/<uuid>/xxx.webm`）\n"
+        "- HTTP(S)直URLは未対応"
     ),
 )
 async def transcribe_voice(
@@ -148,7 +148,6 @@ async def transcribe_voice(
     p = request.audio_file_path
     path_kind = (
         "local" if (os.path.isabs(p) and os.path.exists(p))
-        else "s3uri" if p.startswith("s3://")
         else "http" if p.startswith(("http://", "https://"))
         else "s3key"
     )
@@ -158,15 +157,7 @@ async def transcribe_voice(
     try:
         if path_kind == "local":
             local_path = p
-        elif path_kind == "s3uri":
-            rest = p.replace("s3://", "", 1)
-            bucket, key = rest.split("/", 1)
-            suffix = os.path.splitext(key)[1] or ".wav"
-            fd, tmp_path = tempfile.mkstemp(suffix=suffix)
-            os.close(fd)
-            logger.info(f" S3ダウンロード: bucket={bucket}, key={key}, tmp={tmp_path}")
-            s3.download_file(s3_key=key, local_file_path=tmp_path, bucket_name=bucket)
-            local_path = tmp_path
+
         elif path_kind == "s3key":
             suffix = os.path.splitext(p)[1] or ".wav"
             fd, tmp_path = tempfile.mkstemp(suffix=suffix)
@@ -181,7 +172,7 @@ async def transcribe_voice(
                 raise HTTPException(status_code=400, detail="S3からのファイルダウンロードに失敗しました")
             local_path = tmp_path
         else:
-            raise HTTPException(status_code=400, detail="HTTP(S)の音声URLは未対応です。S3キーか s3:// を渡してください。")
+            raise HTTPException(status_code=400, detail="HTTP(S)の音声URLは未対応です。S3キーを渡してください。")
 
         _validate_local_audio_file(local_path, request.language)
 
@@ -287,9 +278,6 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
     def to_key(p: Optional[str]) -> Optional[str]:
         if not p:
             return None
-        prefix = f"s3://{s3.bucket_name}/"
-        if p.startswith(prefix):
-            return p.replace(prefix, "")
         if p.startswith(("http://", "https://")):
             from urllib.parse import urlparse, unquote
             u = urlparse(p)
@@ -411,9 +399,6 @@ async def get_records(user_id: UUID, db: AsyncSession = Depends(get_db)):
         def to_key(p: Optional[str]) -> Optional[str]:
             if not p:
                 return None
-            prefix = f"s3://{s3.bucket_name}/"
-            if isinstance(p, str) and p.startswith(prefix):
-                return p.replace(prefix, "")
             if isinstance(p, str) and p.startswith(("http://", "https://")):
                 from urllib.parse import urlparse, unquote
                 u = urlparse(p)
