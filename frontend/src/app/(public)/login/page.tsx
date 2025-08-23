@@ -19,15 +19,24 @@ export default function LoginPage() {
 
   // ログインしていない場合の通常のレンダリング
   const handleLogin = async () => {
+    console.log('=== Login Process Start ===');
+    console.log('1. handleLogin called');
+    
     setIsLoginLoading(true);
     try {
+      console.log('2. Calling login() function');
       await login();
+      console.log('3. login() completed successfully');
+      
+      console.log('4. Redirecting to /subscription');
       router.push('/subscription');
+      console.log('5. router.push completed');
     } catch (error) {
       console.error('ログインエラー:', error);
       alert('ログインに失敗しました。もう一度お試しください。');
     } finally {
       setIsLoginLoading(false);
+      console.log('6. Login process finished');
     }
   };
 
