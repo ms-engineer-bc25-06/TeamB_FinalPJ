@@ -33,10 +33,18 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
+    console.log('=== AuthContext useEffect started ===');
+    
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (fbUser) => {
+      console.log('=== onAuthStateChanged triggered ===');
+      console.log('1. Firebase user state changed:', fbUser ? 'User found' : 'No user');
+      
       setFirebaseUser(fbUser);
       if (fbUser) {
+        console.log('2. Getting ID token');
         const idToken = await fbUser.getIdToken();
+        console.log('3. ID token obtained, calling backend API');
+        
         try {
           const res = await fetch(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/login`,
@@ -48,14 +56,17 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
           );
           if (!res.ok) throw new Error('Failed to login to backend');
           const backendUser = await res.json();
+          console.log('4. Backend API call successful, setting user');
           setUser(backendUser);
         } catch (error) {
           console.error('Backend login error:', error);
           setUser(null);
         }
       } else {
+        console.log('2. No Firebase user, clearing backend user');
         setUser(null);
       }
+      console.log('5. Setting isLoading to false');
       setIsLoading(false);
     });
 
@@ -63,9 +74,14 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const login = async () => {
+    console.log('=== AuthContext login() called ===');
+    console.log('1. Creating GoogleAuthProvider');
+    
     const provider = new GoogleAuthProvider();
     try {
+      console.log('2. Calling signInWithPopup');
       await signInWithPopup(firebaseAuth, provider);
+      console.log('3. signInWithPopup completed successfully');
     } catch (error) {
       console.error('Google login error', error);
     }
