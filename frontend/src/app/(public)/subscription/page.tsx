@@ -15,7 +15,7 @@ import {
 import { createCheckoutSession, redirectToStripeCheckout } from '@/lib/api';
 
 export default function SubscriptionPage() {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, logout } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
@@ -70,11 +70,21 @@ export default function SubscriptionPage() {
     }
   };
 
-  const handleBackToPublicTop = () => {
+  const handleBackToPublicTop = async () => {
     console.log('戻るボタンがクリックされました'); 
     console.log('現在のパス:', window.location.pathname); 
-    router.push('/login');
-    console.log('router.push("/login")が実行されました'); 
+    
+    try {
+      // ログアウト処理を実行
+      await logout();
+      console.log('ログアウト完了');
+      
+      // トップページにリダイレクト
+      router.push('/');
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+      router.push('/');
+    }
   };
 
   if (isLoading) {
