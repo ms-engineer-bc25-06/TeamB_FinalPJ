@@ -42,6 +42,7 @@ export default function VoiceEntryPage() {
   const searchParams = useSearchParams();
   const emotionId = searchParams.get('emotion');
   const intensityLevel = searchParams.get('intensity');
+  const childId = searchParams.get('child');
 
   useEffect(() => {
     console.log('[EMOTION]', { emotionId, intensityLevel });
@@ -486,7 +487,7 @@ export default function VoiceEntryPage() {
   // --- アップロード＆保存 ---
   const uploadAndSave = async () => {
     if (!audioBlob || !user) return;
-    if (!emotionId || !intensityLevel) {
+    if (!emotionId || !intensityLevel || !childId) {
       setError('感情データが不足しています。感情選択画面から再度お試しください。');
       return;
     }
@@ -538,11 +539,13 @@ export default function VoiceEntryPage() {
           user_id: user.id,
           audio_file_path: upData.file_path,
           text_file_path: null,
+          voice_note: transcription?.text || '', // ← 文字起こし結果追加
           emotion_card_id: emotionId,
           intensity_id: intensityLevel,
-          child_id: '41489976-63ee-4332-85f4-6d9200a79bfc',
+          child_id: childId, // ← 動的に取得した値を使用
         }),
       });
+
       if (!save.ok) throw new Error(`記録保存失敗: ${save.status} ${await save.text()}`);
 
       setStatus('できた！');
