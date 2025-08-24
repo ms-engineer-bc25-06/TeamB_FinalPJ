@@ -129,6 +129,11 @@ class VoiceSaveRequest(StrictModel):
         description="テキストファイルのS3キー（任意）",
         example="text/user-uuid-example/transcription_audio_YYYYMMDD_HHMMSS_xxx.txt",
     )
+    voice_note: Optional[str] = Field(
+        None,
+        description="音声認識テキスト（任意）",
+        example="今日は楽しかった"
+    )
     # 感情データのフィールドを追加
     emotion_card_id: str = Field(
         ...,
