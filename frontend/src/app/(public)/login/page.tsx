@@ -96,9 +96,10 @@ export default function LoginPage() {
             padding: spacing.xl,
             boxShadow: colors.shadow.heavy,
             textAlign: 'center',
-            maxWidth: '100%',
-            width: '100%',
+            maxWidth: '90vw',
+            width: '90vw',
             margin: `${spacing.lg} 0`,
+            boxSizing: 'border-box',
           }}
         >
           <h1
