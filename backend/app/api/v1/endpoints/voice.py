@@ -271,6 +271,11 @@ async def get_upload_url(request: VoiceUploadRequest, db: AsyncSession = Depends
     description="(user_id, child_id, JST日付) 単位で排他。既存があれば削除→新規1件を挿入。",
 )
 async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_db)):
+    # デバッグログ追加
+    print(f"[DEBUG] Request body: {request}")
+    print(f"[DEBUG] voice_note: {request.voice_note}")
+    print(f"[DEBUG] voice_note type: {type(request.voice_note)}")
+    
     s3 = S3Service()
     t0 = time.monotonic()
 
@@ -339,13 +344,17 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
                 RETURNING id
             """)
             new_id = uuid.uuid4()
+            
+            # voice_noteを実際のリクエストから取得
+            voice_note = request.voice_note if request.voice_note is not None else ""
+            
             res = await db.execute(insert_sql, {
                 "id": new_id,
                 "uid": user_id,
                 "cid": child_id,
                 "eid": emotion_card_id,
                 "iid": int(intensity_id),
-                "note": None,         # voice_note 使うなら適宜
+                "note": voice_note,    # 修正: Noneではなく実際のvoice_noteを使用
                 "textp": text_key,
                 "audiop": audio_key,
             })
