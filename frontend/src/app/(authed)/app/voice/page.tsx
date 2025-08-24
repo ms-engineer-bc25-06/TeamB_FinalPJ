@@ -28,7 +28,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // 待ち時間の応援メッセージ（ランダム切替）
 const WAIT_MESSAGES = [
-  'すごい！ いま ことばを ひろってるよ 🌟',
+  'すごい！ いま ことばを ひろってるよ ✨',
   'もうちょっと… おんぷを あつめてるよ 🎵',
   'こころん かんがえ中… 3, 2, 1… 🤔',
   'ピカーン！ ひらめき まちだよ ✨',
@@ -518,7 +518,7 @@ export default function VoiceEntryPage() {
         body: audioBlob,
       });
       if (!put.ok) throw new Error(`S3アップロード失敗: ${put.status} ${await put.text()}`);
-
+      
       const tr = await fetch(`${API_BASE}/api/v1/voice/transcribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -531,25 +531,32 @@ export default function VoiceEntryPage() {
       if (!tr.ok) throw new Error(`音声認識失敗: ${tr.status} ${await tr.text()}`);
       const trData: TranscriptionResult = await tr.json();
       setTranscription(trData);
+      // 追加：音声→テキストのパス生成＆テキスト本文
+      const audioPath = upData.file_path;
+      const textPath = audioPath.replace('.webm', '.txt');
 
       const save = await fetch(`${API_BASE}/api/v1/voice/save-record`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: user.id,
-          audio_file_path: upData.file_path,
-          text_file_path: null,
-          voice_note: transcription?.text || '', // ← 文字起こし結果追加
+          audio_file_path: audioPath,
+          text_file_path: textPath,     // null から upData.file_path に変更
+          // voice_note: transcription?.text || '', TODO: 音声認識テキストはDBに保存しない
           emotion_card_id: emotionId,
           intensity_id: intensityLevel,
-          child_id: childId, // ← 動的に取得した値を使用
+          child_id: childId,
         }),
       });
 
       if (!save.ok) throw new Error(`記録保存失敗: ${save.status} ${await save.text()}`);
 
       setStatus('できた！');
-      setTimeout(() => router.replace('/app/entries/today'), 600);
+
+      // 画面遷移処理
+      const redirectTo = searchParams.get('redirect') || '/app/voice/complete';
+      setTimeout(() => router.replace(redirectTo), 100);
+
     } catch (e: any) {
       console.error('[ERROR] upload/save', e);
       setError(e?.message || 'エラーが発生しました');
