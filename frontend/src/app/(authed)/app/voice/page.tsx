@@ -5,6 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAudioConstraints, selectRecorderConfig, getErrorMessage } from '@/utils/audio';
 import { colors, commonStyles, spacing, borderRadius } from '@/styles/theme';
+import { AudioPlayer } from '@/components/ui';
 
 type GetUploadUrlResponse = {
   success: boolean;
@@ -30,7 +31,7 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 const WAIT_MESSAGES = [
   'すごい！ いま ことばを ひろってるよ ✨',
   'もうちょっと… おんぷを あつめてるよ 🎵',
-  'こころん かんがえ中… 3, 2, 1… 🤔',
+  'こころん かんがえちゅう… 3, 2, 1… 🤔',
   'ピカーン！ ひらめき まちだよ ✨',
   'じょうずに はなせたね！ よみこみ中… ⏳',
 ];
@@ -650,6 +651,15 @@ export default function VoiceEntryPage() {
   // UI本体
   return (
     <div style={styles.page}>
+      {/* 音声自動再生 */}
+      <AudioPlayer 
+        src="/sounds/characterAskReason04.mp3"
+        autoPlay={true}
+        volume={0.8}
+        onEnded={() => console.log('[AUDIO] 感情確認音声再生完了')}
+        onError={(error) => console.log('[AUDIO] 音声エラー:', error)}
+      />
+
       {/* keyframes（CSS）をこの画面だけに注入 */}
       <style>{`
         @keyframes bob {
