@@ -395,7 +395,7 @@ export default function VoiceEntryPage() {
         });
 
         if (hasToday) {
-          router.replace('/app/entries/today/edit');
+          router.replace('/app/entries/today');
           return;
         }
       } catch (e: any) {
@@ -497,8 +497,12 @@ export default function VoiceEntryPage() {
     setStatus('すこしまってね…');
 
     try {
+      console.log('[UPLOAD] 開始 - パラメータ:', { emotionId, intensityLevel, childId });
+      
       const health = await fetch(`${API_BASE}/api/v1/voice/health`);
       if (!health.ok) throw new Error(`ヘルスチェック失敗: ${health.status}`);
+
+      console.log('[UPLOAD] ヘルスチェック成功');
 
       const upRes = await fetch(`${API_BASE}/api/v1/voice/get-upload-url`, {
         method: 'POST',
@@ -511,6 +515,8 @@ export default function VoiceEntryPage() {
       });
       if (!upRes.ok) throw new Error(`アップロードURL取得失敗: ${upRes.status} ${await upRes.text()}`);
       const upData: GetUploadUrlResponse = await upRes.json();
+      
+      console.log('[UPLOAD] アップロードURL取得成功:', upData.file_path);
 
       const put = await fetch(upData.upload_url, {
         method: 'PUT',
@@ -519,6 +525,11 @@ export default function VoiceEntryPage() {
       });
       if (!put.ok) throw new Error(`S3アップロード失敗: ${put.status} ${await put.text()}`);
       
+      console.log('[UPLOAD] S3アップロード成功');
+
+      // 音声認識処理の前
+      console.log('[TRANSCRIBE] 開始 - audio_file_path:', upData.file_path);
+
       const tr = await fetch(`${API_BASE}/api/v1/voice/transcribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -528,12 +539,26 @@ export default function VoiceEntryPage() {
           language: 'ja',
         }),
       });
-      if (!tr.ok) throw new Error(`音声認識失敗: ${tr.status} ${await tr.text()}`);
+
+      // 音声認識処理の後
+      if (!tr.ok) {
+        console.error('[TRANSCRIBE] エラー:', tr.status, await tr.text());
+        throw new Error(`音声認識失敗: ${tr.status} ${await tr.text()}`);
+      }
+
       const trData: TranscriptionResult = await tr.json();
+      console.log('[TRANSCRIBE] 成功 - 結果:', trData);
+      console.log('[TRANSCRIBE] テキスト:', trData.text);
+      console.log('[TRANSCRIBE] 信頼度:', trData.confidence);
+
       setTranscription(trData);
+      
       // 追加：音声→テキストのパス生成＆テキスト本文
       const audioPath = upData.file_path;
       const textPath = audioPath.replace('.webm', '.txt');
+      
+      console.log('[SAVE] 保存開始 - パス:', { audioPath, textPath });
+      console.log('[SAVE] voice_note:', trData.text || '');
 
       const save = await fetch(`${API_BASE}/api/v1/voice/save-record`, {
         method: 'POST',
@@ -541,20 +566,26 @@ export default function VoiceEntryPage() {
         body: JSON.stringify({
           user_id: user.id,
           audio_file_path: audioPath,
-          text_file_path: textPath,     // null から upData.file_path に変更
-          // voice_note: transcription?.text || '', TODO: 音声認識テキストはDBに保存しない
+          text_file_path: textPath,
+          voice_note: trData.text || '',
           emotion_card_id: emotionId,
           intensity_id: intensityLevel,
           child_id: childId,
         }),
       });
 
-      if (!save.ok) throw new Error(`記録保存失敗: ${save.status} ${await save.text()}`);
+      if (!save.ok) {
+        const saveError = await save.text();
+        console.error('[SAVE] 保存失敗:', save.status, saveError);
+        throw new Error(`記録保存失敗: ${save.status} ${saveError}`);
+      }
 
+      console.log('[SAVE] 保存成功');
       setStatus('できた！');
 
       // 画面遷移処理
       const redirectTo = searchParams.get('redirect') || '/app/voice/complete';
+      console.log('[REDIRECT] 遷移先:', redirectTo);
       setTimeout(() => router.replace(redirectTo), 100);
 
     } catch (e: any) {
