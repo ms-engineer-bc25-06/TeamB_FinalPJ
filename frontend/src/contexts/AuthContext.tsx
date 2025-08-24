@@ -39,6 +39,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('=== onAuthStateChanged triggered ===');
       console.log('1. Firebase user state changed:', fbUser ? 'User found' : 'No user');
       
+      // 前回の状態と同じ場合は処理をスキップ
+      if (fbUser === firebaseUser) {
+        console.log('Firebase user state unchanged, skipping update');
+        return;
+      }
+      
       setFirebaseUser(fbUser);
       if (fbUser) {
         console.log('2. Getting ID token');
@@ -70,8 +76,11 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setIsLoading(false);
     });
 
+    // 初期化完了をマーク
+    setIsLoading(false);
+
     return () => unsubscribe();
-  }, []);
+  }, [firebaseUser]);
 
   const login = async () => {
     console.log('=== AuthContext login() called ===');
@@ -88,8 +97,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const logout = async () => {
-    await signOut(firebaseAuth);
-    setUser(null);
+    try {
+      // Firebaseからサインアウトのみ実行
+      // ローカル状態の更新は onAuthStateChanged に任せる
+      await signOut(firebaseAuth);
+    } catch (error) {
+      console.error('Logout error:', error);
+    }
   };
 
   return (
