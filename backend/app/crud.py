@@ -127,7 +127,8 @@ async def upsert_subscription_customer_id(
                     "subscription_status": 'trial',
                     "is_trial": True,
                     "trial_started_at": trial_started_at,
-                    "trial_expires_at": trial_expires_at
+                    "trial_expires_at": trial_expires_at,
+                    "is_paid": False
                 }
             )
             .returning(models.Subscription.id)
@@ -218,6 +219,11 @@ async def update_subscription_status(
                 subscription.trial_expires_at = trial_expires_at
             if is_paid is not None:
                 subscription.is_paid = is_paid
+            
+            # trial_expires_atが設定されている場合、現在の日付に基づいてis_trialを自動更新
+            if subscription.trial_expires_at:
+                current_time = now_utc()
+                subscription.is_trial = current_time < subscription.trial_expires_at
         
         await db.commit()
         await db.refresh(subscription)
@@ -236,7 +242,17 @@ async def get_subscription_by_user_id(
     try:
         stmt = select(models.Subscription).where(models.Subscription.user_id == user_id)
         result = await db.execute(stmt)
-        return result.scalar_one_or_none()
+        subscription = result.scalar_one_or_none()
+        
+        if subscription and subscription.trial_expires_at:
+            # trial_expires_atが設定されている場合、現在の日付に基づいてis_trialを自動更新
+            current_time = now_utc()
+            if subscription.is_trial != (current_time < subscription.trial_expires_at):
+                subscription.is_trial = current_time < subscription.trial_expires_at
+                await db.commit()
+                await db.refresh(subscription)
+        
+        return subscription
     except SQLAlchemyError as e:
         logger.error("get_subscription_by_user_id failed", exc_info=e)
         return None
