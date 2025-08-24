@@ -16,7 +16,6 @@ export const FeatureList: React.FC<FeatureListProps> = ({
     { id: '1', text: 'お子様の音声付き感情記録' },
     { id: '2', text: '成長記録の長期保存' },
     { id: '3', text: 'ロールプレイ' },
-    { id: '4', text: 'AIによる個別アドバイス' },
   ];
 
   const getVariantStyles = () => {
