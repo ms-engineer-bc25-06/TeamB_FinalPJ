@@ -57,13 +57,35 @@ export default function SubscriptionPage() {
     setIsLoading(true);
 
     try {
-      // 1) Firebaseの最新IDトークン
-      const idToken = await firebaseUser.getIdToken(true);
+      // 1) Firebaseの最新IDトークンを取得（リトライ機能付き）
+      let idToken: string;
+      let retryCount = 0;
+      const maxRetries = 3;
       
-      console.log('Starting subscription with token:', idToken.substring(0, 50) + '...');
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`Attempting to get ID token (attempt ${retryCount + 1}/${maxRetries})`);
+          idToken = await firebaseUser.getIdToken(true);
+          console.log('ID token obtained successfully');
+          break;
+        } catch (tokenError: unknown) {
+          console.error(`ID token error (attempt ${retryCount + 1}):`, tokenError);
+          retryCount++;
+          
+          if (retryCount >= maxRetries) {
+            const errorMessage = tokenError instanceof Error ? tokenError.message : 'Unknown error';
+            throw new Error(`Firebase認証トークンの取得に失敗しました。しばらく時間をおいて再度お試しください。\n詳細: ${errorMessage}`);
+          }
+          
+          // 少し待ってからリトライ
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
+      
+      console.log('Starting subscription with token:', idToken!.substring(0, 50) + '...');
 
       // 2) Checkout Session 作成
-      const sessionId = await createCheckoutSession(idToken);
+      const sessionId = await createCheckoutSession(idToken!);
 
       // 3) Stripe.jsでリダイレクト
       await redirectToStripeCheckout(sessionId);
