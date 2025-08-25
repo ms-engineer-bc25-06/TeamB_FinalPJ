@@ -218,13 +218,13 @@ export default function WeeklyReport({ onClose }: WeeklyReportProps) {
     if (recordedDays === 0) {
       return 'こんしゅうはきろくがありませんでした。';
     } else if (recordedDays <= 2) {
-      return 'こんしゅうは少しだけきろくできていたね✨';
+      return 'こんしゅうは少しだけきろくできていたね！';
     } else if (recordedDays <= 4) {
       return 'こんしゅうはよくきろくできました！';
     } else if (recordedDays <= 6) {
-      return 'こんしゅうはたくさんきろくできました！とても頑張っていますね🌟';
+      return 'こんしゅうはたくさんきろくできました！';
     } else {
-      return 'こんしゅうはまいにちきろくできました！すごいね✨';
+      return 'こんしゅうはまいにちきろくできました！✨';
     }
   };
 
@@ -294,7 +294,7 @@ export default function WeeklyReport({ onClose }: WeeklyReportProps) {
         maxHeight: '90vh',
         overflow: 'auto',
         position: 'relative',
-        border: `3px solid ${colors.primary}`,
+        border: `3px solid #cccccc`,
         width: '600px',
         height: '700px', 
       }}>
@@ -349,15 +349,7 @@ export default function WeeklyReport({ onClose }: WeeklyReportProps) {
             borderBottom: `1px solid ${colors.border.light}`,
             zIndex: 10,
           }}>
-            <h3 style={{
-              color: colors.secondary,
-              fontSize: fontSize.large, 
-              fontWeight: 'bold',
-              margin: 0,
-              marginBottom: spacing.sm,
-            }}>
-              こんしゅうもにゅうりょくがんばりました👏
-            </h3>
+
             
             {/* 週の切り替えナビゲーション */}
             <div style={{
@@ -385,8 +377,12 @@ export default function WeeklyReport({ onClose }: WeeklyReportProps) {
               </button>
               
               <span style={{
-                fontSize: fontSize.base,
-                color: colors.text.secondary,
+                backgroundColor: colors.primary,
+                color: colors.background.white,
+                padding: `${spacing.sm} ${spacing.md}`,
+                borderRadius: borderRadius.small,
+                textAlign: 'center',
+                fontSize: fontSize.large,
                 fontWeight: 'bold',
               }}>
                 {getCurrentWeekRange()}
@@ -422,7 +418,7 @@ export default function WeeklyReport({ onClose }: WeeklyReportProps) {
               <div
                 key={index}
                 style={{
-                  border: `2px solid ${report.emotion_card?.color || colors.primary}`,
+                  border: `2px solid ${report.emotion_card?.color || '#cccccc'}`,
                   borderRadius: borderRadius.medium,
                   padding: spacing.md,
                   backgroundColor: colors.background.white,

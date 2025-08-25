@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 import { KokoronDefault, SpeechBubble, Spinner, HamburgerMenu } from '@/components/ui';
 import { commonStyles, colors, spacing, fontSize, borderRadius, animation } from '@/styles/theme';
 
@@ -13,6 +14,13 @@ export default function PrivacyPage() {
     router.push('/app');
   };
 
+  // ログインしていない場合のリダイレクト
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
+
   // ローディング中（認証）
   if (isLoading) {
     return (
@@ -23,9 +31,8 @@ export default function PrivacyPage() {
     );
   }
 
-  // ログインしていない場合
+  // ログインしていない場合は何も表示しない（useEffectでリダイレクトされる）
   if (!user) {
-    router.push('/');
     return null;
   }
 

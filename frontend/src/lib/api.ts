@@ -17,7 +17,7 @@ export const verifyPayment = async (sessionId: string, firebaseUser: User) => {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${idToken}`, 
         },
-        body: JSON.stringify({ sessionId }),
+        body: JSON.stringify({ session_id: sessionId }),
       }
     );
 

@@ -4,12 +4,14 @@ interface PrimaryButtonProps {
   children: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
+  style?: React.CSSProperties;
 }
 
 export default function PrimaryButton({ 
   children, 
   onClick,
-  disabled = false
+  disabled = false,
+  style = {}
 }: PrimaryButtonProps) {
   return (
     <button
@@ -19,7 +21,7 @@ export default function PrimaryButton({
         ...commonStyles.button.base,
         ...commonStyles.button.primary,
         fontSize: '25px',
-        padding: '30px 60px',
+        padding: '20px 60px',
         minWidth: '240px',
         ...(disabled && {
           backgroundColor: '#ccc',
@@ -27,6 +29,7 @@ export default function PrimaryButton({
           transform: 'none',
           boxShadow: 'none',
         }),
+        ...style,
       }}
       onMouseEnter={(e) => {
         if (!disabled) {

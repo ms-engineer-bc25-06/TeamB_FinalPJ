@@ -106,7 +106,11 @@ export default function PaymentOnboardingPage() {
       backgroundPosition: 'center',
       backgroundRepeat: 'no-repeat',
     }}>
-      <div style={commonStyles.page.mainContent}>
+      <div style={{
+        ...commonStyles.page.mainContent,
+        width: '90%',
+        maxWidth: '1000px',
+      }}>
         {/* 吹き出し */}
         <SpeechBubble text="サブスクリプションをご利用いただき、本当にありがとうございます！" />
 
@@ -124,7 +128,8 @@ export default function PaymentOnboardingPage() {
             margin: `${spacing.lg} 0`,
             boxShadow: colors.shadow.heavy,
             textAlign: 'center',
-            maxWidth: '450px',
+            maxWidth: '700px',
+            width: '80%',
             border: `3px solid #4CAF50`,
           }}
         >
@@ -162,49 +167,6 @@ export default function PaymentOnboardingPage() {
             <br />
             お子さんの心を育む毎日を楽しみましょう。
           </p>
-
-          {/* 主要機能の紹介 */}
-          <div
-            style={{
-              backgroundColor: '#e8f5e8',
-              borderRadius: '12px',
-              padding: spacing.md,
-              margin: `${spacing.md} 0`,
-              textAlign: 'left',
-            }}
-          >
-            <h3
-              style={{
-                color: '#2E7D32',
-                fontSize: fontSize.base,
-                fontWeight: 'bold',
-                margin: `0 0 ${spacing.sm} 0`,
-                textAlign: 'center',
-              }}
-            >
-              ✨ 主要な機能
-            </h3>
-            <div
-              style={{
-                fontSize: fontSize.small,
-                color: colors.text.primary,
-                lineHeight: 1.5,
-              }}
-            >
-              <div style={{ marginBottom: spacing.xs }}>
-                📊 <strong>詳細レポート</strong> - お子様の感情記録
-              </div>
-              <div style={{ marginBottom: spacing.xs }}>
-                🎭 <strong>ロールプレイ</strong> - 様々なシナリオ
-              </div>
-              <div style={{ marginBottom: spacing.xs }}>
-                📈 <strong>成長記録</strong> - 長期間の追跡
-              </div>
-              <div>
-                🤖 <strong>AI分析</strong> - 高度な感情理解
-              </div>
-            </div>
-          </div>
 
           {/* アクションボタン */}
           <div

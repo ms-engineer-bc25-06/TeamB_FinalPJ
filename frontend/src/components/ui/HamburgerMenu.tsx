@@ -1,5 +1,8 @@
+'use client';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
+import { useAuth } from '@/contexts/AuthContext';
+import { useSubscription } from '@/hooks/useSubscription';
 import { colors, commonStyles, animation, spacing } from '@/styles/theme';
 
 interface HamburgerMenuProps {
@@ -19,6 +22,8 @@ export default function HamburgerMenu({
 }: HamburgerMenuProps) {
   const [isOpen, setIsOpen] = useState(false);
   const router = useRouter();
+  const { logout } = useAuth();
+  const { has_subscription, status, is_trial, trial_expires_at, loading: subLoading } = useSubscription();
 
   const toggleMenu = () => {
     setIsOpen(!isOpen);
@@ -31,6 +36,35 @@ export default function HamburgerMenu({
   const handleNavigation = (path: string) => {
     router.push(path);
     closeMenu();
+  };
+
+  const handleLogout = async () => {
+    try {
+      closeMenu();
+      await logout();
+      // ログアウト完了後、直接リダイレクト
+      router.push('/');
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+    }
+  };
+
+  // サブスクリプション状態に応じたメッセージ
+  const getSubscriptionStatus = () => {
+    if (subLoading) return '読み込み中...';
+
+    // サブスクリプション会員でトライアル中
+    if (has_subscription && (is_trial || status === 'trialing')) {
+      return 'サブスクリプション無料体験中です！';
+    }
+
+    // サブスクリプション会員でトライアル終了
+    if (has_subscription && status === 'active' && !is_trial) {
+      return 'サブスクリプション会員です！';
+    }
+
+    // サブスクリプション会員じゃない
+    return 'サブスクリプションに登録して全機能を使いましょう';
   };
 
   // ハンバーガーボタンのスタイル
@@ -134,6 +168,24 @@ export default function HamburgerMenu({
           flexDirection: 'column',
           gap: spacing.xs,
         }}>
+          {/* サブスクリプション状態表示 */}
+          <div style={{
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            padding: spacing.sm,
+            marginBottom: spacing.sm,
+            border: '1px solid #e0e0e0',
+          }}>
+            <p style={{
+              margin: 0,
+              fontSize: '12px',
+              color: '#666',
+              textAlign: 'center',
+            }}>
+              {getSubscriptionStatus()}
+            </p>
+          </div>
+
           {/* 使い方 */}
           <MenuItem onClick={() => handleNavigation('/app/usage')}>
             使い方
@@ -184,8 +236,28 @@ export default function HamburgerMenu({
             ロールプレイ
           </MenuItem>
 
+          {/* サブスクリプション管理 */}
+          <MenuItem onClick={() => handleNavigation('/app/subscription')}>
+            サブスクリプション管理
+          </MenuItem>
+
+          {/* 料金・解約について */}
+          <MenuItem onClick={() => handleNavigation('/app/billing')}>
+            料金・解約について
+          </MenuItem>
+
           {/* カスタムコンテンツ */}
           {children}
+
+          {/* ログアウト */}
+          <MenuItem 
+            onClick={handleLogout}
+            style={{
+              color: '#f44336',
+            }}
+          >
+            ログアウト
+          </MenuItem>
         </div>
       </div>
     </>
@@ -197,12 +269,14 @@ interface MenuItemProps {
   children: React.ReactNode;
   onClick?: () => void;
   disabled?: boolean;
+  style?: React.CSSProperties;
 }
 
 export function MenuItem({ 
   children, 
   onClick,
-  disabled = false 
+  disabled = false,
+  style = {}
 }: MenuItemProps) {
   const itemStyle: React.CSSProperties = {
     width: '100%',
@@ -222,6 +296,7 @@ export function MenuItem({
       opacity: 0.5,
       cursor: 'not-allowed',
     }),
+    ...style,
   };
 
   return (

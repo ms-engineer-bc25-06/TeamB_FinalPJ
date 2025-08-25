@@ -334,15 +334,89 @@ async def get_subscription_status(
         if subscription.trial_expires_at:
             trial_expires_at = subscription.trial_expires_at.isoformat()
         
+        # Stripeからキャンセル状態を取得
+        cancel_at_period_end = False
+        if subscription.stripe_subscription_id:
+            try:
+                stripe_subscription = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
+                cancel_at_period_end = stripe_subscription.cancel_at_period_end
+            except Exception as e:
+                logging.error(f"Failed to retrieve Stripe subscription: {e}")
+
         return {
             "has_subscription": True,
             "status": subscription.subscription_status or "unknown",
             "is_trial": subscription.is_trial,
             "is_paid": subscription.is_paid,
             "trial_expires_at": trial_expires_at,
-            "stripe_subscription_id": getattr(subscription, 'stripe_subscription_id', None)
+            "stripe_subscription_id": getattr(subscription, 'stripe_subscription_id', None),
+            "cancel_at_period_end": cancel_at_period_end
         }
         
     except Exception as e:
         logging.error(f"Subscription status fetch failed: {str(e)}", exc_info=e)
         raise HTTPException(status_code=500, detail="Failed to fetch subscription status")
+
+# サブスクリプション解約エンドポイント
+@router.post(
+    "/subscription/cancel",
+    summary="サブスクリプション解約",
+    description="現在のユーザーのサブスクリプションを解約します。"
+)
+async def cancel_subscription(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
+    try:
+        logging.info(f"Cancel subscription request for user: {current_user.id}")
+        
+        # ユーザーのサブスクリプション情報を取得
+        subscription = await crud.get_subscription_by_user_id(db, current_user.id)
+        
+        if not subscription or not subscription.stripe_subscription_id:
+            logging.error(f"No subscription found for user {current_user.id}")
+            raise HTTPException(
+                status_code=404, 
+                detail="アクティブなサブスクリプションが見つかりません"
+            )
+        
+        logging.info(f"Found subscription: {subscription.stripe_subscription_id}")
+        
+        # Stripeでサブスクリプションを解約
+        try:
+            logging.info(f"Calling Stripe API to cancel subscription: {subscription.stripe_subscription_id}")
+            stripe_subscription = stripe.Subscription.modify(
+                subscription.stripe_subscription_id,
+                cancel_at_period_end=True
+            )
+            
+            logging.info(f"Subscription canceled: {subscription.stripe_subscription_id}")
+            
+            # データベースの状態を更新
+            await crud.update_subscription_status(
+                db,
+                user_id=current_user.id,
+                subscription_status="canceled"
+            )
+            
+            return {
+                "success": True,
+                "message": "サブスクリプションの解約手続きが完了しました",
+                "cancel_at_period_end": stripe_subscription.cancel_at_period_end,
+                "current_period_end": getattr(stripe_subscription, 'current_period_end', None)
+            }
+            
+        except stripe.error.StripeError as stripe_err:
+            logging.error(f"Stripe subscription cancellation failed: {str(stripe_err)}")
+            logging.error(f"Stripe error type: {type(stripe_err).__name__}")
+            logging.error(f"Stripe error code: {getattr(stripe_err, 'code', 'Unknown')}")
+            raise HTTPException(
+                status_code=400, 
+                detail=f"サブスクリプションの解約に失敗しました: {str(stripe_err)}"
+            )
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logging.error(f"Subscription cancellation failed: {str(e)}", exc_info=e)
+        raise HTTPException(status_code=500, detail="サブスクリプションの解約処理中にエラーが発生しました")
