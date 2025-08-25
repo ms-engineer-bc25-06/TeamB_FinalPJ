@@ -441,14 +441,14 @@ export default function EmotionConfirmationPage() {
         ← もどる
       </button>
 
-      {/* こころんと吹き出し（右側に配置） */}
+      {/* こころんと吹き出し*/}
       <div style={{
         position: 'fixed',
         top: '100px',
         right: '2px',
         zIndex: 250,
       }}>
-        <KokoronDefault size={80} />
+        <KokoronDefault size={100} />
       </div>
       
       {/* 感情の説明文（白い四角） */}
@@ -676,8 +676,8 @@ export default function EmotionConfirmationPage() {
             animation: 'fadeIn 0.5s ease-in',
           }}>
             {swipeDirection === 'right' 
-              ? '感情確認完了！次の画面に進みます...' 
-              : '感情選択に戻ります...'
+              ? 'OK！つぎにすすむよ〜' 
+              : 'もういちど　きもちを　えらぼうね'
             }
           </div>
         )}
