@@ -232,7 +232,8 @@ class VoiceTranscribeResponse(StrictModel):
     success: bool = Field(..., description="処理成功フラグ", example=True)
     transcription_id: int = Field(..., description="音声認識ID（未使用なら 0 でも可）", example=0)
     text: str = Field(..., description="認識されたテキスト")
-    confidence: float = Field(..., ge=0.0, le=1.0, description="認識精度（0.0〜1.0）")
+    # 修正: Whisperのlogprob値（負の値）も受け付け
+    confidence: float = Field(..., ge=-10.0, le=10.0, description="認識精度（logprob値、-10.0〜10.0）")
     language: str = Field(..., description="認識された言語", example="ja")
     duration: float = Field(..., ge=0.0, description="音声の長さ（秒）")
     processed_at: datetime = Field(
