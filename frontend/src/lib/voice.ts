@@ -77,7 +77,7 @@ export async function transcribe(opts: {
   const res = await fetch(`${API_BASE}/api/v1/voice/transcribe`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    // バックエンドは「S3キー or s3://」を受けられるので“キー”でOK
+    // バックエンドはS3キーのみを受け取る
     body: JSON.stringify({
       user_id: opts.userId,
       audio_file_path: opts.audioKey,

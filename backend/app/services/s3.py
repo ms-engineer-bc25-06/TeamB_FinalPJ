@@ -55,8 +55,8 @@ class S3Service:
             raise S3UploadError(f"ファイルのアップロードに失敗しました: {e}")
 
     def get_file_url(self, file_path: str) -> str:
-        """S3ファイルのURLを取得（s3:// 形式）"""
-        return f"s3://{self.bucket_name}/{file_path}"
+        """S3ファイルのHTTPS URLを取得"""
+        return f"https://{self.bucket_name}.s3.amazonaws.com/{file_path}"
 
     def generate_presigned_upload_url(
         self,

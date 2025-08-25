@@ -4,14 +4,15 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { getAudioConstraints, selectRecorderConfig, getErrorMessage } from '@/utils/audio';
-import { colors, commonStyles, spacing, borderRadius, animation } from '@/styles/theme';
+import { colors, commonStyles, spacing, borderRadius } from '@/styles/theme';
+import { AudioPlayer } from '@/components/ui';
 
 type GetUploadUrlResponse = {
   success: boolean;
-  upload_url: string;    // 署名付きPUT URL
-  file_path: string;     // ← DBに保存すべき「S3キー」
+  upload_url: string;
+  file_path: string;
   s3_url?: string;
-  content_type: string;  // 例: audio/webm
+  content_type: string;
 };
 
 type TranscriptionResult = {
@@ -26,24 +27,28 @@ type TranscriptionResult = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
+// 待ち時間の応援メッセージ（ランダム切替）
+const WAIT_MESSAGES = [
+  'すごい！ いま ことばを ひろってるよ ✨',
+  'もうちょっと… おんぷを あつめてるよ 🎵',
+  'こころん かんがえちゅう… 3, 2, 1… 🤔',
+  'ピカーン！ ひらめき まちだよ ✨',
+  'じょうずに はなせたね！ よみこみ中… ⏳',
+];
+
 export default function VoiceEntryPage() {
-  // 認証チェック
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  
-  // URLパラメータから感情データを取得
+
   const searchParams = useSearchParams();
   const emotionId = searchParams.get('emotion');
   const intensityLevel = searchParams.get('intensity');
+  const childId = searchParams.get('child');
 
-  // ログ出力を追加
   useEffect(() => {
-    console.log('🎯 音声録音: 感情データ確認');
-    console.log('�� 音声録音: emotionId:', emotionId);
-    console.log('🎤 音声録音: intensityLevel:', intensityLevel);
+    console.log('[EMOTION]', { emotionId, intensityLevel });
   }, [emotionId, intensityLevel]);
 
-  // 以降はログイン済み向けの処理
   const [checkingToday, setCheckingToday] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -59,14 +64,311 @@ export default function VoiceEntryPage() {
   const streamRef = useRef<MediaStream | null>(null);
   const recConfig = useMemo(() => selectRecorderConfig(), []);
 
-  // 認証前後の制御
+  // 再生
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  // 応援メッセージのインデックス
+  const [msgIndex, setMsgIndex] = useState(0);
+
+  const handleBack = () => router.push('/app/emotion-confirmation');
+
+  // ====== レイアウト ======
+  const LAYOUT = { maxWidth: 430, cardMaxWidth: 360 };
+  const styles = {
+    page: {
+      background: 'url("/images/background.webp") no-repeat center center',
+      backgroundSize: 'cover',
+      minHeight: '100dvh',
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    panel: {
+      position: 'fixed' as const,
+      top: 0,
+      left: '50%',
+      transform: 'translateX(-50%)',
+      bottom: 0,
+      padding: 'max(10px, env(safe-area-inset-top)) 0 max(16px, env(safe-area-inset-bottom)) 0',
+      zIndex: 50,
+      boxSizing: 'border-box' as const,
+      width: 'min(100vw, 430px)',
+      maxWidth: `${LAYOUT.maxWidth}px`,
+      overflowX: 'hidden' as const,
+      display: 'flex',
+      flexDirection: 'column' as const,
+      justifyContent: 'flex-start',
+      alignItems: 'center',
+      gap: 12,
+      background: 'transparent',
+    },
+    backBtn: {
+      position: 'fixed' as const,
+      top: 20,
+      left: 20,
+      background: 'none',
+      border: 'none',
+      fontSize: 16,
+      cursor: 'pointer',
+      padding: 6,
+      borderRadius: 6,
+      color: '#000',
+      zIndex: 200,
+      fontWeight: 'bold' as const,
+    },
+    bubbleSmall: {
+      marginTop: 60,
+      background: '#fff',
+      borderRadius: 12,
+      padding: '8px 10px',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+      width: '88%',
+      maxWidth: `${Math.min(320, LAYOUT.maxWidth)}px`,
+      textAlign: 'center' as const,
+    },
+    bubbleTextSmall: { fontWeight: 700, fontSize: 14, lineHeight: 1.3, color: '#333' },
+
+    characterWrap: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 10,
+      marginBottom: 10,
+    },
+    characterImg: {
+      width: 'min(70vw, 300px)',
+      height: 'min(70vw, 300px)',
+      objectFit: 'contain' as const,
+    },
+
+    // 録音セクション（白枠カード）
+    recordCard: {
+      marginTop: 8,
+      padding: 12,
+      borderRadius: 12,
+      border: '1px solid #e5e7eb',
+      background: '#fff',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      width: '92%',
+      maxWidth: `${Math.min(LAYOUT.cardMaxWidth, LAYOUT.maxWidth)}px`,
+      textAlign: 'center' as const,
+    },
+    recordButtonWrap: {
+      marginTop: 4,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      width: '100%',
+    },
+    recordOuter: {
+      width: 220,
+      height: 220,
+      borderRadius: '50%',
+      border: '8px solid #d1d5db',
+      background: '#ffffff',
+      display: 'grid',
+      placeItems: 'center',
+      boxShadow: '0 10px 24px rgba(0,0,0,0.18)',
+      userSelect: 'none' as const,
+      touchAction: 'manipulation' as const,
+      WebkitTapHighlightColor: 'transparent',
+      cursor: 'pointer',
+      transition: 'transform 0.12s ease',
+      position: 'relative' as const, // ⏸重ね表示のため
+    },
+    recordInnerIdle: {
+      width: 160,
+      height: 160,
+      borderRadius: '50%',
+      background: '#ef4444',
+    },
+    recordInnerActive: {
+      width: 170,
+      height: 170,
+      borderRadius: '50%',
+      background: '#ef4444',
+      boxShadow: '0 0 0 6px rgba(239,68,68,0.25)',
+    },
+    // 録音中の⏸表示（同じボタン内で重ねる）
+    pauseIconWrap: {
+      position: 'absolute' as const,
+      inset: 0,
+      display: 'grid',
+      placeItems: 'center',
+      pointerEvents: 'none' as const,
+    },
+    pauseBars: {
+      display: 'grid',
+      gridAutoFlow: 'column',
+      gap: 12,
+    },
+    pauseBar: {
+      width: 18,
+      height: 70,
+      borderRadius: 6,
+      background: '#ffffff',
+      boxShadow: '0 0 0 1px rgba(0,0,0,0.05) inset',
+    },
+    recordHelper: {
+      marginTop: 8,
+      fontWeight: 700,
+      color: '#111827',
+    },
+
+    // 「きいてみる」
+    confirmCard: {
+      marginTop: 16,
+      padding: 12,
+      borderRadius: 12,
+      border: '1px solid #e5e7eb',
+      background: '#fff',
+      boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+      width: '92%',
+      maxWidth: `${Math.min(LAYOUT.cardMaxWidth, LAYOUT.maxWidth)}px`,
+      textAlign: 'center' as const,
+    },
+    confirmTitle: { fontWeight: 700, marginBottom: 10, color: '#111827', fontSize: 18 },
+    playButtonBase: {
+      width: 200,
+      height: 200,
+      borderRadius: '50%',
+      display: 'grid',
+      placeItems: 'center',
+      fontSize: 72,
+      fontWeight: 900,
+      cursor: 'pointer',
+      margin: '12px auto',
+      boxShadow: '0 10px 24px rgba(0,0,0,0.2)',
+      userSelect: 'none' as const,
+      touchAction: 'manipulation' as const,
+      WebkitTapHighlightColor: 'transparent',
+      color: '#111827',
+      border: '8px solid transparent',
+    },
+    playButtonIdle: {
+      background: '#facc15',
+      borderColor: '#eab308',
+    },
+    playButtonActive: {
+      background: '#ef4444',
+      borderColor: '#b91c1c',
+      color: '#ffffff',
+    },
+
+    confirmButtons: {
+      display: 'grid',
+      gridTemplateColumns: '1fr 1fr',
+      gap: 10,
+      marginTop: 14,
+    },
+    btnPrimary: {
+      padding: '14px 16px',
+      borderRadius: 12,
+      background: '#10b981',
+      color: '#fff',
+      fontWeight: 800,
+      fontSize: 18,
+      border: 'none',
+      cursor: 'pointer',
+    },
+    btnDanger: {
+      padding: '14px 16px',
+      borderRadius: 12,
+      background: '#fca5a5',
+      color: '#7f1d1d',
+      fontWeight: 800,
+      fontSize: 18,
+      border: '2px solid #ef4444',
+      cursor: 'pointer',
+    },
+
+    statusCard: (hasError: boolean) => ({
+      marginTop: 8,
+      padding: 10,
+      borderRadius: 10,
+      border: `1px solid ${hasError ? '#f5c2c7' : '#e5e7eb'}`,
+      background: hasError ? '#fdecee' : '#fafafa',
+      color: hasError ? '#842029' : '#111827',
+      width: '92%',
+      maxWidth: `${Math.min(LAYOUT.cardMaxWidth, LAYOUT.maxWidth)}px`,
+      textAlign: 'center' as const,
+      fontSize: 14,
+    }),
+
+    // === 待ち時間の演出（オーバーレイ） ===
+    overlay: {
+      position: 'fixed' as const,
+      inset: 0,
+      background: 'rgba(0,0,0,0.2)',
+      backdropFilter: 'blur(1px)',
+      zIndex: 300,
+      display: 'grid',
+      placeItems: 'center',
+    },
+    waitCard: {
+      width: 'min(88vw, 360px)',
+      borderRadius: 16,
+      background: '#ffffff',
+      border: '1px solid #e5e7eb',
+      boxShadow: '0 12px 30px rgba(0,0,0,0.25)',
+      padding: 16,
+      textAlign: 'center' as const,
+    },
+    waitKokoron: {
+      width: 180,
+      height: 180,
+      objectFit: 'contain' as const,
+      animation: 'bob 1.6s ease-in-out infinite',
+      margin: '0 auto 8px',
+    },
+    waitBubble: {
+      background: '#fff',
+      borderRadius: 12,
+      border: '1px solid #e5e7eb',
+      padding: '8px 10px',
+      margin: '0 auto 8px',
+      fontWeight: 800,
+      color: '#111827',
+      width: '92%',
+    },
+    progressWrap: {
+      width: '92%',
+      height: 10,
+      borderRadius: 999,
+      background: '#f3f4f6',
+      overflow: 'hidden' as const,
+      margin: '6px auto 2px',
+      border: '1px solid #e5e7eb',
+    },
+    progressBar: {
+      width: '40%',
+      height: '100%',
+      borderRadius: 999,
+      background: 'linear-gradient(90deg, #fde68a, #facc15, #f59e0b)',
+      animation: 'indet 1.2s infinite',
+    },
+    waitHint: { fontSize: 12, color: '#6b7280', marginTop: 6 },
+  } as const;
+  // ====== ここまで ======
+
+  // 応援メッセージ切替（isBusyの間だけ）
   useEffect(() => {
-    if (!isLoading && !user) {
-      router.replace('/');
-    }
+    if (!isBusy) return;
+    const id = setInterval(() => {
+      setMsgIndex((i) => (i + 1) % WAIT_MESSAGES.length);
+    }, 1500);
+    return () => clearInterval(id);
+  }, [isBusy]);
+
+  // 認証チェック
+  useEffect(() => {
+    if (!isLoading && !user) router.replace('/');
   }, [isLoading, user, router]);
 
-  // 今日の記録有無チェック → あれば edit へ
+  // 今日の記録チェック
   useEffect(() => {
     const checkToday = async () => {
       if (!user) return;
@@ -87,39 +389,33 @@ export default function VoiceEntryPage() {
         const ymd = `${y}${m}${d}`;
 
         const hasToday = (data?.records ?? []).some((r: any) => {
-          // backend は created_at を ["YYYYMMDD","HHMMSS"] で返す想定
-          if (Array.isArray(r?.created_at) && r.created_at[0]) {
-            return r.created_at[0] === ymd;
-          }
-          // フォールバック: ファイル名から抽出
+          if (Array.isArray(r?.created_at) && r.created_at[0]) return r.created_at[0] === ymd;
           const name = String(r?.audio_path || '');
           const m2 = name.match(/audio_(\d{8})_/);
           return m2?.[1] === ymd;
         });
 
         if (hasToday) {
-          router.replace('/app/entries/today/edit');
+          router.replace('/app/entries/today');
           return;
         }
       } catch (e: any) {
-        // 失敗しても録音UIにフォールバック
         setError(e?.message || '今日の記録確認に失敗しました');
       } finally {
         setCheckingToday(false);
       }
     };
-
     if (user) checkToday();
   }, [user, router]);
 
   // --- 録音開始 ---
   const startRecording = async () => {
     try {
-      console.log('🎤 録音開始: 処理開始');
       setError(null);
-      setStatus('マイク起動中…');
+      setStatus('');
       setAudioBlob(null);
       setTranscription(null);
+      setIsPlaying(false);
 
       const stream = await navigator.mediaDevices.getUserMedia(getAudioConstraints());
       streamRef.current = stream;
@@ -134,18 +430,16 @@ export default function VoiceEntryPage() {
         const blob = new Blob(chunksRef.current, { type: recConfig.contentType });
         setAudioBlob(blob);
         stopStream();
-        setStatus('録音完了。アップロードできます。');
+        setStatus('');
       };
 
-      console.log('🎤 録音開始: マイク起動成功');
       rec.start();
       setIsRecording(true);
-      setStatus('録音中…');
     } catch (err: any) {
-      console.error('🎤 録音開始: エラー発生', err);
+      console.error('[RECORDING] error', err);
       stopStream();
       setError(getErrorMessage(err));
-      setStatus('録音できませんでした');
+      setStatus('エラーが発生しました');
       setIsRecording(false);
     }
   };
@@ -167,138 +461,159 @@ export default function VoiceEntryPage() {
     streamRef.current = null;
   };
 
-  // --- S3アップロード → Whisper → DB保存 ---
+  // 再生（▶/⏸切替）
+  const togglePlay = async () => {
+    if (!audioRef.current) return;
+    try {
+      if (audioRef.current.paused) {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } else {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+    } catch (e) {
+      console.error('playback error', e);
+    }
+  };
+
+  useEffect(() => {
+    const a = audioRef.current;
+    if (!a) return;
+    const onEnded = () => setIsPlaying(false);
+    a.addEventListener('ended', onEnded);
+    return () => a.removeEventListener('ended', onEnded);
+  }, [audioBlob]);
+
+  // --- アップロード＆保存 ---
   const uploadAndSave = async () => {
-    if (!audioBlob) return;
-    if (!user) return;
-
-    console.log('�� アップロード保存: 処理開始');
-    console.log('🎤 アップロード保存: 感情データ確認');
-    console.log('🎤 アップロード保存: emotionId:', emotionId);
-    console.log('🎤 アップロード保存: intensityLevel:', intensityLevel);
-
-    // 感情データの確認
-    if (!emotionId || !intensityLevel) {
-      console.error('🎤 アップロード保存: 感情データ不足');
+    if (!audioBlob || !user) return;
+    if (!emotionId || !intensityLevel || !childId) {
       setError('感情データが不足しています。感情選択画面から再度お試しください。');
       return;
     }
 
     setIsBusy(true);
     setError(null);
-    setStatus('API接続確認中…');
+    setStatus('すこしまってね…');
 
     try {
-      // 1) ヘルスチェック
-      console.log('🎤 アップロード保存: ヘルスチェック開始');
+      console.log('[UPLOAD] 開始 - パラメータ:', { emotionId, intensityLevel, childId });
+      
       const health = await fetch(`${API_BASE}/api/v1/voice/health`);
       if (!health.ok) throw new Error(`ヘルスチェック失敗: ${health.status}`);
-      console.log('🎤 アップロード保存: ヘルスチェック成功');
 
-      // 2) PUT用URL取得
-      console.log('�� アップロード保存: S3アップロードURL取得開始');
-      setStatus('S3アップロード用URLを取得中…');
+      console.log('[UPLOAD] ヘルスチェック成功');
+
       const upRes = await fetch(`${API_BASE}/api/v1/voice/get-upload-url`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: user.id,
           file_type: 'audio',
-          file_format: recConfig.ext, // 'webm' を送る
+          file_format: recConfig.ext,
         }),
       });
       if (!upRes.ok) throw new Error(`アップロードURL取得失敗: ${upRes.status} ${await upRes.text()}`);
       const upData: GetUploadUrlResponse = await upRes.json();
-      console.log('�� アップロード保存: S3アップロードURL取得成功:', upData.file_path);
+      
+      console.log('[UPLOAD] アップロードURL取得成功:', upData.file_path);
 
-      // 3) S3 に PUT
-      console.log('�� アップロード保存: S3アップロード開始');
-      setStatus('S3へアップロード中…');
       const put = await fetch(upData.upload_url, {
         method: 'PUT',
         headers: { 'Content-Type': upData.content_type },
         body: audioBlob,
       });
       if (!put.ok) throw new Error(`S3アップロード失敗: ${put.status} ${await put.text()}`);
-      console.log('�� アップロード保存: S3アップロード成功');
+      
+      console.log('[UPLOAD] S3アップロード成功');
 
-      // 4) Whisper 文字起こし
-      console.log('🎤 アップロード保存: 音声認識開始');
-      setStatus('音声を文字に変換中…');
+      // 音声認識処理の前
+      console.log('[TRANSCRIBE] 開始 - audio_file_path:', upData.file_path);
+
       const tr = await fetch(`${API_BASE}/api/v1/voice/transcribe`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        // ← backendは「S3キー」も受け付けるので、key をそのまま送る
         body: JSON.stringify({
           user_id: user.id,
           audio_file_path: upData.file_path,
           language: 'ja',
         }),
       });
-      if (!tr.ok) throw new Error(`音声認識失敗: ${tr.status} ${await tr.text()}`);
-      const trData: TranscriptionResult = await tr.json();
-      setTranscription(trData);
-      console.log('🎤 アップロード保存: 音声認識成功:', trData.text);
 
-      // 5) DB に key を保存（感情データ付き）
-      console.log('�� アップロード保存: データベース保存開始');
-      setStatus('記録を保存中…');
+      // 音声認識処理の後
+      if (!tr.ok) {
+        console.error('[TRANSCRIBE] エラー:', tr.status, await tr.text());
+        throw new Error(`音声認識失敗: ${tr.status} ${await tr.text()}`);
+      }
+
+      const trData: TranscriptionResult = await tr.json();
+      console.log('[TRANSCRIBE] 成功 - 結果:', trData);
+      console.log('[TRANSCRIBE] テキスト:', trData.text);
+      console.log('[TRANSCRIBE] 信頼度:', trData.confidence);
+
+      setTranscription(trData);
+      
+      // 追加：音声→テキストのパス生成＆テキスト本文
+      const audioPath = upData.file_path;
+      const textPath = audioPath.replace('.webm', '.txt');
+      
+      console.log('[SAVE] 保存開始 - パス:', { audioPath, textPath });
+      console.log('[SAVE] voice_note:', trData.text || '');
+
       const save = await fetch(`${API_BASE}/api/v1/voice/save-record`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           user_id: user.id,
-          audio_file_path: upData.file_path,
-          text_file_path: null, // 将来: テキストもS3に保存したらここに key を入れる
-          // 感情データを追加
+          audio_file_path: audioPath,
+          text_file_path: textPath,
+          voice_note: trData.text || '',
           emotion_card_id: emotionId,
           intensity_id: intensityLevel,
-          child_id: '41489976-63ee-4332-85f4-6d9200a79bfc', // 作成した子供のID
+          child_id: childId,
         }),
       });
-      if (!save.ok) throw new Error(`記録保存失敗: ${save.status} ${await save.text()}`);
-      console.log('�� アップロード保存: データベース保存成功');
 
-      setStatus('保存完了！「きょうの記録」に移動します…');
-      setTimeout(() => router.replace('/app/entries/today'), 600);
+      if (!save.ok) {
+        const saveError = await save.text();
+        console.error('[SAVE] 保存失敗:', save.status, saveError);
+        throw new Error(`記録保存失敗: ${save.status} ${saveError}`);
+      }
+
+      console.log('[SAVE] 保存成功');
+      setStatus('できた！');
+
+      // 画面遷移処理
+      const redirectTo = searchParams.get('redirect') || '/app/voice/complete';
+      console.log('[REDIRECT] 遷移先:', redirectTo);
+      setTimeout(() => router.replace(redirectTo), 100);
+
     } catch (e: any) {
-      console.error('🎤 アップロード保存: エラー発生', e);
-      setError(e?.message || '処理中にエラーが発生しました');
+      console.error('[ERROR] upload/save', e);
+      setError(e?.message || 'エラーが発生しました');
       setStatus('エラーが発生しました');
     } finally {
       setIsBusy(false);
     }
   };
 
-  // 認証判定中 or 未ログインでリダイレクト待ち
+  // ローディング系
   if (isLoading || !user) {
     return (
-      <main style={{
-        display: 'grid',
-        placeItems: 'center',
-        minHeight: '60vh',
-        color: colors.text.secondary,
-      }}>
+      <main style={{ display: 'grid', placeItems: 'center', minHeight: '60vh', color: colors.text.secondary }}>
         <p>読み込み中...</p>
       </main>
     );
   }
-
-  // 今日の記録チェック中（ある場合はこの後 edit へリダイレクト）
   if (checkingToday) {
     return (
-      <main style={{
-        display: 'grid',
-        placeItems: 'center',
-        minHeight: '60vh',
-        color: colors.text.secondary,
-      }}>
+      <main style={{ display: 'grid', placeItems: 'center', minHeight: '60vh', color: colors.text.secondary }}>
         <p>きょうの記録を確認中…</p>
       </main>
     );
   }
 
-  // 感情データが不足している場合
   if (!emotionId || !intensityLevel) {
     return (
       <main style={{
@@ -309,18 +624,10 @@ export default function VoiceEntryPage() {
         backgroundSize: 'cover',
         minHeight: '100vh',
       }}>
-        <h1 style={{
-          fontSize: '22px',
-          fontWeight: 700,
-          marginBottom: spacing.sm,
-          color: colors.text.primary,
-        }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: spacing.sm, color: colors.text.primary }}>
           感情データが不足しています
         </h1>
-        <p style={{
-          marginBottom: spacing.md,
-          color: colors.text.secondary,
-        }}>
+        <p style={{ marginBottom: spacing.md, color: colors.text.secondary }}>
           感情選択画面から再度お試しください。
         </p>
         <button
@@ -341,373 +648,158 @@ export default function VoiceEntryPage() {
     );
   }
 
-  // 録音UI
+  // UI本体
   return (
-    // 背景全体をカバーするラッパー
-    <div style={{
-      background: 'url("/images/background.webp") no-repeat center center',
-      backgroundSize: 'cover',
-      minHeight: '100vh',
-      display: 'flex',
-      flexDirection: 'column',
-      alignItems: 'center',
-      justifyContent: 'center',
-    }}>
-      <main style={{
-        position: 'fixed',
-        top: '0',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        bottom: 0,
-        padding: '10px 0 0 0',
-        zIndex: 50,
-        boxSizing: 'border-box',
-        width: '100%',
-        maxWidth: '600px',
-        overflowX: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backdropFilter: 'blur(10px)',
-        background: 'transparent',
-        gap: '8px',
-      }}>
+    <div style={styles.page}>
+      {/* 音声自動再生 */}
+      <AudioPlayer 
+        src="/sounds/characterAskReason04.mp3"
+        autoPlay={true}
+        volume={0.8}
+        onEnded={() => console.log('[AUDIO] 感情確認音声再生完了')}
+        onError={(error) => console.log('[AUDIO] 音声エラー:', error)}
+      />
 
-        {/* こころんキャラクター */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          gap: '16px',
-          marginBottom: '20px',
-          marginTop: '20px',
-        }}>
-          <img
-            src="/images/kokoron/kokoron_mic.webp"
-            alt="マイクを持つこころん"
-            style={{
-              width: '250px',
-              height: '250px',
-              objectFit: 'contain',
-            }}
-          />
+      {/* keyframes（CSS）をこの画面だけに注入 */}
+      <style>{`
+        @keyframes bob {
+          0%,100% { transform: translateY(0); }
+          50% { transform: translateY(-8px); }
+        }
+        @keyframes indet {
+          0% { transform: translateX(-60%); }
+          100% { transform: translateX(160%); }
+        }
+      `}</style>
+
+      <main style={styles.panel} aria-busy={isBusy}>
+        <button onClick={handleBack} style={styles.backBtn} disabled={isBusy}>← もどる</button>
+
+        {/* バブル */}
+        <div style={styles.bubbleSmall}>
+          <span style={styles.bubbleTextSmall}>どうしてこのきもちになったのかな？</span>
         </div>
 
-        {/* 白枠の囲い（こころんおしゃべりコメント） */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '16px',
-          padding: '16px 20px',
-          boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
-          width: '80%',
-          maxWidth: '320px',
-          boxSizing: 'border-box',
-          textAlign: 'center',
-          marginBottom: '20px',
-        }}>
-          <div style={{
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '8px',
-            alignItems: 'center',
-          }}>
-            <span style={{
-              fontWeight: 'bold',
-              fontSize: '24px',
-              lineHeight: 1.2,
-              margin: 0,
-              color: '#333',
-            }}>
-              どうしてそのきもちになったのかな？
-            </span>
-          </div>
+        {/* キャラクター */}
+        <div style={styles.characterWrap}>
+          <img src="/images/kokoron/kokoron_mic.webp" alt="マイクを持つこころん" style={styles.characterImg} />
         </div>
 
-        {/* 感情データの表示 */}
-        <div style={{
-          marginBottom: spacing.md,
-          padding: spacing.md,
-          borderRadius: borderRadius.medium,
-          border: `1px solid ${colors.border.light}`,
-          background: colors.background.white,
-          boxShadow: colors.shadow.light,
-          width: '100%',
-          maxWidth: '320px',
-          textAlign: 'center',
-        }}>
-          <div style={{
-            fontWeight: 700,
-            marginBottom: spacing.xs,
-            color: colors.text.primary,
-          }}>
-            選択された感情
-          </div>
-          <div style={{
-            fontSize: '14px',
-            color: colors.text.secondary,
-          }}>
-            感情ID: {emotionId} / 強度: {intensityLevel}
-          </div>
-        </div>
+        {/* 録音（白枠カード＋1ボタン切替） */}
+        {!audioBlob && (
+          <section style={styles.recordCard}>
+            <div style={styles.recordButtonWrap}>
+              <button
+                onClick={isRecording ? stopRecording : startRecording}
+                aria-label={isRecording ? '録音をとめる' : '録音をはじめる'}
+                disabled={isBusy}
+                style={styles.recordOuter}
+              >
+                <div style={isRecording ? styles.recordInnerActive : styles.recordInnerIdle} />
+                {isRecording && (
+                  <div style={styles.pauseIconWrap} aria-hidden="true">
+                    <div style={styles.pauseBars}>
+                      <div style={styles.pauseBar} />
+                      <div style={styles.pauseBar} />
+                    </div>
+                  </div>
+                )}
+              </button>
+            </div>
+            <div style={styles.recordHelper}>{isRecording ? 'とめる' : 'はなしてね'}</div>
+          </section>
+        )}
 
-        {/* ステータス */}
+        {/* 確認パネル（録音後） */}
+        {audioBlob && !isRecording && (
+          <section style={styles.confirmCard} aria-live="polite">
+            <div style={styles.confirmTitle}>きいてみる</div>
+
+            <button
+              onClick={togglePlay}
+              style={{
+                ...styles.playButtonBase,
+                ...(isPlaying ? styles.playButtonActive : styles.playButtonIdle),
+              }}
+              disabled={isBusy}
+              aria-label={isPlaying ? 'とめる' : 'きく'}
+            >
+              <span>{isPlaying ? '⏸' : '▶'}</span>
+            </button>
+
+            {/* 隠しaudio */}
+            <audio
+              ref={audioRef}
+              src={audioBlob ? URL.createObjectURL(audioBlob) : undefined}
+              style={{ display: 'none' }}
+            />
+
+            <div style={styles.confirmButtons}>
+              <button style={styles.btnPrimary} onClick={uploadAndSave} disabled={isBusy}>
+                ✅ いい
+              </button>
+              <button
+                style={styles.btnDanger}
+                onClick={startRecording}
+                disabled={isBusy}
+              >
+                🔴 もういっかい
+              </button>
+            </div>
+          </section>
+        )}
+
         {(status || error) && (
-          <div
-            style={{
-              margin: `${spacing.md} 0`,
-              padding: spacing.md,
-              borderRadius: borderRadius.medium,
-              border: `1px solid ${error ? '#f5c2c7' : colors.border.light}`,
-              background: error ? '#fdecee' : '#fafafa',
-              color: error ? '#842029' : colors.text.primary,
-              width: '100%',
-              maxWidth: '320px',
-              textAlign: 'center',
-            }}
-          >
-            <div style={{ fontWeight: 600 }}>{status}</div>
-            {error && <div style={{ marginTop: spacing.xs }}>{error}</div>}
+          <div style={styles.statusCard(!!error)}>
+            <div style={{ fontWeight: 700 }}>{status}</div>
+            {error && <div style={{ marginTop: 6 }}>{error}</div>}
           </div>
         )}
 
-        {/* ボタンコンテナ */}
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: '19px',
-          width: '100%',
-          maxWidth: '320px',
-          justifyContent: 'center',
-          alignItems: 'center',
-          marginBottom: '20px',
-        }}>
-          {/* 録音ボタン */}
-          <button
-            onClick={isRecording ? stopRecording : startRecording}
-            disabled={isBusy}
-            style={{
-              background: '#ffffff',
-              border: `8px solid ${isRecording ? '#ffb3b3' : colors.primary}`,
-              borderRadius: '12px',
-              padding: '16px 12px',
-              cursor: isBusy ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.3s ease',
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#000000',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              minHeight: '100px',
-              justifyContent: 'center',
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflow: 'hidden',
-              position: 'relative',
-              ...(isBusy && {
-                backgroundColor: '#ccc',
-                cursor: 'not-allowed',
-                transform: 'none',
-                boxShadow: 'none',
-              }),
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-              gap: '12px',
-            }}>
-              <span style={{
-                fontSize: '24px',
-                fontWeight: 'bold',
-              }}>
-                {isRecording ? '⏹ 停止' : '🎤 録音開始'}
-              </span>
-            </div>
-          </button>
-
-          {/* アップロード・保存ボタン */}
-          <button
-            onClick={uploadAndSave}
-            disabled={!audioBlob || isBusy}
-            style={{
-              background: '#ffffff',
-              border: `8px solid ${!audioBlob || isBusy ? '#ccc' : '#10b981'}`,
-              borderRadius: '12px',
-              padding: '8px 16px',
-              cursor: !audioBlob || isBusy ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.3s ease',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: '#000000',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              minHeight: '60px',
-              justifyContent: 'center',
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflow: 'hidden',
-              position: 'relative',
-              ...((!audioBlob || isBusy) && {
-                backgroundColor: '#ccc',
-                cursor: 'not-allowed',
-                transform: 'none',
-                boxShadow: 'none',
-              }),
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-              gap: '12px',
-            }}>
-              <span style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-              }}>
-                ⬆︎ アップロード → 保存
-              </span>
-            </div>
-          </button>
-
-          {/* 取り直すボタン（子供でも分かりやすい） */}
-          <button
-            onClick={() => {
-              setAudioBlob(null);
-              setTranscription(null);
-              setStatus('');
-              setError(null);
-            }}
-            disabled={isBusy}
-            style={{
-              background: '#ffffff',
-              border: `8px solid ${isBusy ? '#ccc' : colors.border.light}`,
-              borderRadius: '12px',
-              padding: '8px 16px',
-              cursor: isBusy ? 'not-allowed' : 'pointer',
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              gap: '8px',
-              transition: 'all 0.3s ease',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              color: '#000000',
-              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.15)',
-              minHeight: '60px',
-              justifyContent: 'center',
-              touchAction: 'manipulation',
-              WebkitTapHighlightColor: 'transparent',
-              width: '100%',
-              maxWidth: '100%',
-              boxSizing: 'border-box',
-              overflow: 'hidden',
-              position: 'relative',
-              ...(isBusy && {
-                cursor: 'not-allowed',
-                opacity: 0.6,
-              }),
-            }}
-          >
-            <div style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '100%',
-              height: '100%',
-              gap: '12px',
-            }}>
-              <span style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-              }}>
-                もどる
-              </span>
-            </div>
-          </button>
-        </div>
-
-        {/* プレビュー */}
-        {audioBlob && (
-          <div style={{ 
-            marginTop: spacing.md,
-            width: '100%',
-            maxWidth: '320px',
-            textAlign: 'center',
-          }}>
-            <audio controls src={URL.createObjectURL(audioBlob)} style={{ width: '100%' }} />
-            <div style={{
-              fontSize: '12px',
-              color: colors.text.secondary,
-              marginTop: spacing.xs,
-            }}>
-              形式: {recConfig.ext} / {(audioBlob.size / 1024).toFixed(1)} KB
-            </div>
-          </div>
-        )}
-
-        {/* 文字起こし結果 */}
         {transcription && (
           <div
             style={{
-              marginTop: spacing.md,
-              padding: spacing.md,
-              borderRadius: borderRadius.medium,
-              border: `1px solid ${colors.border.light}`,
-              background: colors.background.white,
-              boxShadow: colors.shadow.light,
-              width: '100%',
-              maxWidth: '320px',
-              textAlign: 'center',
+              marginTop: 12,
+              padding: 12,
+              borderRadius: 12,
+              border: '1px solid #e5e7eb',
+              background: '#fff',
+              boxShadow: '0 1px 3px rgba(0,0,0,0.06)',
+              width: '92%',
+              maxWidth: `${Math.min(LAYOUT.cardMaxWidth, LAYOUT.maxWidth)}px`,
+              textAlign: 'center' as const,
             }}
           >
-            <div style={{
-              fontWeight: 700,
-              marginBottom: spacing.xs,
-              color: colors.text.primary,
-            }}>
-              文字起こし
-            </div>
-            <div style={{
-              whiteSpace: 'pre-wrap',
-              lineHeight: 1.6,
-              color: colors.text.primary,
-            }}>
+            <div style={{ fontWeight: 700, marginBottom: 6, color: '#111827' }}>文字起こし</div>
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: '#111827' }}>
               {transcription.text || '—'}
             </div>
             {typeof transcription.confidence === 'number' && (
-              <div style={{
-                fontSize: '12px',
-                color: colors.text.secondary,
-                marginTop: spacing.sm,
-              }}>
+              <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>
                 信頼度: {(transcription.confidence * 100).toFixed(1)}%
               </div>
             )}
           </div>
         )}
       </main>
+
+      {/* === 待ち時間の楽しいオーバーレイ（isBusy中だけ表示） === */}
+      {isBusy && (
+        <div style={styles.overlay} role="dialog" aria-live="polite" aria-label="よみこみ中">
+          <div style={styles.waitCard}>
+            <img
+              src="/images/kokoron/kokoron_mic.webp"
+              alt="こころん"
+              style={styles.waitKokoron}
+            />
+            <div style={styles.waitBubble}>{WAIT_MESSAGES[msgIndex]}</div>
+            <div style={styles.progressWrap}>
+              <div style={styles.progressBar} />
+            </div>
+            <div style={styles.waitHint}>よみこみ中だよ… そのまま まっててね</div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
