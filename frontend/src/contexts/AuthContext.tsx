@@ -39,12 +39,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       console.log('=== onAuthStateChanged triggered ===');
       console.log('1. Firebase user state changed:', fbUser ? 'User found' : 'No user');
       
-      // 前回の状態と同じ場合は処理をスキップ
-      if (fbUser === firebaseUser) {
-        console.log('Firebase user state unchanged, skipping update');
-        return;
-      }
-      
       setFirebaseUser(fbUser);
       if (fbUser) {
         console.log('2. Getting ID token');
@@ -80,7 +74,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     setIsLoading(false);
 
     return () => unsubscribe();
-  }, [firebaseUser]);
+  }, []);
 
   const login = async () => {
     console.log('=== AuthContext login() called ===');
