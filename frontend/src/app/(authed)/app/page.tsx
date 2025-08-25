@@ -155,7 +155,7 @@ export default function AppHomePage() {
           {todayEntry ? (
             <>
               <PrimaryButton onClick={handleViewTodayEntry}>
-                今日の記録を見る
+                きょうのきろく
               </PrimaryButton>
               <button
                 onClick={handleStartEmotion}
@@ -170,12 +170,12 @@ export default function AppHomePage() {
                   transition: 'all 0.3s ease',
                 }}
               >
-                新しく記録する
+                もういちどきろくする
               </button>
             </>
           ) : (
             <PrimaryButton onClick={handleStartEmotion}>
-              感情を記録する
+              きもちをきろくする
             </PrimaryButton>
           )}
         </div>
