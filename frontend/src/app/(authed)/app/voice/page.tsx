@@ -30,8 +30,8 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 // 待ち時間の応援メッセージ（ランダム切替）
 const WAIT_MESSAGES = [
   'すごい！ いま ことばを ひろってるよ ✨',
-  'もうちょっと… おんぷを あつめてるよ 🎵',
-  'こころん かんがえちゅう… 3, 2, 1… 🤔',
+  'もうちょっと… おんぷを あつめてるよ ��',
+  'こころん かんがえちゅう… 3, 2, 1… ��',
   'ピカーン！ ひらめき まちだよ ✨',
   'じょうずに はなせたね！ よみこみ中… ⏳',
 ];
@@ -49,7 +49,7 @@ export default function VoiceEntryPage() {
     console.log('[EMOTION]', { emotionId, intensityLevel });
   }, [emotionId, intensityLevel]);
 
-  const [checkingToday, setCheckingToday] = useState(true);
+  const [checkingToday, setCheckingToday] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // 録音系
@@ -58,6 +58,9 @@ export default function VoiceEntryPage() {
   const [status, setStatus] = useState<string>('');
   const [isBusy, setIsBusy] = useState(false);
   const [transcription, setTranscription] = useState<TranscriptionResult | null>(null);
+
+  // �� 新機能: 完了ステップ管理（既存アニメーション活用）
+  const [completionStep, setCompletionStep] = useState<'recording' | 'completed' | 'finished'>('recording');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -177,7 +180,7 @@ export default function VoiceEntryPage() {
       WebkitTapHighlightColor: 'transparent',
       cursor: 'pointer',
       transition: 'transform 0.12s ease',
-      position: 'relative' as const, // ⏸重ね表示のため
+      position: 'relative' as const,
     },
     recordInnerIdle: {
       width: 160,
@@ -192,7 +195,6 @@ export default function VoiceEntryPage() {
       background: '#ef4444',
       boxShadow: '0 0 0 6px rgba(239,68,68,0.25)',
     },
-    // 録音中の⏸表示（同じボタン内で重ねる）
     pauseIconWrap: {
       position: 'absolute' as const,
       inset: 0,
@@ -352,7 +354,6 @@ export default function VoiceEntryPage() {
     },
     waitHint: { fontSize: 12, color: '#6b7280', marginTop: 6 },
   } as const;
-  // ====== ここまで ======
 
   // 応援メッセージ切替（isBusyの間だけ）
   useEffect(() => {
@@ -395,18 +396,23 @@ export default function VoiceEntryPage() {
           return m2?.[1] === ymd;
         });
 
-        if (hasToday) {
-          router.replace('/app/entries/today');
-          return;
-        }
+        // 音声認識の精度確認のため、一時的に1日2件の制限を解除
+        // if (hasToday) {
+        //   router.replace('/app/entries/today');
+        //   return;
+        // }
       } catch (e: any) {
         setError(e?.message || '今日の記録確認に失敗しました');
       } finally {
         setCheckingToday(false);
       }
     };
-    if (user) checkToday();
-  }, [user, router]);
+    if (user) {
+      // ここをコメントアウトすることで、記録チェックを無効化
+      // checkToday();
+      setCheckingToday(false); // 即座にチェック完了状態にする
+    }
+  }, [user]);
 
   // --- 録音開始 ---
   const startRecording = async () => {
@@ -416,6 +422,7 @@ export default function VoiceEntryPage() {
       setAudioBlob(null);
       setTranscription(null);
       setIsPlaying(false);
+      setCompletionStep('recording'); // ステップをリセット
 
       const stream = await navigator.mediaDevices.getUserMedia(getAudioConstraints());
       streamRef.current = stream;
@@ -485,7 +492,7 @@ export default function VoiceEntryPage() {
     return () => a.removeEventListener('ended', onEnded);
   }, [audioBlob]);
 
-  // --- アップロード＆保存 ---
+  // �� 最適化: 即座の完了画面表示 + バックグラウンド処理（既存アニメーション活用）
   const uploadAndSave = async () => {
     if (!audioBlob || !user) return;
     if (!emotionId || !intensityLevel || !childId) {
@@ -493,10 +500,12 @@ export default function VoiceEntryPage() {
       return;
     }
 
-    setIsBusy(true);
-    setError(null);
-    setStatus('すこしまってね…');
+    // 1. 即座に完了画面表示（最優先）
+    setCompletionStep('completed');
+    setStatus('できた！');
+    setIsBusy(false); // ローディングを即座に終了
 
+    // 2. バックグラウンドで処理継続
     try {
       console.log('[UPLOAD] 開始 - パラメータ:', { emotionId, intensityLevel, childId });
       
@@ -582,19 +591,17 @@ export default function VoiceEntryPage() {
       }
 
       console.log('[SAVE] 保存成功');
-      setStatus('できた！');
-
-      // 画面遷移処理
+      
+      // 3. 処理完了後に画面遷移
+      setCompletionStep('finished');
       const redirectTo = searchParams.get('redirect') || '/app/voice/complete';
       console.log('[REDIRECT] 遷移先:', redirectTo);
-      setTimeout(() => router.replace(redirectTo), 100);
+      setTimeout(() => router.replace(redirectTo), 500);
 
     } catch (e: any) {
       console.error('[ERROR] upload/save', e);
       setError(e?.message || 'エラーが発生しました');
-      setStatus('エラーが発生しました');
-    } finally {
-      setIsBusy(false);
+      // エラー時も完了画面は維持
     }
   };
 
@@ -645,6 +652,67 @@ export default function VoiceEntryPage() {
           感情選択に戻る
         </button>
       </main>
+    );
+  }
+
+  // �� 新機能: 完了画面の表示（既存アニメーション活用）
+  if (completionStep === 'completed' || completionStep === 'finished') {
+    return (
+      <div style={styles.page}>
+        <AudioPlayer 
+          src="/sounds/characterAskReason04.mp3"
+          autoPlay={true}
+          volume={0.8}
+          onEnded={() => console.log('[AUDIO] 感情確認音声再生完了')}
+          onError={(error) => console.log('[AUDIO] 音声エラー:', error)}
+        />
+
+        {/* 既存のkeyframesを活用 */}
+        <style>{`
+          @keyframes bob {
+            0%,100% { transform: translateY(0); }
+            50% { transform: translateY(-8px); }
+          }
+          @keyframes indet {
+            0% { transform: translateX(-60%); }
+            100% { transform: translateX(160%); }
+          }
+        `}</style>
+
+        <main style={styles.panel}>
+          {/* 既存の待ち時間オーバーレイを完了画面として活用 */}
+          <div style={styles.overlay} role="dialog" aria-live="polite" aria-label="完了">
+            <div style={styles.waitCard}>
+              <img
+                src="/images/kokoron/kokoron_mic.webp"
+                alt="うれしいこころん"
+                style={styles.waitKokoron}
+              />
+              <div style={styles.waitBubble}>
+                {completionStep === 'completed' 
+                  ? 'ありがとう！きもちをきいてくれてありがとう！✨'
+                  : 'こころんが よろこんでるよ！つぎの画面にすすむよ... 🎉'
+                }
+              </div>
+              <div style={styles.progressWrap}>
+                <div style={{
+                  ...styles.progressBar,
+                  width: completionStep === 'completed' ? '60%' : '100%',
+                  background: completionStep === 'completed' 
+                    ? 'linear-gradient(90deg,rgb(48, 251, 30),rgb(244, 35, 188),rgb(250, 189, 6))'
+                    : 'linear-gradient(90deg,rgb(250, 250, 55),rgb(105, 235, 244),rgb(189, 106, 237))',
+                }} />
+              </div>
+              <div style={styles.waitHint}>
+                {completionStep === 'completed' 
+                  ? 'しばらくすると つぎの画面に すすむよ...'
+                  : 'まもなく つぎの画面に すすむよ！'
+                }
+              </div>
+            </div>
+          </div>
+        </main>
+      </div>
     );
   }
 
@@ -774,9 +842,13 @@ export default function VoiceEntryPage() {
             <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: '#111827' }}>
               {transcription.text || '—'}
             </div>
+            {/* 修正: 信頼度表示を調整 */}
             {typeof transcription.confidence === 'number' && (
               <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>
-                信頼度: {(transcription.confidence * 100).toFixed(1)}%
+                信頼度: {transcription.confidence >= 0 
+                  ? `${(transcription.confidence * 100).toFixed(1)}%`
+                  : `logprob: ${transcription.confidence.toFixed(3)}`
+                }
               </div>
             )}
           </div>
