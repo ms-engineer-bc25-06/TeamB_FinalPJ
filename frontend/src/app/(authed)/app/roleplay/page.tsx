@@ -64,14 +64,14 @@ const DEFAULT_EMOTIONS: Emotion[] = [
 // シナリオ
 const SCENARIOS: Scenario[] = [
   {
-    title: 'おもちゃを おともだちに とられた',
+    title: 'おもちゃをおともだちにとられた',
     description: 'おともだちに おもちゃを とられたら…どんな きもちかな？',
     color: colors.primary,
   },
-  { title: 'おともだちとけんかしちゃった', color: colors.secondary },
-  { title: 'はっぴょうかいでセリフをまちがえた', color: '#51cf66' },
-  { title: 'おもちゃをかってもらえなかった', color: '#ff8cc8' },
-  { title: 'えを「へただね」といわれた', color: '#74c0fc' },
+  { title: 'おともだちとけんか\nしちゃった', color: colors.secondary },
+  { title: 'はっぴょうかいで\nセリフをまちがえた', color: '#51cf66' },
+  { title: 'おもちゃをかって\nもらえなかった', color: '#ff8cc8' },
+  { title: 'えを「へただね」と\nいわれた', color: '#74c0fc' },
 ];
 
 // ページ専用モーダル
@@ -199,6 +199,7 @@ export default function RoleplayPage() {
                   boxShadow: colors.shadow.light,
                   padding: spacing.lg,
                   opacity: i === 0 ? 1 : 0.7,
+                  whiteSpace: 'pre-line',
                 }}
               >
                 {s.title}
@@ -382,12 +383,18 @@ export default function RoleplayPage() {
               </div>
 
               {/* 共通の声かけ */}
-              <p style={{ marginTop: spacing.lg, fontSize: fontSize.xl }}>
-                そうだね。<b>{getEmotionPhrase(selectedEmotion)}</b>なんだね。
-                <br />
-                じゃあ、なかよく あそぶには どうしたらいいかな？
-                <br />
-                ぱぱやままと いっしょに かんがえてみよう！
+              <p
+                style={{
+                  marginTop: spacing.lg,
+                  fontSize: fontSize.xl,
+                  whiteSpace: 'pre-line',
+                }}
+              >
+                {`そうだね。${getEmotionPhrase(selectedEmotion)}なんだね。
+じゃあ、なかよく あそぶには
+どうしたらいいかな？
+ぱぱやままと いっしょに
+かんがえてみよう！`}
               </p>
 
               {/* トグルボタン */}
@@ -419,16 +426,17 @@ export default function RoleplayPage() {
                     fontSize: fontSize.large,
                     boxShadow: colors.shadow.light,
                     margin: '0 auto',
+                    whiteSpace: 'pre-line',
                   }}
                 >
                   {selectedEmotion.id === 'kanashii' &&
                     '「かなしいよ」って いってみよう'}
                   {selectedEmotion.id === 'komatta' &&
-                    '「どうしたらいい？」って きいてみよう'}
+                    '「どうしたらいい？」って\nきいてみよう'}
                   {selectedEmotion.id === 'fuyukai' &&
                     '「いやだな」って いってみよう'}
                   {selectedEmotion.id === 'ikari' &&
-                    'いきを「すーっ」「はーっ」と ゆっくりしてみよう'}
+                    'いきを「すーっ」「はーっ」と\nゆっくりしてみよう'}
                 </div>
               )}
 
@@ -452,4 +460,3 @@ export default function RoleplayPage() {
 
   return null;
 }
-
