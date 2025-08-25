@@ -236,13 +236,18 @@ export default function HamburgerMenu({
             ロールプレイ
           </MenuItem>
 
-          {/* カスタムコンテンツ */}
-          {children}
-
           {/* サブスクリプション管理 */}
-          <MenuItem onClick={() => handleNavigation('/subscription')}>
+          <MenuItem onClick={() => handleNavigation('/app/subscription')}>
             サブスクリプション管理
           </MenuItem>
+
+          {/* 料金・解約について */}
+          <MenuItem onClick={() => handleNavigation('/app/billing')}>
+            料金・解約について
+          </MenuItem>
+
+          {/* カスタムコンテンツ */}
+          {children}
 
           {/* ログアウト */}
           <MenuItem 
