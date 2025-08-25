@@ -10,6 +10,7 @@ interface SubscriptionStatus {
   is_paid: boolean;
   trial_expires_at: string | null;
   stripe_subscription_id?: string;
+  cancel_at_period_end?: boolean;
 }
 
 export const useSubscription = () => {
@@ -61,13 +62,22 @@ export const useSubscription = () => {
     fetchSubscriptionStatus();
   }, [fetchSubscriptionStatus]);
 
+  // フロントエンドでトライアル状態を正しく計算
+  const calculateIsTrialActive = () => {
+    if (!subscription?.trial_expires_at) return false;
+    const trialExpires = new Date(subscription.trial_expires_at);
+    const now = new Date();
+    return now < trialExpires;
+  };
+
   return {
     has_subscription: subscription?.has_subscription || false,
     status: subscription?.status || 'none',
-    is_trial: subscription?.is_trial || false,
+    is_trial: calculateIsTrialActive(), // フロントエンドで計算した値を使用
     is_paid: subscription?.is_paid || false,
     trial_expires_at: subscription?.trial_expires_at || null,
     stripe_subscription_id: subscription?.stripe_subscription_id,
+    cancel_at_period_end: subscription?.cancel_at_period_end || false,
     loading,
     error,
     refetch: fetchSubscriptionStatus,
