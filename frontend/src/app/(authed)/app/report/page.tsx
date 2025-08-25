@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 import DailyReport from '@/app/(authed)/app/report/_components/DailyReport';
@@ -29,6 +29,13 @@ export default function ReportPage() {
     await logout();
   };
 
+  // ログインしていない場合のリダイレクト
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
+
   // ローディング中（認証）
   if (isLoading) {
     return (
@@ -39,9 +46,8 @@ export default function ReportPage() {
     );
   }
 
-  // ログインしていない場合
+  // ログインしていない場合は何も表示しない（useEffectでリダイレクトされる）
   if (!user) {
-    router.push('/');
     return null;
   }
 
