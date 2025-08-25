@@ -32,6 +32,23 @@ export const useSubscription = () => {
       if (!response.ok) throw new Error('Failed to fetch subscription status');
       
       const data = await response.json();
+      
+      // デバッグ情報をコンソールに出力
+      console.log('=== サブスクリプション状態デバッグ ===');
+      console.log('Response data:', data);
+      console.log('has_subscription:', data.has_subscription);
+      console.log('status:', data.status);
+      console.log('is_trial:', data.is_trial);
+      console.log('trial_expires_at:', data.trial_expires_at);
+      console.log('Current time:', new Date().toISOString());
+      if (data.trial_expires_at) {
+        const trialExpires = new Date(data.trial_expires_at);
+        const now = new Date();
+        console.log('Trial expires:', trialExpires.toISOString());
+        console.log('Is trial active (calculated):', now < trialExpires);
+      }
+      console.log('=====================================');
+      
       setSubscription(data);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Unknown error');

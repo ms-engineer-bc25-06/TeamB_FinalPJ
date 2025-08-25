@@ -223,7 +223,16 @@ async def update_subscription_status(
             # trial_expires_atが設定されている場合、現在の日付に基づいてis_trialを自動更新
             if subscription.trial_expires_at:
                 current_time = now_utc()
-                subscription.is_trial = current_time < subscription.trial_expires_at
+                is_trial_calculated = current_time < subscription.trial_expires_at
+                
+                # デバッグログ追加
+                logger.info(f"=== update_subscription_status トライアル判定 ===")
+                logger.info(f"current_time: {current_time}")
+                logger.info(f"trial_expires_at: {subscription.trial_expires_at}")
+                logger.info(f"calculated is_trial: {is_trial_calculated}")
+                logger.info(f"========================")
+                
+                subscription.is_trial = is_trial_calculated
         
         await db.commit()
         await db.refresh(subscription)
@@ -247,10 +256,22 @@ async def get_subscription_by_user_id(
         if subscription and subscription.trial_expires_at:
             # trial_expires_atが設定されている場合、現在の日付に基づいてis_trialを自動更新
             current_time = now_utc()
-            if subscription.is_trial != (current_time < subscription.trial_expires_at):
-                subscription.is_trial = current_time < subscription.trial_expires_at
+            is_trial_calculated = current_time < subscription.trial_expires_at
+            
+            # デバッグログ追加
+            logger.info(f"=== トライアル判定デバッグ ===")
+            logger.info(f"current_time: {current_time}")
+            logger.info(f"trial_expires_at: {subscription.trial_expires_at}")
+            logger.info(f"current < trial_expires: {is_trial_calculated}")
+            logger.info(f"stored is_trial: {subscription.is_trial}")
+            logger.info(f"needs update: {subscription.is_trial != is_trial_calculated}")
+            logger.info(f"========================")
+            
+            if subscription.is_trial != is_trial_calculated:
+                subscription.is_trial = is_trial_calculated
                 await db.commit()
                 await db.refresh(subscription)
+                logger.info(f"Updated is_trial to: {subscription.is_trial}")
         
         return subscription
     except SQLAlchemyError as e:
