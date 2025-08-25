@@ -385,14 +385,14 @@ export default function EmotionIntensityPage() {
         ← もどる
       </button>
 
-      {/* デフォルトのこころん（右側に配置） */}
+      {/* デフォルトのこころん*/}
       <div style={{
         position: 'fixed',
-        top: '100px',
+        top: '130px',
         right: '2px',
         zIndex: 250,
       }}>
-        <KokoronDefault size={80} />
+        <KokoronDefault size={100} />
       </div>
 
       {/* エラーメッセージ */}
