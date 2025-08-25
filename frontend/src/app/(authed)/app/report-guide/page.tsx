@@ -1,4 +1,5 @@
 import { colors, commonStyles, spacing, fontSize, borderRadius } from '@/styles/theme';
+import { HamburgerMenu } from '@/components/ui';
 
 export default function ReportGuidePage() {
   return (
@@ -12,6 +13,9 @@ export default function ReportGuidePage() {
       minHeight: '100vh',
       overflow: 'auto',
     }}>
+      {/* ハンバーガーメニュー */}
+      <HamburgerMenu />
+
       <div style={commonStyles.page.mainContent}>
         <div style={{
           backgroundColor: colors.background.white,
