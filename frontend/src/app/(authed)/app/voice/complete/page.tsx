@@ -2,15 +2,31 @@
 
 import { useRouter } from 'next/navigation';
 import Image from 'next/image';
-import { AudioPlayer } from '@/components/ui';
-import { commonStyles } from '@/styles/theme';
+import { AudioPlayer, PrimaryButton } from '@/components/ui';
+import { commonStyles, colors } from '@/styles/theme';
 
 export default function VoiceCompletePage() {
   const router = useRouter();
 
-  // もどるボタンの処理
-  const handleBack = () => {
-    router.back();
+  // ホームに戻る処理
+  const handleGoHome = () => {
+    router.push('/app');
+  };
+
+  // 白いボタンのスタイル（ホームに戻る用）
+  const whiteButtonStyle = {
+    ...commonStyles.button.base,
+    backgroundColor: '#ffffff',
+    color: colors.primary, // ピンクのテキスト
+    border: `2px solid ${colors.primary}`, // ピンクのボーダー
+    fontSize: '22px',
+    padding: '25px 50px',
+    minWidth: '200px',
+    cursor: 'pointer',
+    transition: 'all 0.2s ease',
+    boxShadow: colors.shadow.medium,
+    borderRadius: '12px',
+    fontWeight: 'bold',
   };
 
   return (
@@ -23,24 +39,6 @@ export default function VoiceCompletePage() {
         onEnded={() => console.log('[AUDIO] 入力完了音声再生完了')}
         onError={(error) => console.log('[AUDIO] 音声エラー:', error)}
       />
-      
-      {/* 左上のもどるボタン */}
-      <button onClick={handleBack} style={{
-        position: 'fixed',
-        top: '20px',
-        left: '20px',
-        background: 'none',
-        border: 'none',
-        fontSize: '16px',
-        cursor: 'pointer',
-        padding: '6px',
-        borderRadius: '6px',
-        color: '#000000',
-        zIndex: 200,
-        fontWeight: 'bold',
-      }}>
-        ← もどる
-      </button>
 
       {/* メインコンテンツ */}
       <div style={{
@@ -82,35 +80,31 @@ export default function VoiceCompletePage() {
           />
         </div>
 
-        {/* 完了メッセージ */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '16px',
-          padding: '24px 32px',
-          boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
-          textAlign: 'center',
-          maxWidth: '400px',
-        }}>
-          <h1 style={{
-            fontSize: '28px',
-            fontWeight: 'bold',
-            color: '#333',
-            margin: '0 0 16px 0',
-            lineHeight: 1.3,
-          }}>
-            おしえてくれてありがとう♡
-          </h1>
-          <p style={{
-            fontSize: '18px',
-            color: '#666',
-            margin: 0,
-            lineHeight: 1.4,
-          }}>
-            きょうのきもちをきろくできました
-          </p>
-          
+          {/* ボタン1: おしえてくれてありがとう（ピンク - PrimaryButton） */}
+          <PrimaryButton onClick={() => console.log('ありがとうボタンが押されました')}>
+            おしえてくれてありがとう
+          </PrimaryButton>
+
+          {/* ボタン2: ホームにもどる（白 - カスタムスタイル） */}
+          <button
+            onClick={handleGoHome}
+            style={whiteButtonStyle}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = colors.primary;
+              e.currentTarget.style.color = '#ffffff';
+              e.currentTarget.style.transform = 'translateY(-1px)';
+              e.currentTarget.style.boxShadow = '0 4px 12px rgba(255,107,107,0.4)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#ffffff';
+              e.currentTarget.style.color = colors.primary;
+              e.currentTarget.style.transform = 'translateY(0)';
+              e.currentTarget.style.boxShadow = colors.shadow.medium;
+            }}
+          >
+            ホームにもどる
+          </button>
         </div>
-      </div>
     </div>
   );
 }
