@@ -29,11 +29,11 @@ const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
 // 待ち時間の応援メッセージ（ランダム切替）
 const WAIT_MESSAGES = [
-  'すごい！ いま ことばを ひろってるよ ✨',
-  'もうちょっと… おんぷを あつめてるよ ��',
-  'こころん かんがえちゅう… 3, 2, 1… ��',
-  'ピカーン！ ひらめき まちだよ ✨',
-  'じょうずに はなせたね！ よみこみ中… ⏳',
+  'すごい！ いま ことばを ひろってるよ 🌰🌰🌰',
+  'もうちょっと… おんぷを あつめてるよ 🎵🎵🎵🎵🎵🎵',
+  'こころん かんがえちゅう… 3, 2, 1… ✍✍✍',
+  'ピカーン！ ひらめき まちだよ 💡',
+  'じょうずに はなせたね！ よみこみ中… ⏳💫',
 ];
 
 export default function VoiceEntryPage() {
@@ -355,14 +355,6 @@ export default function VoiceEntryPage() {
     waitHint: { fontSize: 12, color: '#6b7280', marginTop: 6 },
   } as const;
 
-  // 応援メッセージ切替（isBusyの間だけ）
-  useEffect(() => {
-    if (!isBusy) return;
-    const id = setInterval(() => {
-      setMsgIndex((i) => (i + 1) % WAIT_MESSAGES.length);
-    }, 1500);
-    return () => clearInterval(id);
-  }, [isBusy]);
 
   // 認証チェック
   useEffect(() => {
@@ -492,7 +484,7 @@ export default function VoiceEntryPage() {
     return () => a.removeEventListener('ended', onEnded);
   }, [audioBlob]);
 
-  // �� 最適化: 即座の完了画面表示 + バックグラウンド処理（既存アニメーション活用）
+  //  最適化: 即座の完了画面表示 + バックグラウンド処理
   const uploadAndSave = async () => {
     if (!audioBlob || !user) return;
     if (!emotionId || !intensityLevel || !childId) {
@@ -655,7 +647,7 @@ export default function VoiceEntryPage() {
     );
   }
 
-  // �� 新機能: 完了画面の表示（既存アニメーション活用）
+  //  新機能: 完了画面の表示
   if (completionStep === 'completed' || completionStep === 'finished') {
     return (
       <div style={styles.page}>
@@ -690,7 +682,7 @@ export default function VoiceEntryPage() {
               />
               <div style={styles.waitBubble}>
                 {completionStep === 'completed' 
-                  ? 'ありがとう！きもちをきいてくれてありがとう！✨'
+                  ? 'ありがとう！きもちをきかせてくれて✨'
                   : 'こころんが よろこんでるよ！つぎの画面にすすむよ... 🎉'
                 }
               </div>
