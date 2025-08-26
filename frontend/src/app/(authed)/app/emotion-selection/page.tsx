@@ -233,7 +233,7 @@ export default function EmotionSelectionPage() {
         wordBreak: 'keep-all',
         overflowWrap: 'break-word',
       }}>
-            いまの　きもちを　えらんでね
+            きょうは　どんな　きもちかな？
           </span>
         </div>
         
