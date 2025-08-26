@@ -36,7 +36,7 @@ interface Intensity {
 }
 
 export default function DailyReport({ onClose }: DailyReportProps) {
-  const { firebaseUser } = useAuth();
+  const { user, firebaseUser } = useAuth(); // NOTE: userも取得する
   const [selectedDate, setSelectedDate] = useState<string>('2025-08-18');
   const [currentMonth, setCurrentMonth] = useState(new Date(2025, 7, 12));
   const [emotionLogs, setEmotionLogs] = useState<EmotionLogData[]>([]);
@@ -258,8 +258,40 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     setSelectedDate(dateStr);
   };
 
-  // 音声再生・停止の処理
-  const handleAudioPlay = (audioPath: string) => {
+  // 音声ファイルのダウンロードURLを生成
+  const getAudioDownloadUrl = async (audioPath: string) => {
+    try {
+      // user.idが存在するかチェック
+      if (!user?.id) {
+        console.error('user.idが存在しません');
+        return null;
+      }
+      
+      console.log('[DEBUG] API呼び出し:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/voice/records/${user.id}`);
+      
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/voice/records/${user.id}`);
+      
+      if (!response.ok) {
+        console.error('API呼び出し失敗:', response.status, response.statusText);
+        return null;
+      }
+      
+      const data = await response.json();
+      console.log('[DEBUG] API応答:', data);
+      
+      // 該当する音声ファイルのダウンロードURLを探す
+      const record = data.records.find((r: any) => r.audio_path === audioPath);
+      console.log('[DEBUG] 該当レコード:', record);
+      
+      return record?.audio_download_url || null;
+    } catch (error) {
+      console.error('音声ファイルURLの取得に失敗:', error);
+      return null;
+    }
+  };
+
+  // 音声再生処理を修正
+  const handleAudioPlay = async (audioPath: string) => {
     if (isPlaying && audio) {
       // 現在再生中の場合は停止
       audio.pause();
@@ -267,22 +299,39 @@ export default function DailyReport({ onClose }: DailyReportProps) {
       setIsPlaying(false);
       setAudio(null);
     } else {
-      // 新しい音声を再生
-      const newAudio = new Audio(audioPath);
-      newAudio.addEventListener('ended', () => {
+      try {
+        // ダウンロードURLを取得
+        const downloadUrl = await getAudioDownloadUrl(audioPath);
+        
+        if (!downloadUrl) {
+          console.error('音声ファイルのダウンロードURLが取得できません');
+          return;
+        }
+        
+        console.log('[AUDIO] 再生開始:', downloadUrl);
+        
+        const newAudio = new Audio(downloadUrl);
+        newAudio.addEventListener('ended', () => {
+          setIsPlaying(false);
+          setAudio(null);
+        });
+        newAudio.addEventListener('error', (e) => {
+          console.error('音声ファイルの再生に失敗しました:', e);
+          console.error('元のパス:', audioPath);
+          console.error('ダウンロードURL:', downloadUrl);
+          setIsPlaying(false);
+          setAudio(null);
+        });
+        
+        await newAudio.play();
+        setIsPlaying(true);
+        setAudio(newAudio);
+      } catch (error) {
+        console.error('音声再生エラー:', error);
         setIsPlaying(false);
         setAudio(null);
-      });
-      newAudio.addEventListener('error', () => {
-        console.error('音声ファイルの再生に失敗しました');
-        setIsPlaying(false);
-        setAudio(null);
-      });
-      
-      newAudio.play();
-      setIsPlaying(true);
-      setAudio(newAudio);
-    }
+      }
+   }
   };
 
   // 選択された日付の枠線色を生成
