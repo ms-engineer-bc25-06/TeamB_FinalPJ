@@ -136,7 +136,10 @@ export default function SetupPage() {
       }}
     >
       <div style={commonStyles.page.mainContent}>
-        <SpeechBubble text="はじめまして！なんてよんだらいいかな？" />
+        <SpeechBubble text={[
+          "はじめまして！",
+          "なんてよんだらいいかな？"
+        ]} />
 
         <div style={commonStyles.page.kokoronContainer}>
           <KokoronDefault size={200} />
@@ -166,18 +169,21 @@ export default function SetupPage() {
             初期設定
           </h1>
 
-          <p
+          <div
             style={{
+              marginTop: spacing.lg,
+              padding: spacing.md,
+              backgroundColor: '#f8f9fa',
+              borderRadius: borderRadius.small,
+              fontSize: fontSize.small,
               color: colors.text.secondary,
-              fontSize: fontSize.base,
-              textAlign: 'center',
-              marginBottom: spacing.lg,
-              lineHeight: 1.5,
+              lineHeight: 1.4,
             }}
           >
-            アプリを使用いただくお子様の情報をご入力ください。
-            <br />
-          </p>
+            <p style={{ margin: 0 }}>
+              💡 アプリを使用いただくお子様の情報をご入力ください
+            </p>
+          </div>
 
           <form onSubmit={handleSubmit}>
             <div style={{ marginBottom: spacing.lg }}>
@@ -238,14 +244,20 @@ export default function SetupPage() {
                     outline: 'none',
                     backgroundColor: colors.background.white,
                     boxSizing: 'border-box',
+                    appearance: 'none',
+                    backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%204.9A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%204.9%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E")',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center',
+                    backgroundSize: '12px auto',
+                    paddingRight: '32px',
                   }}
                 >
-                  <option value="">年</option>
+                  <option value="" style={{ fontSize: '24px', padding: '16px' }}>年</option>
                   {Array.from(
                     { length: 18 },
                     (_, i) => new Date().getFullYear() - i,
                   ).map((year) => (
-                    <option key={year} value={year}>
+                    <option key={year} value={year} style={{ fontSize: '24px', padding: '16px' }}>
                       {year}年
                     </option>
                   ))}
@@ -265,13 +277,20 @@ export default function SetupPage() {
                     outline: 'none',
                     backgroundColor: colors.background.white,
                     boxSizing: 'border-box',
+                    appearance: 'none',
+                    backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%204.9A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%204.9%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E")',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center',
+                    backgroundSize: '12px auto',
+                    paddingRight: '32px',
                   }}
                 >
-                  <option value="">月</option>
+                  <option value="" style={{ fontSize: '24px', padding: '16px' }}>月</option>
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
                     <option
                       key={month}
                       value={month.toString().padStart(2, '0')}
+                      style={{ fontSize: '24px', padding: '16px' }}
                     >
                       {month}月
                     </option>
@@ -292,11 +311,17 @@ export default function SetupPage() {
                     outline: 'none',
                     backgroundColor: colors.background.white,
                     boxSizing: 'border-box',
+                    appearance: 'none',
+                    backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%204.9A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%204.9%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E")',
+                    backgroundRepeat: 'no-repeat',
+                    backgroundPosition: 'right 8px center',
+                    backgroundSize: '12px auto',
+                    paddingRight: '32px',
                   }}
                 >
-                  <option value="">日</option>
+                  <option value="" style={{ fontSize: '24px', padding: '16px' }}>日</option>
                   {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                    <option key={day} value={day.toString().padStart(2, '0')}>
+                    <option key={day} value={day.toString().padStart(2, '0')} style={{ fontSize: '24px', padding: '16px' }}>
                       {day}日
                     </option>
                   ))}
@@ -329,11 +354,17 @@ export default function SetupPage() {
                   outline: 'none',
                   backgroundColor: colors.background.white,
                   boxSizing: 'border-box',
+                  appearance: 'none',
+                  backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%204.9A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%204.9%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E")',
+                  backgroundRepeat: 'no-repeat',
+                  backgroundPosition: 'right 8px center',
+                  backgroundSize: '12px auto',
+                  paddingRight: '32px',
                 }}
               >
-                <option value="">せいべつ（こたえなくてもOKだよ）</option>
+                <option value="" style={{ fontSize: '24px', padding: '16px' }}>せいべつ（こたえなくてもOKだよ）</option>
                 {['おとこのこ', 'おんなのこ', 'こたえない'].map((gender) => (
-                  <option key={gender} value={gender}>
+                  <option key={gender} value={gender} style={{ fontSize: '24px', padding: '16px' }}>
                     {gender}
                   </option>
                 ))}
@@ -360,21 +391,7 @@ export default function SetupPage() {
               </button>
             </div>
           </form>
-          <div
-            style={{
-              marginTop: spacing.lg,
-              padding: spacing.md,
-              backgroundColor: '#f8f9fa',
-              borderRadius: borderRadius.small,
-              fontSize: fontSize.small,
-              color: colors.text.secondary,
-              lineHeight: 1.4,
-            }}
-          >
-            <p style={{ margin: 0 }}>
-              💡 アプリを使用いただくお子様の情報をご入力ください
-            </p>
-          </div>
+
         </div>
       </div>
     </div>

@@ -1,97 +1,122 @@
 // 公開トップページ
 'use client';
-
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
-import { useAuth } from '@/contexts/AuthContext';
-import { useSubscription } from '@/hooks/useSubscription';
-import { useEffect } from 'react';
 import {
   SpeechBubble,
   PrimaryButton,
-  Spinner,
 } from '@/components/ui';
+import { FeatureList } from '@/components/ui/FeatureList';
+import KokoronWelcome from '@/components/ui/KokoronWelcome';
 import {
   colors,
-  commonStyles,
   spacing,
   fontSize,
 } from '@/styles/theme';
 
 export default function LandingPage() {
-  const { user } = useAuth();
-  const { subscription, loading: subLoading } = useSubscription();
   const router = useRouter();
-
-  // デバッグログを追加
-  console.log('LandingPage render:', { user, subscription, subLoading });
-
-  // ログイン済みかつサブスクリプション登録済みの場合のみアプリに遷移
-  useEffect(() => {
-    if (user && subscription && !subLoading) {
-      console.log('Redirecting to /app');
-      router.push('/app');
-    }
-  }, [user, subscription, subLoading, router]);
-
-  // サブスクリプション情報の読み込み中はローディング表示
-  if (subLoading) {
-    return (
-      <div style={commonStyles.loading.container}>
-        <Spinner size="medium" />
-        <p>読み込み中...</p>
-      </div>
-    );
-  }
-
-  // ログイン済みかつサブスクリプション登録済みの場合は何も表示しない
-  if (user && subscription && !subLoading) {
-    console.log('Returning null - user logged in with subscription');
-    return null;
-  }
-
-  const handleLogin = () => {
-    router.push('/login');
-  };
-
-
 
   return (
     <div style={{
-      ...commonStyles.page.container,
-      backgroundImage: 'url(/images/publictopbackground.webp)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      width: '100vw',
+      height: '100vh',
+      overflow: 'hidden',
+      zIndex: 0,
     }}>
+      {/* 背景画像 */}
+      <Image
+        src="/images/background.webp"
+        alt="背景画像"
+        fill
+        priority
+        style={{
+          objectFit: 'cover',
+          zIndex: -1,
+        }}
+      />
+
+      {/* アプリタイトル - 左上に固定 */}
       <div style={{
-        ...commonStyles.page.mainContent,
-        paddingTop: '350px', 
+        position: 'absolute',
+        left: '20px',
+        zIndex: 10,
       }}>
-        {/* ヒーローセクション */}
-        <div style={{ textAlign: 'center', marginBottom: spacing.xxl }}>
+        <Image 
+          src="/images/app_title.webp" 
+          alt="きもちみっけ！" 
+          width={250} 
+          height={120} 
+          style={{ 
+            objectFit: 'contain',
+            maxWidth: '100%',
+            height: 'auto', // アスペクト比保持
+            width: 'auto',
+          }}
+        />
+      </div>
 
-
-          <p
-            style={{
-              fontSize: fontSize.large,
-              color: colors.text.secondary,
-              marginBottom: spacing.xl,
-              lineHeight: 1.6,
-              maxWidth: '700px',
-              margin: `0 auto ${spacing.xl} auto`,
-            }}
-          >
-            AIパートナー「こころん」が、お子さまの感情教育をサポートします。
-            まずは7日間無料でお試しください。
+      {/* メインコンテンツ */}
+      <div style={{
+        position: 'absolute',
+        top: '63%', // 65%から55%に変更して上部に移動
+        left: '50%',
+        transform: 'translate(-50%, -50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'flex-start', // centerからflex-startに変更
+        width: '90%', // 80%から90%に変更
+        maxWidth: '600px', // 500pxから600pxに変更
+        zIndex: 1,
+      }}>
+        <div style={{
+          width: '80%',
+          maxWidth: '80%',
+          backgroundColor: '#f8f9fa',
+          border: '2px solid #e0e0e0',
+          borderRadius: '12px',
+          boxShadow: '#f8f9fa',
+          padding: '10px', // 20pxから15pxに変更
+          marginBottom: '20px',
+        }}>
+          {/* 説明文を上部に追加 */}
+          <p style={{
+            fontSize: fontSize.large,
+            color: colors.text.secondary,
+            textAlign: 'left',
+            marginBottom: spacing.sm, // mdからsmに変更
+            lineHeight: 1.4, // 1.6から1.4に変更
+            fontWeight: '500',
+          }}>
+            本アプリはお子さまの感情理解をサポートするツールを提供しております。
           </p>
+          
+          <FeatureList 
+            title="✨ このアプリの機能 ✨"
+            variant="detailed" // フォントサイズを大きくする
+          />
         </div>
 
         {/* こころん吹き出し */}
-        <SpeechBubble 
-          text="
-          いっしょに きもちを たんけんしよう！"
-        />
-        <div style={{ marginBottom: '400px' }}></div>
+        <div style={{
+          width: '80%', // 幅を60%に制限
+          maxWidth: '400px', // 最大幅も制限
+          display: 'flex',
+          justifyContent: 'center',
+        }}>
+          <SpeechBubble 
+            text="
+            いっしょに きもちを たんけんしよう！"
+          />
+        </div>
+        
+        {/* こころんキャラクター */}
+        <KokoronWelcome />
+        
         {/* CTA ボタン */}
         <div
           style={{
@@ -99,13 +124,13 @@ export default function LandingPage() {
             flexDirection: 'column',
             gap: spacing.md,
             alignItems: 'center',
-            marginTop: '30px',
+            marginTop: '15px', // 30pxから15pxに変更
           }}
         >
           <PrimaryButton
-            onClick={handleLogin}
+            onClick={() => router.push('/login')}
           >
-            ログインする
+            はじめる
           </PrimaryButton>
         </div>
       </div>

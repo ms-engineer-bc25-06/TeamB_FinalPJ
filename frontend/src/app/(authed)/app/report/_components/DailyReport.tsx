@@ -287,7 +287,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
 
   // 選択された日付の枠線色を生成
   const getEmotionBorderColor = (emotionCard?: { label: string; color: string }, intensityId?: number): string => {
-    if (!emotionCard?.color) return colors.primary; // デフォルトは青
+    if (!emotionCard?.color) return '#cccccc';
     
     // 強度IDからcolor_modifierを取得
     const intensity = intensities.find(i => i.id === intensityId);
@@ -358,7 +358,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
           maxHeight: '90vh',
           overflow: 'auto',
           position: 'relative',
-          border: `3px solid ${colors.primary}`,
+          border: `3px solid #cccccc`,
           width: '500px',
           height: '800px', 
         }}
@@ -419,7 +419,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         {/* カレンダー部分 */}
         <div
           style={{
-            border: `2px solid ${colors.primary}`,
+            border: `3px solid #cccccc`,
             borderRadius: borderRadius.medium,
             padding: spacing.md,
             marginBottom: spacing.lg,
@@ -569,7 +569,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         {/* レポート表示部分 */}
         <div
           style={{
-            border: `3px solid ${colors.primary}`,
+            border: `3px solid #cccccc`,
             borderRadius: borderRadius.medium,
             padding: spacing.md,
             backgroundColor: colors.background.white, 
@@ -579,12 +579,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
           }}
         >
           {selectedReport ? (
-            <div>
-              {/* デバッグ用: データ確認 */}
-              <div style={{ fontSize: fontSize.large, color: colors.text.secondary, marginBottom: spacing.sm }}>
-                ＜Debug:🎙️ = {selectedReport.audio_file_path || 'この日は音声の登録がありません'}＞
-              </div>
-              
+            <div>              
               <div
                 style={{
                   fontSize: fontSize.large,
@@ -624,11 +619,8 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                       gap: '4px',
                     }}
                   >
-                    {isPlaying ? '⏹️ 停止' : '▶️ 再生'}
+                    {isPlaying ? '⏹️ 停止' : '▶️ 音声メモを再生'}
                   </button>
-                  <span style={{ fontSize: fontSize.small, color: colors.text.secondary }}>
-                    音声メモ
-                  </span>
                 </div>
               )}
               

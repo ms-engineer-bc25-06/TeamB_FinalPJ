@@ -1,7 +1,9 @@
 'use client';
 
+import { useEffect } from 'react';
+import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { BillingInfoContent } from '@/components/ui';
+import { HamburgerMenu, BillingInfoContent } from '@/components/ui';
 import {
   colors,
   commonStyles,
@@ -11,11 +13,33 @@ import {
 } from '@/styles/theme';
 
 export default function BillingHelpPage() {
+  const { user, isLoading } = useAuth();
   const router = useRouter();
 
+  // 認証チェック
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
+
   const handleBack = () => {
-    router.back();
+    router.push('/app/subscription');
   };
+
+  // ローディング中
+  if (isLoading) {
+    return (
+      <div style={commonStyles.loading.container}>
+        <p>読み込み中...</p>
+      </div>
+    );
+  }
+
+  // 未認証の場合
+  if (!user) {
+    return null;
+  }
 
   return (
     <div style={{
@@ -29,6 +53,9 @@ export default function BillingHelpPage() {
       backgroundAttachment: 'fixed',
       overflow: 'auto',
     }}>
+      {/* ハンバーガーメニュー */}
+      <HamburgerMenu />
+
       <div style={{
         display: 'flex',
         flexDirection: 'column',
@@ -43,14 +70,17 @@ export default function BillingHelpPage() {
           onClick={handleBack}
           style={{
             position: 'fixed',
-            top: spacing.lg,
-            left: spacing.lg,
+            top: '20px',
+            left: '20px',
             background: 'none',
             border: 'none',
-            fontSize: '20px',
+            fontSize: '16px',
             cursor: 'pointer',
-            color: colors.text.secondary,
+            padding: '6px',
+            borderRadius: '6px',
+            color: '#000000',
             zIndex: 1000,
+            fontWeight: 'bold',
           }}
         >
           ← もどる
@@ -63,9 +93,8 @@ export default function BillingHelpPage() {
             padding: spacing.xl,
             boxShadow: colors.shadow.heavy,
             maxWidth: '80vw',
-            width: '100%',
+            width: '80vw',
             margin: `${spacing.lg} 0`,
-            marginTop: '80px',
           }}
         >
           <h1
@@ -105,13 +134,13 @@ export default function BillingHelpPage() {
             </p>
           </div>
 
-          {/* サブスクリプション登録ボタン */}
+          {/* サブスクリプション管理に戻るボタン */}
           <div style={{
             textAlign: 'center',
             marginTop: spacing.lg,
           }}>
             <button
-              onClick={() => router.push('/subscription')}
+              onClick={() => router.push('/app/subscription')}
               style={{
                 backgroundColor: colors.primary,
                 color: colors.background.white,
@@ -124,17 +153,17 @@ export default function BillingHelpPage() {
                 transition: 'all 0.3s ease',
               }}
               onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = colors.primaryHover || '#ff5252';
+                e.currentTarget.style.backgroundColor = colors.primaryHover;
               }}
               onMouseLeave={(e) => {
                 e.currentTarget.style.backgroundColor = colors.primary;
               }}
             >
-              サブスクリプションに登録する
+              サブスクリプション管理に戻る
             </button>
           </div>
         </div>
       </div>
     </div>
   );
-}
+} 

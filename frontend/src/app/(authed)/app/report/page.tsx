@@ -1,25 +1,21 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { useChildren } from '@/hooks/useChildren';
 import DailyReport from '@/app/(authed)/app/report/_components/DailyReport';
 import WeeklyReport from '@/app/(authed)/app/report/_components/WeeklyReport';
-import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
+import { commonStyles, spacing } from '@/styles/theme';
 import {
   PrimaryButton,
   Spinner,
   HamburgerMenu,
-  MenuItem,
 } from '@/components/ui';
-import styles from '../../../page.module.css';
 import KokoronReadingReport from '@/components/ui/KokoronReadingReport';
 
 export default function ReportPage() {
   const { user, isLoading, logout } = useAuth();
   const router = useRouter();
-  const { children } = useChildren();
   const [showDailyReport, setShowDailyReport] = useState(false);
   const [showWeeklyReport, setShowWeeklyReport] = useState(false);
 
@@ -33,6 +29,13 @@ export default function ReportPage() {
     await logout();
   };
 
+  // ログインしていない場合のリダイレクト
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
+
   // ローディング中（認証）
   if (isLoading) {
     return (
@@ -43,9 +46,8 @@ export default function ReportPage() {
     );
   }
 
-  // ログインしていない場合
+  // ログインしていない場合は何も表示しない（useEffectでリダイレクトされる）
   if (!user) {
-    router.push('/');
     return null;
   }
 
@@ -65,41 +67,13 @@ export default function ReportPage() {
       >
         ← もどる
       </button>
-      <HamburgerMenu>
-        <div className={styles.userInfo}>
-          <p>ようこそ、{user.nickname}さん！</p>
-        </div>
-        <ul className={styles.menuList}>
-          <MenuItem>使い方</MenuItem>
-          <MenuItem>保護者向けTips</MenuItem>
-          <MenuItem>レポートページの見かた</MenuItem>
-          <MenuItem>感情教育について</MenuItem>
-          <MenuItem>非認知能力について</MenuItem>
-          <MenuItem>プライバシーポリシー</MenuItem>
-          <MenuItem>FAQ</MenuItem>
-          <MenuItem>設定</MenuItem>
-          <MenuItem>ロールプレイ</MenuItem>
-          <MenuItem>レポート</MenuItem>
-          <MenuItem>アップグレード</MenuItem>
-          <MenuItem onClick={handleLogout}>ログアウト</MenuItem>
-        </ul>
-      </HamburgerMenu>
+      <HamburgerMenu/ >
+
       <div style={commonStyles.page.mainContent}>
-        <h1
-          style={{
-            color: colors.text.primary,
-            fontSize: fontSize.lg,
-            fontWeight: 'bold',
-            marginBottom: spacing.xxl,
-            textAlign: 'center',
-            textShadow: '2px 2px 4px rgba(0,0,0,0.1)',
-          }}
-        >
-          {children[0]?.nickname || ''}のこころん
-        </h1>
+
         {/* こころんを表示 */}
         <div style={commonStyles.page.kokoronContainer}>
-          <KokoronReadingReport size={120} />
+          <KokoronReadingReport size={200} />
         </div>
 
         <div
@@ -108,14 +82,32 @@ export default function ReportPage() {
             flexDirection: 'column',
             gap: spacing.lg,
             alignItems: 'center',
+            maxWidth: '1000px',
+            width: '90vw',
           }}
         >
-          <PrimaryButton onClick={() => setShowDailyReport(true)}>
-            毎日のきろく
+          <PrimaryButton 
+            onClick={() => setShowDailyReport(true)}
+            style={{ 
+              width: '100%', 
+              maxWidth: '800px',
+              minWidth: 'auto',
+              padding: '20px 80px'
+            }}
+          >
+            まいにちのきろく
           </PrimaryButton>
 
-          <PrimaryButton onClick={() => setShowWeeklyReport(true)}>
-            今週のきろく
+          <PrimaryButton 
+            onClick={() => setShowWeeklyReport(true)}
+            style={{ 
+              width: '100%', 
+              maxWidth: '800px',
+              minWidth: 'auto',
+              padding: '20px 80px'
+            }}
+          >
+            こんしゅうのきろく
           </PrimaryButton>
         </div>
 
