@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { colors, spacing, borderRadius, fontSize } from '@/styles/theme';
 import { useAuth } from '@/contexts/AuthContext';
+import { useTodayEntry } from '@/hooks/useTodayEntry';
 import { getEmotionLogsByMonth, getEmotionCards, getIntensities } from '@/lib/api';
 
 interface DailyReportProps {
@@ -36,9 +37,25 @@ interface Intensity {
 }
 
 export default function DailyReport({ onClose }: DailyReportProps) {
-  const { user, firebaseUser } = useAuth(); // NOTE: userも取得する
-  const [selectedDate, setSelectedDate] = useState<string>('2025-08-18');
-  const [currentMonth, setCurrentMonth] = useState(new Date(2025, 7, 12));
+  const { user, firebaseUser } = useAuth();
+  const { todayEntry, isLoading: isTodayEntryLoading } = useTodayEntry();
+  
+  // JST時刻で初期化（修正版）
+  const [selectedDate, setSelectedDate] = useState<string>(() => {
+    const now = new Date();
+    const jstOffset = 9 * 60; // JSTはUTC+9
+    const jstTime = new Date(now.getTime() + (jstOffset * 60 * 1000));
+    return jstTime.toISOString().split('T')[0];
+  });
+  
+  // JST時刻で初期化（修正版）
+  const [currentMonth, setCurrentMonth] = useState(() => {
+    const now = new Date();
+    const jstOffset = 9 * 60;
+    const jstTime = new Date(now.getTime() + (jstOffset * 60 * 1000));
+    return jstTime;
+  });
+  
   const [emotionLogs, setEmotionLogs] = useState<EmotionLogData[]>([]);
   const [emotionCards, setEmotionCards] = useState<EmotionCard[]>([]);
   const [intensities, setIntensities] = useState<Intensity[]>([]);
@@ -63,6 +80,31 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     'ゆかい': 'yukai'
   };
 
+  // 今日の記録の自動選択（修正版）
+  useEffect(() => {
+    if (todayEntry) {
+      // 今日の日付をJSTで取得
+      const now = new Date();
+      const jstOffset = 9 * 60;
+      const jstTime = new Date(now.getTime() + (jstOffset * 60 * 1000));
+      const today = jstTime.toISOString().split('T')[0];
+      
+      setSelectedDate(today);
+      setCurrentMonth(jstTime);
+      console.log('[DailyReport] 今日の記録を自動選択:', today, todayEntry);
+    }
+  }, [todayEntry]);
+
+  // デバッグ用のログ
+  useEffect(() => {
+    console.log('[DailyReport] 状態更新:', {
+      todayEntry,
+      selectedDate,
+      currentMonth: currentMonth.toISOString().split('T')[0],
+      emotionLogsCount: emotionLogs.length
+    });
+  }, [todayEntry, selectedDate, currentMonth, emotionLogs]);
+
   // 感情ログデータ、感情カード、強度データを取得
   useEffect(() => {
     const fetchData = async () => {
@@ -82,7 +124,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         setEmotionCards(cardsData.cards || []);
         setIntensities(intensitiesData.intensities || []);
         
-        // 感情ログデータを変換
+        // 感情ログデータを変換（JST変換対応）
         const transformedLogs: EmotionLogData[] = logs.map((log: {
           id: string;
           created_at: string;
@@ -94,15 +136,23 @@ export default function DailyReport({ onClose }: DailyReportProps) {
             image_url: string;
           };
           intensity_id?: number;
-        }) => ({
-          id: log.id,
-          date: new Date(log.created_at).toISOString().split('T')[0],
-          content: log.voice_note || '音声メモがありません',
-          mood: getEmotionMood(log.emotion_card?.label),
-          audio_file_path: log.audio_file_path,
-          emotion_card: log.emotion_card,
-          intensity_id: log.intensity_id
-        }));
+        }) => {
+          // JST変換を適用
+          const utcDate = new Date(log.created_at);
+          const jstOffset = 9 * 60; // JSTはUTC+9
+          const jstDate = new Date(utcDate.getTime() + (jstOffset * 60 * 1000));
+          const jstDateStr = jstDate.toISOString().split('T')[0];
+          
+          return {
+            id: log.id,
+            date: jstDateStr, // JST日付を使用
+            content: log.voice_note || '音声メモがありません',
+            mood: getEmotionMood(log.emotion_card?.label),
+            audio_file_path: log.audio_file_path,
+            emotion_card: log.emotion_card,
+            intensity_id: log.intensity_id
+          };
+        });
         
         setEmotionLogs(transformedLogs);
       } catch (error) {
@@ -116,7 +166,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     };
 
     fetchData();
-  }, [firebaseUser, currentMonth]);
+  }, [firebaseUser, currentMonth, todayEntry]);
 
   // 感情カードの画像URLを取得
   const getEmotionImageUrl = (emotionCard?: { image_url: string }): string => {
