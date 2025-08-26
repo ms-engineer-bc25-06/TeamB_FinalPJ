@@ -326,3 +326,52 @@ async def get_children_by_user_id(
     except SQLAlchemyError as e:
         logger.error("get_children_by_user_id failed", exc_info=e)
         return []
+
+async def get_child_by_id(
+    db: AsyncSession,
+    child_id: uuid.UUID
+) -> Optional[models.Child]:
+    """IDから子どものプロフィールを取得"""
+    try:
+        stmt = select(models.Child).where(models.Child.id == child_id)
+        result = await db.execute(stmt)
+        return result.scalar_one_or_none()
+    except SQLAlchemyError as e:
+        logger.error("get_child_by_id failed", exc_info=e)
+        return None
+
+async def update_child(
+    db: AsyncSession,
+    *,
+    child_id: uuid.UUID,
+    nickname: str,
+    birth_date: str,  # YYYY-MM-DD形式
+    gender: str,
+) -> Optional[models.Child]:
+    """子どものプロフィールを更新"""
+    try:
+        # 子供を取得
+        child = await get_child_by_id(db, child_id)
+        if not child:
+            return None
+        
+        # 誕生日をDate型に変換
+        birth_date_obj = datetime.strptime(birth_date, "%Y-%m-%d").date()
+        
+        # プロフィールを更新
+        child.nickname = nickname
+        child.birth_date = birth_date_obj
+        child.gender = gender
+        child.updated_at = now_utc()
+        
+        await db.commit()
+        await db.refresh(child)
+        return child
+        
+    except SQLAlchemyError as e:
+        await db.rollback()
+        logger.error("update_child failed", exc_info=e)
+        return None
+    except ValueError as e:
+        logger.error("Invalid birth_date format", exc_info=e)
+        return None

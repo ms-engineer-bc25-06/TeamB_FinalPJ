@@ -1,5 +1,6 @@
 import logging
 from typing import List
+from uuid import UUID 
 from fastapi import APIRouter, Depends, HTTPException, Security
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -85,3 +86,28 @@ async def get_children_count(
     except Exception as e:
         logging.error(f"Failed to get children count: {e}")
         raise HTTPException(status_code=500, detail="Internal server error") 
+    
+@router.put("/{child_id}", response_model=schemas.ChildResponse)
+async def update_child(
+    child_id: UUID,
+    child_data: schemas.ChildBase,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """子どものプロフィールを更新"""
+    try:
+
+        child = await crud.get_child_by_id(db, child_id)
+        if not child:
+            raise HTTPException(status_code=404, detail="Child not found")
+
+        return await crud.update_child(
+            db,
+            child_id=child_id,
+            nickname=child_data.nickname,
+            birth_date=child_data.birth_date,
+            gender=child_data.gender,
+        )
+    except Exception as e:
+        logging.error(f"Failed to update child profile: {e}")
+        raise HTTPException(status_code=500, detail="Internal server error")
