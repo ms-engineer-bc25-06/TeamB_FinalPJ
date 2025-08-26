@@ -5,8 +5,15 @@ import type React from 'react';
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
-import { createChild, getChildrenCount } from '@/lib/api';
-import { KokoronDefault, SpeechBubble } from '@/components/ui';
+import { useChildren } from '@/hooks/useChildren';
+import { updateChildProfile } from '@/lib/api';
+import {
+  KokoronDefault,
+  SpeechBubble,
+  HamburgerMenu,
+  MenuItem,
+  Spinner,
+} from '@/components/ui';
 import {
   colors,
   commonStyles,
@@ -15,53 +22,65 @@ import {
   borderRadius,
 } from '@/styles/theme';
 
-export default function SetupPage() {
-  const { user, firebaseUser } = useAuth();
+export default function SettingsPage() {
+  const { user, firebaseUser, isLoading: authLoading, logout } = useAuth();
+  const { children, loading: childrenLoading } = useChildren();
   const router = useRouter();
+
   const [childName, setChildName] = useState('');
   const [childBirthYear, setChildBirthYear] = useState('');
   const [childBirthMonth, setChildBirthMonth] = useState('');
   const [childBirthDay, setChildBirthDay] = useState('');
   const [childGender, setChildGender] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [childrenCount, setChildrenCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
 
-  // 既存の子供の数をチェック
+  // 既存の子供の情報をフォームに設定
   useEffect(() => {
-    const checkExistingChildren = async () => {
-      if (firebaseUser) {
-        try {
-          const count = await getChildrenCount(firebaseUser);
-          setChildrenCount(count);
+    if (children.length > 0) {
+      const child = children[0]; // 最初の子供の情報を使用
+      setChildName(child.nickname);
 
-          // 既に子供がいる場合は、アプリホームにリダイレクト
-          if (count > 0) {
-            router.push('/app');
-            return;
-          }
-        } catch (error) {
-          console.error('子供の数取得エラー:', error);
-        } finally {
-          setIsLoading(false);
-        }
-      }
-    };
+      // 誕生日を分解して設定
+      const birthDate = new Date(child.birth_date);
+      setChildBirthYear(birthDate.getFullYear().toString());
+      setChildBirthMonth(
+        (birthDate.getMonth() + 1).toString().padStart(2, '0'),
+      );
+      setChildBirthDay(birthDate.getDate().toString().padStart(2, '0'));
 
-    checkExistingChildren();
-  }, [firebaseUser, router]);
+      setChildGender(child.gender);
+    }
+  }, [children]);
 
-  // ローディング中
-  if (isLoading) {
+  // 戻るボタンの処理
+  const handleBack = () => {
+    router.push('/app');
+  };
+
+  // ログアウト処理
+  const handleLogout = async () => {
+    await logout();
+  };
+
+  // ローディング中（認証）
+  if (authLoading || childrenLoading) {
     return (
       <div style={commonStyles.loading.container}>
+        <Spinner size="medium" />
         <p>読み込み中...</p>
       </div>
     );
   }
 
-  // 既に子供がいる場合は何も表示しない（リダイレクト中）
-  if (childrenCount > 0) {
+  // ログインしていない場合
+  if (!user) {
+    router.push('/');
+    return null;
+  }
+
+  // 子供の情報がない場合はセットアップへリダイレクト
+  if (children.length === 0) {
+    router.push('/app/setup');
     return null;
   }
 
@@ -85,67 +104,68 @@ export default function SetupPage() {
         parseInt(childBirthDay),
       );
 
-      console.log('プロフィール保存:', {
+      // プロフィール情報を更新
+      console.log('プロフィール更新:', {
         childName,
         birthDate: birthDate.toISOString().split('T')[0], // YYYY-MM-DD形式
         childGender,
       });
 
-      if (firebaseUser) {
+      if (firebaseUser && children.length > 0) {
         const childData = {
           nickname: childName,
           birth_date: birthDate.toISOString().split('T')[0], // YYYY-MM-DD形式
           gender: childGender,
         };
 
-        const createdChild = await createChild(childData, firebaseUser);
-        console.log('子どもプロフィール作成完了:', createdChild);
+        await updateChildProfile(children[0].id, childData, firebaseUser);
+        console.log('子どもプロフィール更新完了');
 
-        // ダミーでユーザー情報を更新（既存のコードとの互換性のため）
-        localStorage.setItem(
-          'user',
-          JSON.stringify({
-            ...user,
-            displayName: childName,
-            birthDate: birthDate.toISOString().split('T')[0], // YYYY-MM-DD形式
-            childGender: childGender,
-          }),
-        );
-
-        // セットアップ完了後、アプリホームに遷移
+        // 成功メッセージを表示
+        alert('設定を保存しました！');
         router.push('/app');
       } else {
-        throw new Error('Firebase user not found');
+        throw new Error('Firebase user or child not found');
       }
     } catch (error) {
-      console.error('セットアップエラー:', error);
-      alert('セットアップに失敗しました。もう一度お試しください。');
+      console.error('保存エラー:', error);
+      alert('保存に失敗しました。もう一度お試しください。');
     } finally {
       setIsSubmitting(false);
     }
   };
 
   return (
-    <div
-      style={{
-        ...commonStyles.page.container,
-        backgroundImage: 'url(/images/background.webp)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
-      }}
-    >
+    <div style={commonStyles.page.container}>
+      <HamburgerMenu>
+        <MenuItem onClick={handleBack}>ホームに戻る</MenuItem>
+        <MenuItem onClick={handleLogout}>ログアウト</MenuItem>
+      </HamburgerMenu>
+
+      {/* ← もどる */}
+      <p
+        onClick={handleBack}
+        style={{
+          position: 'fixed',
+          top: spacing.xl,
+          left: spacing.xl,
+          fontSize: fontSize.large,
+          color: colors.text.primary,
+          cursor: 'pointer',
+          fontWeight: 'bold',
+          zIndex: 200,
+        }}
+      >
+        ← もどる
+      </p>
+
       <div style={commonStyles.page.mainContent}>
-        <SpeechBubble text={[
-          "はじめまして！",
-          "なんてよんだらいいかな？"
-        ]} />
+        <SpeechBubble text="お子さんの情報を編集できます！" />
 
         <div style={commonStyles.page.kokoronContainer}>
           <KokoronDefault size={200} />
         </div>
 
-        {/* セットアップフォーム */}
         <div
           style={{
             backgroundColor: colors.background.white,
@@ -166,37 +186,22 @@ export default function SetupPage() {
               textAlign: 'center',
             }}
           >
-            初期設定
+            お子さんの情報
           </h1>
 
-          <div
-            style={{
-              marginTop: spacing.lg,
-              padding: spacing.md,
-              backgroundColor: '#f8f9fa',
-              borderRadius: borderRadius.small,
-              fontSize: fontSize.small,
-              color: colors.text.secondary,
-              lineHeight: 1.4,
-            }}
-          >
-            <p style={{ margin: 0 }}>
-              💡 アプリを使用いただくお子様の情報をご入力ください
-            </p>
-          </div>
-
           <form onSubmit={handleSubmit}>
+            {/* 名前 */}
             <div style={{ marginBottom: spacing.lg }}>
               <label
                 style={{
                   display: 'block',
                   color: colors.text.primary,
-                  fontSize: fontSize.xl,
+                  fontSize: fontSize.base,
                   fontWeight: 'bold',
                   marginBottom: spacing.sm,
                 }}
               >
-                こころんに呼んでほしいおなまえ
+                おなまえ
               </label>
               <input
                 type="text"
@@ -244,20 +249,14 @@ export default function SetupPage() {
                     outline: 'none',
                     backgroundColor: colors.background.white,
                     boxSizing: 'border-box',
-                    appearance: 'none',
-                    backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%204.9A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%204.9%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E")',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 8px center',
-                    backgroundSize: '12px auto',
-                    paddingRight: '32px',
                   }}
                 >
-                  <option value="" style={{ fontSize: '24px', padding: '16px' }}>年</option>
+                  <option value="">年</option>
                   {Array.from(
                     { length: 18 },
                     (_, i) => new Date().getFullYear() - i,
                   ).map((year) => (
-                    <option key={year} value={year} style={{ fontSize: '24px', padding: '16px' }}>
+                    <option key={year} value={year}>
                       {year}年
                     </option>
                   ))}
@@ -277,20 +276,13 @@ export default function SetupPage() {
                     outline: 'none',
                     backgroundColor: colors.background.white,
                     boxSizing: 'border-box',
-                    appearance: 'none',
-                    backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%204.9A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%204.9%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E")',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 8px center',
-                    backgroundSize: '12px auto',
-                    paddingRight: '32px',
                   }}
                 >
-                  <option value="" style={{ fontSize: '24px', padding: '16px' }}>月</option>
+                  <option value="">月</option>
                   {Array.from({ length: 12 }, (_, i) => i + 1).map((month) => (
                     <option
                       key={month}
                       value={month.toString().padStart(2, '0')}
-                      style={{ fontSize: '24px', padding: '16px' }}
                     >
                       {month}月
                     </option>
@@ -311,17 +303,11 @@ export default function SetupPage() {
                     outline: 'none',
                     backgroundColor: colors.background.white,
                     boxSizing: 'border-box',
-                    appearance: 'none',
-                    backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%204.9A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%204.9%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E")',
-                    backgroundRepeat: 'no-repeat',
-                    backgroundPosition: 'right 8px center',
-                    backgroundSize: '12px auto',
-                    paddingRight: '32px',
                   }}
                 >
-                  <option value="" style={{ fontSize: '24px', padding: '16px' }}>日</option>
+                  <option value="">日</option>
                   {Array.from({ length: 31 }, (_, i) => i + 1).map((day) => (
-                    <option key={day} value={day.toString().padStart(2, '0')} style={{ fontSize: '24px', padding: '16px' }}>
+                    <option key={day} value={day.toString().padStart(2, '0')}>
                       {day}日
                     </option>
                   ))}
@@ -334,7 +320,6 @@ export default function SetupPage() {
                   display: 'block',
                   color: colors.text.primary,
                   fontSize: fontSize.xl,
-
                   fontWeight: 'bold',
                   marginBottom: spacing.sm,
                 }}
@@ -354,17 +339,11 @@ export default function SetupPage() {
                   outline: 'none',
                   backgroundColor: colors.background.white,
                   boxSizing: 'border-box',
-                  appearance: 'none',
-                  backgroundImage: 'url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A//www.w3.org/2000/svg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%23007CB2%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%204.9A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%204.9%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.4-12.8z%22/%3E%3C/svg%3E")',
-                  backgroundRepeat: 'no-repeat',
-                  backgroundPosition: 'right 8px center',
-                  backgroundSize: '12px auto',
-                  paddingRight: '32px',
                 }}
               >
-                <option value="" style={{ fontSize: '24px', padding: '16px' }}>せいべつ（こたえなくてもOKだよ）</option>
+                <option value="">せいべつ（こたえなくてもOKだよ）</option>
                 {['おとこのこ', 'おんなのこ', 'こたえない'].map((gender) => (
-                  <option key={gender} value={gender} style={{ fontSize: '24px', padding: '16px' }}>
+                  <option key={gender} value={gender}>
                     {gender}
                   </option>
                 ))}
@@ -387,11 +366,10 @@ export default function SetupPage() {
                   minWidth: '200px',
                 }}
               >
-                {isSubmitting ? '設定中...' : 'はじめる'}
+                {isSubmitting ? '保存中...' : '保存する'}
               </button>
             </div>
           </form>
-
         </div>
       </div>
     </div>

@@ -2,10 +2,83 @@ import { colors, spacing, borderRadius, fontSize } from '@/styles/theme';
 import ReactMarkdown from 'react-markdown';
 
 interface SpeechBubbleProps {
-  text: string;
+  text: string | string[];
 }
 
 export default function SpeechBubble({ text }: SpeechBubbleProps) {
+  const renderText = () => {
+    if (Array.isArray(text)) {
+      return text.map((line, index) => (
+        <p key={index} style={{
+          margin: index === 0 ? '0 0 8px 0' : '8px 0',
+          lineHeight: '1.6',
+        }}>
+          {line}
+        </p>
+      ));
+    }
+    
+    return (
+      <ReactMarkdown
+        components={{
+          h3: ({ children }) => (
+            <h3 style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              margin: '16px 0 8px 0',
+              color: colors.primary,
+            }}>
+              {children}
+            </h3>
+          ),
+          p: ({ children }) => (
+            <p style={{
+              margin: '8px 0',
+              lineHeight: '1.6',
+            }}>
+              {children}
+            </p>
+          ),
+          ul: ({ children }) => (
+            <ul style={{
+              margin: '8px 0',
+              paddingLeft: '20px',
+            }}>
+              {children}
+            </ul>
+          ),
+          ol: ({ children }) => (
+            <ol style={{
+              margin: '8px 0',
+              paddingLeft: '20px',
+            }}>
+              {children}
+          </ol>
+          ),
+          li: ({ children }) => (
+            <li style={{
+              margin: '8px 0',
+              lineHeight: '1.6',
+              display: 'list-item',
+            }}>
+              {children}
+            </li>
+          ),
+          strong: ({ children }) => (
+            <strong style={{
+              fontWeight: 'bold',
+              color: colors.text.primary,
+            }}>
+              {children}
+            </strong>
+          ),
+        }}
+      >
+        {text}
+      </ReactMarkdown>
+    );
+  };
+
   return (
     <div style={{
       position: 'relative',
@@ -30,63 +103,7 @@ export default function SpeechBubble({ text }: SpeechBubbleProps) {
         margin: 0,
         width: '100%',
       }}>
-        <ReactMarkdown
-          components={{
-            h3: ({ children }) => (
-              <h3 style={{
-                fontSize: '18px',
-                fontWeight: 'bold',
-                margin: '16px 0 8px 0',
-                color: colors.primary,
-              }}>
-                {children}
-              </h3>
-            ),
-            p: ({ children }) => (
-              <p style={{
-                margin: '8px 0',
-                lineHeight: '1.6',
-              }}>
-                {children}
-              </p>
-            ),
-            ul: ({ children }) => (
-              <ul style={{
-                margin: '8px 0',
-                paddingLeft: '20px',
-              }}>
-                {children}
-              </ul>
-            ),
-            ol: ({ children }) => (
-              <ol style={{
-                margin: '8px 0',
-                paddingLeft: '20px',
-              }}>
-                {children}
-              </ol>
-            ),
-            li: ({ children }) => (
-              <li style={{
-                margin: '8px 0',
-                lineHeight: '1.6',
-                display: 'list-item',
-              }}>
-                {children}
-              </li>
-            ),
-            strong: ({ children }) => (
-              <strong style={{
-                fontWeight: 'bold',
-                color: colors.text.primary,
-              }}>
-                {children}
-              </strong>
-            ),
-          }}
-        >
-          {text}
-        </ReactMarkdown>
+        {renderText()}
       </div>
       <div style={{
         position: 'absolute',

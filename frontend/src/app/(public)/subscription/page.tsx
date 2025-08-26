@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuth } from '@/contexts/AuthContext';
 import { KokoronDefault, PrimaryButton, Spinner } from '@/components/ui';
+import { FeatureList } from '@/components/ui/FeatureList';
 import {
   colors,
   commonStyles,
@@ -15,10 +16,14 @@ import {
 import { createCheckoutSession, redirectToStripeCheckout } from '@/lib/api';
 
 export default function SubscriptionPage() {
-  const { firebaseUser } = useAuth();
+  const { firebaseUser, logout } = useAuth();
   const router = useRouter();
   const [isLoading, setIsLoading] = useState(false);
 
+  // デバッグ用: 認証状態を確認
+  console.log('=== SubscriptionPage Debug ===');
+  console.log('firebaseUser:', firebaseUser);
+  console.log('Current URL:', typeof window !== 'undefined' ? window.location.href : 'Server side');
   
   const logDebugInfo = async () => {
     console.log('SubscriptionPage render:', { firebaseUser: !!firebaseUser });
@@ -45,20 +50,42 @@ export default function SubscriptionPage() {
   const handleStartSubscription = async () => {
     if (!firebaseUser) {
       alert('ログインしてください。');
-      router.push('/login');
+      window.location.replace('/login');
       return;
     }
 
     setIsLoading(true);
 
     try {
-      // 1) Firebaseの最新IDトークン
-      const idToken = await firebaseUser.getIdToken(true);
-        
-      console.log('Starting subscription with token:', idToken.substring(0, 50) + '...');
+      // 1) Firebaseの最新IDトークンを取得（リトライ機能付き）
+      let idToken: string;
+      let retryCount = 0;
+      const maxRetries = 3;
+      
+      while (retryCount < maxRetries) {
+        try {
+          console.log(`Attempting to get ID token (attempt ${retryCount + 1}/${maxRetries})`);
+          idToken = await firebaseUser.getIdToken(true);
+          console.log('ID token obtained successfully');
+          break;
+        } catch (tokenError: unknown) {
+          console.error(`ID token error (attempt ${retryCount + 1}):`, tokenError);
+          retryCount++;
+          
+          if (retryCount >= maxRetries) {
+            const errorMessage = tokenError instanceof Error ? tokenError.message : 'Unknown error';
+            throw new Error(`Firebase認証トークンの取得に失敗しました。しばらく時間をおいて再度お試しください。\n詳細: ${errorMessage}`);
+          }
+          
+          // 少し待ってからリトライ
+          await new Promise(resolve => setTimeout(resolve, 1000 * retryCount));
+        }
+      }
+      
+      console.log('Starting subscription with token:', idToken!.substring(0, 50) + '...');
 
       // 2) Checkout Session 作成
-      const sessionId = await createCheckoutSession(idToken);
+      const sessionId = await createCheckoutSession(idToken!);
 
       // 3) Stripe.jsでリダイレクト
       await redirectToStripeCheckout(sessionId);
@@ -70,11 +97,21 @@ export default function SubscriptionPage() {
     }
   };
 
-  const handleBackToPublicTop = () => {
+  const handleBackToPublicTop = async () => {
     console.log('戻るボタンがクリックされました'); 
-    console.log('現在のパス:', window.location.pathname); 
-    router.push('/login');
-    console.log('router.push("/login")が実行されました'); 
+          console.log('現在のパス:', typeof window !== 'undefined' ? window.location.pathname : 'Server side'); 
+    
+    try {
+      // ログアウト処理を実行
+      await logout();
+      console.log('ログアウト完了');
+      
+      // トップページにリダイレクト
+      router.push('/');
+    } catch (error) {
+      console.error('ログアウトエラー:', error);
+      router.push('/');
+    }
   };
 
   if (isLoading) {
@@ -90,10 +127,6 @@ export default function SubscriptionPage() {
     <div
       style={{
         ...commonStyles.page.container,
-        backgroundImage: 'url(/images/background.webp)',
-        backgroundSize: 'cover',
-        backgroundPosition: 'center',
-        backgroundRepeat: 'no-repeat',
       }}
     >
       <div style={commonStyles.page.mainContent}>
@@ -126,8 +159,8 @@ export default function SubscriptionPage() {
             padding: spacing.xl,
             boxShadow: colors.shadow.heavy,
             textAlign: 'center',
-            maxWidth: '450px',
-            width: '100%',
+            maxWidth: '80vw',
+            width: '80vw',
             margin: `${spacing.lg} 0`,
             border: `3px solid ${colors.primary}`,
           }}
@@ -175,78 +208,8 @@ export default function SubscriptionPage() {
             8日目から有料プランへ移行します。
           </p>
 
-          {/* 機能一覧 */}
-          <div
-            style={{
-              backgroundColor: '#f8f9fa',
-              borderRadius: borderRadius.medium,
-              padding: spacing.lg,
-              marginBottom: spacing.xl,
-              textAlign: 'left',
-            }}
-          >
-            <h3
-              style={{
-                color: colors.text.primary,
-                fontSize: fontSize.base,
-                fontWeight: 'bold',
-                marginBottom: spacing.md,
-                textAlign: 'center',
-              }}
-            >
-              ✨ すべての機能が使い放題
-            </h3>
-
-            <div
-              style={{
-                display: 'grid',
-                gap: spacing.sm,
-                fontSize: fontSize.small,
-                color: colors.text.primary,
-              }}
-            >
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                }}
-              >
-                <span>✅</span>
-                <span>お子様の音声付き感情記録</span>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                }}
-              >
-                <span>✅</span>
-                <span>AIによる個別アドバイス</span>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                }}
-              >
-                <span>✅</span>
-                <span>ロールプレイ機能</span>
-              </div>
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: spacing.sm,
-                }}
-              >
-                <span>✅</span>
-                <span>成長記録の長期保存</span>
-              </div>
-            </div>
-          </div>
+        {/* 機能一覧 */}
+          <FeatureList />
 
           <PrimaryButton onClick={handleStartSubscription} disabled={isLoading}>
             {isLoading ? '処理中...' : '7日間無料で始める'}

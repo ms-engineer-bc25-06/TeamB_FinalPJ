@@ -165,11 +165,11 @@ export default function EmotionSelectionPage() {
       {/* デフォルトのこころん（右側に配置） */}
       <div style={{
         position: 'fixed',
-        top: '80px',
-        right: '2px',
+        top: '110px',
+        right: '20px',
         zIndex: 250,
       }}>
-        <KokoronDefault size={80} />
+        <KokoronDefault size={100} />
       </div>
       
       {/* エラーメッセージ */}
@@ -233,7 +233,7 @@ export default function EmotionSelectionPage() {
         wordBreak: 'keep-all',
         overflowWrap: 'break-word',
       }}>
-            いまの　きもちを　えらんでね
+            きょうは　どんな　きもちかな？
           </span>
         </div>
         
