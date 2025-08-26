@@ -178,15 +178,31 @@ async def transcribe_voice(
 
         t1 = time.monotonic()
         result = await anyio.to_thread.run_sync(
-            lambda: whisper.transcribe_audio(local_path, language=request.language or "ja")
+            lambda: whisper.transcribe(local_path, language=request.language or "ja")
         )
         t2 = time.monotonic()
+
+        # --- avg_logprob を confidence として利用（無ければ segments から平均を推定） ---
+        avg_lp = result.get("avg_logprob")
+        if avg_lp is None:
+            segs = result.get("segments") or []
+            vals = [s.get("avg_logprob") for s in segs if isinstance(s.get("avg_logprob"), (int, float))]
+            if vals:
+                avg_lp = float(sum(vals) / len(vals))
+
+        # 数値でなければ 0.0 にフォールバック
+        confidence = float(avg_lp) if isinstance(avg_lp, (int, float)) else 0.0
+
+        # ログに信頼度を出す（しきい値は -0.50 を目安）
+        logger.info(f"Whisper avg_logprob(confidence)={confidence}")
+        if confidence < -0.50:
+            logger.warning("低信頼テキスト検出（avg_logprob < -0.50）: 再録音や再推論の導線を提示してください")
 
         resp = VoiceTranscribeResponse(
             success=True,
             transcription_id=0,
-            text=result.get("text", ""),
-            confidence=float(result.get("confidence", 0.0)) if isinstance(result.get("confidence", 0.0), (int, float)) else 0.0,
+            text=result.get("text", "") or "",
+            confidence=confidence,  # ← UI が使う信頼度
             language=result.get("language", request.language or "ja"),
             duration=float(result.get("duration", 0.0)),
             processed_at=datetime.now(timezone.utc),
@@ -205,6 +221,7 @@ async def transcribe_voice(
                 os.remove(tmp_path)
             except Exception:
                 logger.warning(f"⚠️ 一時ファイル削除失敗: {tmp_path}")
+
 
 # -------------------------------------------------
 # Presign
