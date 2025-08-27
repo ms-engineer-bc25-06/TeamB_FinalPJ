@@ -40,7 +40,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
   const { user, firebaseUser } = useAuth();
   const { todayEntry, isLoading: isTodayEntryLoading } = useTodayEntry();
   
-  // JST時刻で初期化（修正版）
+  // JST時刻で初期化
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const now = new Date();
     const jstOffset = 9 * 60; // JSTはUTC+9
@@ -48,7 +48,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     return jstTime.toISOString().split('T')[0];
   });
   
-  // JST時刻で初期化（修正版）
+  // JST時刻で初期化
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     const jstOffset = 9 * 60;
@@ -80,7 +80,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     'ゆかい': 'yukai'
   };
 
-  // 今日の記録の自動選択（修正版）
+  // 今日の記録の自動選択
   useEffect(() => {
     if (todayEntry) {
       // 今日の日付をJSTで取得
@@ -124,7 +124,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         setEmotionCards(cardsData.cards || []);
         setIntensities(intensitiesData.intensities || []);
         
-        // 感情ログデータを変換（JST変換対応）
+        // 感情ログデータを変換
         const transformedLogs: EmotionLogData[] = logs.map((log: {
           id: string;
           created_at: string;
@@ -145,7 +145,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
           
           return {
             id: log.id,
-            date: jstDateStr, // JST日付を使用
+            date: jstDateStr,
             content: log.voice_note || '音声メモがありません',
             mood: getEmotionMood(log.emotion_card?.label),
             audio_file_path: log.audio_file_path,
@@ -311,7 +311,6 @@ export default function DailyReport({ onClose }: DailyReportProps) {
   // 音声ファイルのダウンロードURLを生成
   const getAudioDownloadUrl = async (audioPath: string) => {
     try {
-      // user.idが存在するかチェック
       if (!user?.id) {
         console.error('user.idが存在しません');
         return null;
