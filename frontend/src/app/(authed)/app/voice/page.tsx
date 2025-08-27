@@ -388,11 +388,11 @@ export default function VoiceEntryPage() {
           return m2?.[1] === ymd;
         });
 
-        // 音声認識の精度確認のため、一時的に1日2件の制限を解除
-        // if (hasToday) {
-        //   router.replace('/app/entries/today');
-        //   return;
-        // }
+        if (hasToday) {
+          // 既存記録がある場合は、そのまま録音UIを表示
+          // 録音完了時に上書き保存
+          console.log('[INFO] 今日の記録が既に存在します。上書きモードで録音可能です。');
+        }
       } catch (e: any) {
         setError(e?.message || '今日の記録確認に失敗しました');
       } finally {
@@ -400,11 +400,9 @@ export default function VoiceEntryPage() {
       }
     };
     if (user) {
-      // ここをコメントアウトすることで、記録チェックを無効化
-      // checkToday();
-      setCheckingToday(false); // 即座にチェック完了状態にする
-    }
-  }, [user]);
+      checkToday();
+    } 
+  }, [user,router]);
 
   // --- 録音開始 ---
   const startRecording = async () => {

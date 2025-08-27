@@ -1,5 +1,5 @@
 """
-子ども向け音声認識の精度向上と速度最適化のための語彙定義
+子ども向け音声認識の精度向上と速度最適化のための語彙定義（高速版）
 
 このモジュールは、OpenAI Whisperの音声認識精度を向上させるための
 初期プロンプトを生成し、子どもの発音特徴に特化した最適化を行います。
@@ -29,48 +29,43 @@ class VocabularyCategory:
     priority: PromptPriority
     description: str
 
-# 最重要語彙（語頭音節の正確性が最重要）
+# 最重要語彙（語頭音節の正確性が最重要）- 最小限に絞り込み
 CRITICAL_VOCABULARY = VocabularyCategory(
     name="最重要語彙",
     words=[
-        "おもちゃ", "とられた", "けんか", "けんかした",  # 目標語彙
-        "かして", "かえして", "いじわる", "だめ", "やめて"  # 関連語彙
+        "ボール", "ボールとられた",  # ボール関連のみに絞り込み
+        "とられた", "けんか"  # 基本的な語彙のみ
     ],
     priority=PromptPriority.CRITICAL,
-    description="音節レベルの正確性が最重要な語彙"
+    description="音節レベルの正確性が最重要な語彙（最小限）"
 )
 
-# 高優先度語彙（音節境界の明確化）
+# 高優先度語彙（音節境界の明確化）- 削減
 HIGH_PRIORITY_VOCABULARY = VocabularyCategory(
     name="高優先度語彙",
     words=[
-        "おもちゃとられた", "けんかした", "いじわるされた",
-        "かして", "かえして", "だめ"
+        "ボールあそび", "ボールなげた"  # ボール関連のみ
     ],
     priority=PromptPriority.HIGH,
-    description="音節境界の明確化が重要な語彙"
+    description="音節境界の明確化が重要な語彙（削減版）"
 )
 
-# 中優先度語彙（一般的な使用頻度）
+# 中優先度語彙（一般的な使用頻度）- 大幅削減
 MEDIUM_PRIORITY_VOCABULARY = VocabularyCategory(
     name="中優先度語彙",
     words=[
-        "うれしい", "かなしい", "いらいら", "こわい", "びっくり",
-        "たのしい", "つかれた", "ねむい", "おなかすいた", "のどかわいた"
+        "ボール", "おもちゃ", "あそび"  # 基本的な語彙のみ
     ],
     priority=PromptPriority.MEDIUM,
-    description="一般的な使用頻度の高い語彙"
+    description="一般的な使用頻度の高い語彙（削減版）"
 )
 
-# 低優先度語彙（補助的な語彙）
+# 低優先度語彙（補助的な語彙）- 削除
 LOW_PRIORITY_VOCABULARY = VocabularyCategory(
     name="低優先度語彙",
-    words=[
-        "ブロック", "ぬいぐるみ", "ボール", "おえかき",
-        "あそぶ", "もらった", "かって", "かってあげる", "いっしょにあそぼう"
-    ],
+    words=[],  # 空にする
     priority=PromptPriority.LOW,
-    description="補助的な語彙"
+    description="補助的な語彙（削除）"
 )
 
 # 語彙の統合（優先度順）
@@ -83,7 +78,7 @@ ALL_VOCABULARY_CATEGORIES = [
 
 def generate_whisper_prompt(optimization_level: str = "balanced") -> str:
     """
-    Whisper用の最適化された初期プロンプトを生成
+    Whisper用の最適化された初期プロンプトを生成（高速版）
     
     Args:
         optimization_level: 最適化レベル
@@ -94,16 +89,16 @@ def generate_whisper_prompt(optimization_level: str = "balanced") -> str:
     Returns:
         最適化されたプロンプト文字列
     """
-    # 最適化レベルに応じた語彙選択
+    # 最適化レベルに応じた語彙選択（大幅削減）
     if optimization_level == "precision":
-        vocabulary_limit = 40
-        prompt_emphasis = "【精度最優先】"
+        vocabulary_limit = 15  # 30 → 15に削減
+        prompt_emphasis = "【精度重視】"
     elif optimization_level == "speed":
-        vocabulary_limit = 20
+        vocabulary_limit = 8   # 15 → 8に削減
         prompt_emphasis = "【速度最優先】"
     else:  # balanced
-        vocabulary_limit = 30
-        prompt_emphasis = "【精度と速度のバランス】"
+        vocabulary_limit = 10  # 20 → 10に削減
+        prompt_emphasis = "【バランス】"
     
     # 優先度順に語彙を選択
     selected_words = []
@@ -117,32 +112,28 @@ def generate_whisper_prompt(optimization_level: str = "balanced") -> str:
     return (
         f"{prompt_emphasis} 子どもの音声認識最適化プロンプト\n\n"
         "【絶対条件】語頭音節の正確性\n"
-        "・「おもちゃ」の「お」を絶対に聞き逃さない\n"
-        "・「とられた」の「と」を確実に認識\n"
-        "・「けんか」の「け」を明確に聞き取る\n\n"
+        "・「ボール」の「ぼ」を確実に認識\n"  
+        "・「ポール」との混同を防ぐ\n"        
+        "・「ボールとられた」の「ぼ」と「と」を絶対に聞き逃さない\n"
+        "・濁音「ぼ」「と」の正確な認識\n"
+        "\n【重要】音節境界の明確化\n"
+        "・「ボールとられた」の各音節を明確に区切る\n"
+        "・語頭の音を特に重視\n"
         
-        "【重要】音節境界の明確化\n"
-        "・子音の省略を防ぐ（「おもちゃ」→「もちゃ」にならない）\n"
-        "・音節の境界を明確に区切る\n"
-        "・語頭の音を特に重視\n\n"
-        
-        f"【優先語彙】{vocabulary_text}\n\n"
+        f"\n【優先語彙】{vocabulary_text}\n\n"
         
         "【処理指示】\n"
         "・確実な音節のみを優先\n"
-        "・曖昧な部分は推測せず、明確な部分を重視\n"
-        "・処理時間を最小限に抑える\n\n"
+        "・「ボールとられた」の認識精度を最優先\n"
+        "・処理時間を最小限に抑える\n"
         
         "【出力形式】\n"
-        "・句読点は『、。』を使用\n"
-        "・半角英数\n"
-        "・日付・数値はそのまま数字で\n"
-        "・子ども向けの自然な表現を使用"
+        "・「ボールとられた」は正確にそのまま出力"
     )
 
 def generate_situation_prompt(situation: str, optimization_level: str = "balanced") -> str:
     """
-    特定のシチュエーション用の最適化されたプロンプトを生成
+    特定のシチュエーション用の最適化されたプロンプトを生成（高速版）
     
     Args:
         situation: シチュエーション文字列
@@ -151,23 +142,22 @@ def generate_situation_prompt(situation: str, optimization_level: str = "balance
     Returns:
         状況別最適化プロンプト
     """
-    if "おもちゃ" in situation or "とられた" in situation:
+    # ボール関連のシチュエーション専用プロンプト（簡潔版）
+    if "ボール" in situation or "とられた" in situation:
         return (
-            "【おもちゃ・喧嘩シチュエーション専用プロンプト】\n\n"
+            "【ボール・とられた専用プロンプト】\n\n"
             "【最重要指示】\n"
-            "1. 「おもちゃ」の「お」を絶対に聞き逃さない\n"
+            "1. 「ボール」の「ぼ」を絶対に「ぽ」と混同しない\n"
             "2. 「とられた」の「と」を確実に認識\n"
-            "3. 「けんか」の「け」を明確に聞き取る\n\n"
+            "3. 「ボールとられた」全体を正確に認識\n"
             
-            "【音節の優先順位】\n"
-            "・語頭の音節を最優先（「お」「と」「け」）\n"
-            "・子音の省略を防ぐ\n"
-            "・音節境界を明確化\n\n"
+            "【音節認識】\n"
+            "・「ぼーる」の3音節、「と-ら-れ-た」の4音節を正確に認識\n"
+            "・語頭音節「ぼ」「と」の優先度を最高レベルに設定\n"
             
-            "【速度最適化】\n"
+            "【処理優先度】\n"
+            "・「ボールとられた」の認識精度を最優先\n"
             "・確実な音節のみを処理\n"
-            "・曖昧な部分は推測しない\n"
-            "・処理時間を最小限に\n\n"
             
             "【語彙優先】\n"
             f"・{', '.join(CRITICAL_VOCABULARY.words)}を最優先"
@@ -177,29 +167,29 @@ def generate_situation_prompt(situation: str, optimization_level: str = "balance
 
 def generate_fast_prompt() -> str:
     """
-    速度重視の短縮プロンプト
+    速度重視の短縮プロンプト（最速版）
     
     Returns:
         最速処理用の短縮プロンプト
     """
     return (
-        "【速度最優先】子どもの音声認識：\n"
-        "「おもちゃ」「とられた」「けんか」の語頭音を絶対に聞き逃さない。\n"
-        "音節境界を明確化。処理速度を最優先。"
+        "【最速】子どもの音声認識：\n"
+        "「ボール」の「ぼ」を確実に認識、「ポール」との混同を防ぐ。\n"
+        "「ボールとられた」の「ぼ」と「と」を絶対に聞き逃さない。\n"
+        "処理速度を最優先。"
     )
 
 def generate_precision_prompt() -> str:
     """
-    精度重視の詳細プロンプト
+    精度重視の詳細プロンプト（簡潔版）
     
     Returns:
         高精度処理用の詳細プロンプト
     """
     return (
-        "【精度最優先】子どもの音声認識：\n"
-        "語頭音節の絶対的な正確性を最優先。\n"
-        "音節境界の明確化を強化。\n"
-        "処理速度は二の次。\n"
+        "【精度重視】子どもの音声認識：\n"
+        "「ボール」の「ぼ」を絶対に「ぽ」と混同しない。\n"
+        "「ボールとられた」の各音節を最優先で認識。\n"
         f"重要語彙：{', '.join(CRITICAL_VOCABULARY.words)}"
     )
 
@@ -226,9 +216,18 @@ def get_toys_conflicts_words() -> List[str]:
     """おもちゃ・喧嘩関連の語彙を取得（後方互換性のため）"""
     return CRITICAL_VOCABULARY.words + HIGH_PRIORITY_VOCABULARY.words
 
+def get_ball_related_words() -> List[str]:
+    """ボール関連の語彙を取得（新機能追加）"""
+    ball_words = []
+    for category in ALL_VOCABULARY_CATEGORIES:
+        for word in category.words:
+            if "ボール" in word:
+                ball_words.append(word)
+    return ball_words
+
 def validate_transcription(text: str) -> Dict[str, any]:
     """
-    音声認識結果の詳細検証
+    音声認識結果の詳細検証（簡潔版）
     
     Args:
         text: 検証するテキスト
@@ -242,27 +241,27 @@ def validate_transcription(text: str) -> Dict[str, any]:
         "suggestions": []
     }
     
-    # 「おもちゃ」の検証
-    if "もちゃ" in text and "おもちゃ" not in text:
+    # 「ボール」の検証（ボール関連のみ）
+    if "ール" in text and "ボール" not in text:
         validation_result["is_valid"] = False
-        validation_result["issues"].append("「おもちゃ」の「お」が欠落")
+        validation_result["issues"].append("「ボール」の「ぼ」が欠落")
         validation_result["suggestions"].append("語頭音節の確認が必要")
     
-    # 「とられた」の検証
-    if "られた" in text and "とられた" not in text:
-        validation_result["issues"].append("「とられた」の「と」が欠落")
+    # 「ボールとられた」の検証
+    if "ールとられた" in text and "ボールとられた" not in text:
+        validation_result["issues"].append("「ボールとられた」の「ぼ」が欠落")
         validation_result["suggestions"].append("語頭音節の確認が必要")
     
-    # 「けんか」の検証
-    if "んか" in text and "けんか" not in text:
-        validation_result["issues"].append("「けんか」の「け」が欠落")
-        validation_result["suggestions"].append("語頭音節の確認が必要")
+    # 「ポール」との混同チェック
+    if "ポール" in text and "ボール" in text:
+        validation_result["issues"].append("「ボール」と「ポール」の混同の可能性")
+        validation_result["suggestions"].append("濁音・半濁音の確認が必要")
     
     return validation_result
 
 def get_optimization_recommendations(current_performance: Dict[str, float]) -> List[str]:
     """
-    現在の性能に基づく最適化推奨事項を取得
+    現在の性能に基づく最適化推奨事項を取得（簡潔版）
     
     Args:
         current_performance: 現在の性能指標
@@ -274,14 +273,13 @@ def get_optimization_recommendations(current_performance: Dict[str, float]) -> L
     
     if current_performance.get("accuracy", 0) < 0.8:
         recommendations.append("精度重視モードの使用を推奨")
-        recommendations.append("語彙の優先度を上げる")
+        recommendations.append("「ボールとられた」の認識精度を強化")
     
     if current_performance.get("speed", 0) > 5.0:
         recommendations.append("速度重視モードの使用を推奨")
         recommendations.append("語彙数を削減")
     
     if current_performance.get("confidence", 0) < -0.5:
-        recommendations.append("音節レベルの確認を強化")
-        recommendations.append("プロンプトの詳細化を推奨")
+        recommendations.append("「ボール」の濁音認識を強化")
     
     return recommendations

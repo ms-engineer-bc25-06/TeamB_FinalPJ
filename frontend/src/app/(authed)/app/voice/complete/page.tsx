@@ -8,7 +8,17 @@ import { commonStyles, colors } from '@/styles/theme';
 export default function VoiceCompletePage() {
   const router = useRouter();
 
-  // ホームに戻る処理
+  // レポート表示への遷移
+  const handleViewReport = () => {
+    router.push('/app/report');
+  };
+
+  // 今日の記録確認への遷移
+  const handleViewTodayEntry = () => {
+    router.push('/app/entries/today');
+  };
+
+  // ホームに戻る
   const handleGoHome = () => {
     router.push('/app');
   };
@@ -17,8 +27,8 @@ export default function VoiceCompletePage() {
   const whiteButtonStyle = {
     ...commonStyles.button.base,
     backgroundColor: '#ffffff',
-    color: colors.primary, // ピンクのテキスト
-    border: `2px solid ${colors.primary}`, // ピンクのボーダー
+    color: colors.primary,
+    border: `2px solid ${colors.primary}`,
     fontSize: '22px',
     padding: '25px 50px',
     minWidth: '200px',
@@ -74,37 +84,28 @@ export default function VoiceCompletePage() {
             width={450}
             height={450}
             priority={true}
-            style={{
-              objectFit: 'contain',
-            }}
+            style={{ objectFit: 'contain' }}
           />
         </div>
 
-          {/* ボタン1: おしえてくれてありがとう（ピンク - PrimaryButton） */}
-          <PrimaryButton onClick={() => console.log('ありがとうボタンが押されました')}>
-            おしえてくれてありがとう
+        {/* ボタンエリア */}
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '20px',
+          alignItems: 'center',
+        }}>
+          {/* ボタン1: レポートを見る */}
+          <PrimaryButton onClick={handleViewReport}>
+            レポートを見る 📊
           </PrimaryButton>
 
-          {/* ボタン2: ホームにもどる（白 - カスタムスタイル） */}
-          <button
-            onClick={handleGoHome}
-            style={whiteButtonStyle}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.backgroundColor = colors.primary;
-              e.currentTarget.style.color = '#ffffff';
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(255,107,107,0.4)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.backgroundColor = '#ffffff';
-              e.currentTarget.style.color = colors.primary;
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = colors.shadow.medium;
-            }}
-          >
+          {/* ボタン3: ホームに戻る */}
+          <button onClick={handleGoHome} style={whiteButtonStyle}>
             ホームにもどる
           </button>
         </div>
+      </div>
     </div>
   );
 }
