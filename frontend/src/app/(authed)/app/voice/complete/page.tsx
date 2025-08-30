@@ -97,12 +97,12 @@ export default function VoiceCompletePage() {
         }}>
           {/* ボタン1: レポートを見る */}
           <PrimaryButton onClick={handleViewReport}>
-            レポートを見る 📊
+            きょうのきろく
           </PrimaryButton>
 
           {/* ボタン3: ホームに戻る */}
           <button onClick={handleGoHome} style={whiteButtonStyle}>
-            ホームにもどる
+            もどる
           </button>
         </div>
       </div>

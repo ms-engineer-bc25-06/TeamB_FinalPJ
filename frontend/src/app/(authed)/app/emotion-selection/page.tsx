@@ -48,6 +48,13 @@ export default function EmotionSelectionPage() {
   const [isLoadingEmotions, setIsLoadingEmotions] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  // ユーザー認証チェック
+  useEffect(() => {
+    if (!isLoading && !user) {
+      router.push('/');
+    }
+  }, [user, isLoading, router]);
+
   // 感情データをDBから取得
   useEffect(() => {
     const fetchEmotions = async () => {
@@ -118,7 +125,6 @@ export default function EmotionSelectionPage() {
 
   // ログインしていない場合
   if (!user) {
-    router.push('/');
     return null;
   }
 

@@ -680,8 +680,8 @@ export default function VoiceEntryPage() {
               />
               <div style={styles.waitBubble}>
                 {completionStep === 'completed' 
-                  ? 'ありがとう！きもちをきかせてくれて✨'
-                  : 'こころんが よろこんでるよ！つぎの画面にすすむよ... 🎉'
+                  ? 'きもちを きかせてくれて ありがとう✨'
+                  : 'こころんが よろこんでるよ！つぎの がめんにすすむよ... 🎉'
                 }
               </div>
               <div style={styles.progressWrap}>
@@ -689,14 +689,14 @@ export default function VoiceEntryPage() {
                   ...styles.progressBar,
                   width: completionStep === 'completed' ? '60%' : '100%',
                   background: completionStep === 'completed' 
-                    ? 'linear-gradient(90deg,rgb(48, 251, 30),rgb(244, 35, 188),rgb(250, 189, 6))'
-                    : 'linear-gradient(90deg,rgb(250, 250, 55),rgb(105, 235, 244),rgb(189, 106, 237))',
+                    ? 'linear-gradient(90deg,rgb(250, 250, 55),rgb(222, 242, 121),rgb(132, 250, 6))'
+                    : 'linear-gradient(90deg,rgb(248, 165, 239),rgb(105, 235, 244),rgb(244, 84, 10))',
                 }} />
               </div>
               <div style={styles.waitHint}>
                 {completionStep === 'completed' 
-                  ? 'しばらくすると つぎの画面に すすむよ...'
-                  : 'まもなく つぎの画面に すすむよ！'
+                  ? 'しばらくすると つぎのがめんに すすむよ...'
+                  : 'まもなく つぎのがめんに すすむよ！'
                 }
               </div>
             </div>

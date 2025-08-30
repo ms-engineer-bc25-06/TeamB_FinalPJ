@@ -24,6 +24,7 @@ from app.services.whisper import WhisperService
 from app.services.s3 import S3Service
 from app.database import get_db
 from app.models import EmotionLog
+from app.services.audio_optimizer import AudioOptimizer
 
 # -------------------------------------------------
 # Router / Logger
@@ -175,6 +176,24 @@ async def transcribe_voice(
             raise HTTPException(status_code=400, detail="HTTP(S)の音声URLは未対応です。S3キーを渡してください。")
 
         _validate_local_audio_file(local_path, request.language)
+
+        # 新規追加: FFmpeg処理
+        if os.getenv("ENABLE_AUDIO_OPTIMIZATION", "false").lower() == "true":
+            try:
+                audio_optimizer = AudioOptimizer()
+                optimized_path = await anyio.to_thread.run_sync(
+                    lambda: audio_optimizer.optimize_for_whisper(local_path)
+                )
+                if optimized_path and os.path.exists(optimized_path):
+                    # 元の一時ファイルを削除
+                    if tmp_path and os.path.exists(tmp_path):
+                        os.remove(tmp_path)
+                    local_path = optimized_path
+                    tmp_path = optimized_path
+                    logger.info(f"FFmpeg音声最適化完了: {optimized_path}")
+            except Exception as e:
+                logger.warning(f"FFmpeg音声最適化に失敗しました: {e}")
+                # 最適化に失敗しても元の音声で処理継続
 
         t1 = time.monotonic()
         result = await anyio.to_thread.run_sync(
