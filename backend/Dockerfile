@@ -15,10 +15,6 @@ COPY requirements-dev.txt /app/requirements-dev.txt
 
 RUN pip install --no-cache-dir --upgrade pip setuptools wheel
 
-# ★ CPU版 PyTorch を“先に”明示インストール（CUDAを引かない）
-RUN pip install --no-cache-dir --index-url https://download.pytorch.org/whl/cpu \
-      torch==2.1.0
-
 RUN pip install --no-cache-dir -r /app/requirements.txt \
  && pip install --no-cache-dir -r /app/requirements-dev.txt || true
 
