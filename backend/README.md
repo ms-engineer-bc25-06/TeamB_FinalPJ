@@ -4,26 +4,57 @@
 
 この README では `backend` ディレクトリで必要なセットアップ手順をまとめています。
 
-## 📁 ディレクトリ構成
+## 🚀 TL;DR（最短クイックスタート）
 
-```
-backend/
-├── app/                # メインアプリケーション
-│   ├── api/           # APIエンドポイント（音声処理等）
-│   ├── services/      # ビジネスロジック（Whisper、S3等）
-│   ├── utils/         # ユーティリティ（音声処理、エラーハンドリング等）
-│   ├── models.py      # データベースモデル
-│   ├── schemas.py     # Pydanticスキーマ
-│   ├── crud.py        # CRUD操作
-│   └── main.py        # FastAPIアプリケーション
-├── migrations/         # データベースマイグレーション
-├── alembic/           # Alembic設定
-└── tests/             # テストファイル
-```
+> **⚡ すぐに始めたい方はこちら！**
+> 
+> ```bash
+> cd backend
+> cp .env.example .env  # 環境変数を設定
+> docker compose up --build -d
+> docker compose exec backend alembic upgrade head
+> # http://localhost:8000/docs でAPI確認
+> ```
+> 
+> これだけでバックエンドが起動します！
+
+## 📋 前提条件 / 必要ツール
+
+### 必須ツール
+- **Docker**: v20.10.0 以降
+- **Docker Compose**: v2.0.0 以降
+- **Python**: 3.11（Dockerfileで指定）
+- **PostgreSQL**: 17.5（compose.yamlで指定）
+- **Git**: 最新版
+
+### 推奨ツール
+- **VSCode**: DevContainer拡張機能付き
+- **Stripe CLI**: 決済機能テスト用
+
+### システム要件
+- **メモリ**: 4GB以上
+- **ディスク**: 2GB以上の空き容量
+
+## 🔐 環境変数（.env）最小セット表
+
+| 変数名 | 必須 | 説明 | 例 |
+|--------|------|------|-----|
+| `DATABASE_URL` | ✅ | PostgreSQL接続URL | `postgresql://user:pass@db:5432/dbname` |
+| `FIREBASE_PROJECT_ID` | ✅ | Firebase Project ID | `project-id` |
+| `FIREBASE_PRIVATE_KEY` | ✅ | Firebase Private Key | `-----BEGIN PRIVATE KEY-----` |
+| `FIREBASE_CLIENT_EMAIL` | ✅ | Firebase Client Email | `firebase-adminsdk@project.iam.gserviceaccount.com` |
+| `AWS_ACCESS_KEY_ID` | ✅ | AWS S3 Access Key | `AKIA...` |
+| `AWS_SECRET_ACCESS_KEY` | ✅ | AWS S3 Secret Key | `secret...` |
+| `AWS_S3_BUCKET` | ✅ | S3 Bucket名 | `bucket-name` |
+| `STRIPE_SECRET_KEY` | ✅ | Stripe Secret Key | `sk_test_...` |
+| `STRIPE_WEBHOOK_SECRET` | ✅ | Stripe Webhook Secret | `whsec_...` |
+| `OPENAI_API_KEY` | ✅ | OpenAI API Key | `sk-...` |
+
+> **設定方法**: `.env.example`をコピーして`.env`を作成し、Notion㊙️ページの値を設定してください。
 
 ## 🔧 セットアップ手順
 
-### 前提条件
+### 初回セットアップ
 
 1. **Firebase サービスアカウントキーの配置**
    - Notion からダウンロードした JSON ファイルを `backend/firebase-service-account.json` に配置
@@ -32,12 +63,12 @@ backend/
    - `.env.example` をコピーして `.env` を作成
    - 環境変数を設定
 
-### 起動手順
-
 3. **待機スクリプトに実行権限付与（初回のみ）**
    ```bash
    chmod +x wait-for-db.sh
    ```
+
+### 起動手順
 
 4. **Docker コンテナ起動**
    ```bash
@@ -59,8 +90,6 @@ backend/
    3. 左下の緑色のボタン 🟢 から「Reopen in Container」を選択
    4. 自動的にコンテナがビルドされ、開発環境がセットアップされる
 
-
-
 7. **DevContainer 未使用時**
    ```bash
    docker compose exec backend pip install -r requirements-dev.txt
@@ -73,9 +102,91 @@ backend/
    stripe listen --forward-to localhost:8000/api/v1/stripe/webhook
    ```
 
+### 動作確認
+
 9. **動作確認**
    - `docker compose ps` でコンテナの状態確認
    - ブラウザで http://localhost:8000/docs を開き Swagger UI で API をテスト
+
+## 🛠️ 開発ワークフロー
+
+### DevContainer使用時
+```bash
+# コンテナ内で開発
+docker compose exec backend bash
+# 自動でblack、pylintが有効
+```
+
+### Lint・フォーマット
+```bash
+# コード整形
+docker compose exec backend black app
+
+# Lint実行
+docker compose exec backend pylint app
+
+# 型チェック
+docker compose exec backend mypy app
+```
+
+### テスト実行
+```bash
+# 全テスト実行
+docker compose exec backend python -m pytest
+
+# 特定テスト実行
+docker compose exec backend python -m pytest tests/test_api.py
+```
+
+### データベース操作
+```bash
+# マイグレーション作成
+docker compose exec backend alembic revision --autogenerate -m "説明"
+
+# マイグレーション適用
+docker compose exec backend alembic upgrade head
+
+# 初期データ投入
+docker compose exec backend python seed_db.py
+```
+
+## 📊 運用ポイント
+
+### Health Check
+- **API Health**: `GET /health` エンドポイントで確認
+- **DB接続**: `GET /health/db` でデータベース接続確認
+
+### 監視・メトリクス
+- **ログ**: Docker logsで確認 `docker compose logs backend`
+- **メトリクス**: 将来的に `/metrics` エンドポイントを追加予定
+
+### バックアップ方針
+- **データベース**: 日次自動バックアップ（本番環境）
+- **設定ファイル**: Git管理でバージョン管理
+
+## 🔧 トラブルシュート
+
+### よくある問題と解決方法
+
+1. **Dockerコンテナが起動しない**
+   - ポート8000が使用中: `lsof -ti:8000 | xargs kill -9`
+   - メモリ不足: Docker Desktopのメモリ設定を4GB以上に
+
+2. **データベース接続エラー**
+   - PostgreSQLコンテナの状態確認: `docker compose ps`
+   - 接続文字列の確認: `.env`の`DATABASE_URL`を確認
+
+3. **マイグレーションエラー**
+   - マイグレーション履歴確認: `docker compose exec backend alembic current`
+   - 手動でマイグレーション適用: `docker compose exec backend alembic upgrade head`
+
+4. **環境変数が読み込まれない**
+   - `.env`ファイルの場所確認（backendディレクトリ直下）
+   - ファイル名が`.env`（拡張子なし）になっているか確認
+
+5. **Stripe Webhookが動作しない**
+   - Stripe CLIの状態確認: `stripe listen --forward-to localhost:8000/api/v1/stripe/webhook`
+   - Webhook Secretの設定確認: `.env`の`STRIPE_WEBHOOK_SECRET`
 
 ## ⚠️ 再セットアップが必要なケース
 
@@ -112,6 +223,23 @@ docker compose exec backend bash           # コンテナ内でbash実行
 docker compose exec backend python -m pytest  # テスト実行
 docker compose exec backend alembic upgrade head  # マイグレーション
 docker compose exec backend python seed_db.py    # 初期データ投入
+```
+
+## 📁 ディレクトリ構成
+
+```
+backend/
+├── app/                # メインアプリケーション
+│   ├── api/           # APIエンドポイント（音声処理等）
+│   ├── services/      # ビジネスロジック（Whisper、S3等）
+│   ├── utils/         # ユーティリティ（音声処理、エラーハンドリング等）
+│   ├── models.py      # データベースモデル
+│   ├── schemas.py     # Pydanticスキーマ
+│   ├── crud.py        # CRUD操作
+│   └── main.py        # FastAPIアプリケーション
+├── migrations/         # データベースマイグレーション
+├── alembic/           # Alembic設定
+└── tests/             # テストファイル
 ```
 
 ## 📚 関連ドキュメント

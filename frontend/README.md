@@ -21,23 +21,24 @@
 ## 📋 前提条件
 
 ### Node.js バージョン
-- **Node.js**: v18.17.0 以降
+- **Node.js**: v18.17.0 以降（Next.js 15.4.5の要件）
 - **npm**: v9.0.0 以降（Node.jsに同梱）
+
+### 主要フレームワーク・ライブラリ
+- **Next.js**: 15.4.5（package.jsonで指定）
+- **React**: 19.1.0（package.jsonで指定）
+- **TypeScript**: ^5（package.jsonで指定）
+- **Firebase**: ^12.0.0（package.jsonで指定）
 
 ### パッケージマネージャ
 - **npm**: 標準パッケージマネージャ
 - **yarn**: 使用可能（`yarn install`で代替）
 
-## 🔐 環境変数（.env.local）最小セット表
-
-| 変数名 | 必須 | 説明 | 例 |
-|--------|------|------|-----|
-| `NEXT_PUBLIC_FIREBASE_API_KEY` | ✅ | Firebase API Key | `AIza...` |
-| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | ✅ | Firebase Auth Domain | `project.firebaseapp.com` |
-| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | ✅ | Firebase Project ID | `project-id` |
-| `NEXT_PUBLIC_API_BASE_URL` | ✅ | バックエンドAPI URL | `http://localhost:8000` |
+## 🔐 環境変数（.env.local）
 
 > **設定方法**: `.env.example`をコピーして`.env.local`を作成し、Notion㊙️ページの値を設定してください。
+> 
+> **主要な環境変数**: `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_API_BASE_URL` など
 
 ## 🔧 セットアップ手順
 
