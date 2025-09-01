@@ -69,31 +69,7 @@ TeamB_FinalPJ/
 
 ## 🛠 技術スタック
 
-### フロントエンド
-- **Next.js 15.4.5** - Reactフレームワーク（App Router）
-- **React 19.1.0** - UIライブラリ
-- **TypeScript 5** - 型安全な開発
-- **Firebase 12.0.0** - 認証システム
-- **Stripe 7.8.0** - 決済システム
-- **SWR 2.3.4** - データフェッチング
-
-### バックエンド
-- **FastAPI 0.111.0** - Python Webフレームワーク
-- **SQLAlchemy 2.0.42** - ORM
-- **PostgreSQL** - データベース
-- **Alembic** - データベースマイグレーション
-- **Whisper 20231117** - 音声認識
-- **FFmpeg** - 音声処理
-- **AWS S3** - ファイルストレージ
-- **Stripe 12.4.0** - 決済処理
-
-### インフラ・開発環境
-- **Docker & Docker Compose** - コンテナ化
-- **Firebase Authentication** - 認証
-- **PostgreSQL** - データベース
-- **AWS S3** - ファイルストレージ
-
-詳細は[Tech Stack Selection](docs/techStack.md) - 技術スタック選定を参照してください。
+詳細な技術スタックについては [Tech Stack](docs/techStack.md) を参照してください。
 
 ## 👷 開発ガイドライン
 
@@ -117,6 +93,8 @@ TeamB_FinalPJ/
 
 - [frontend/README.md](frontend/README.md) : フロントエンドセットアップ手順
 - [backend/README.md](backend/README.md) : バックエンドセットアップ手順
+- [docs/README.md](docs/README.md) : プロジェクトドキュメント一覧
+
 
 ## 📚 Documentation
 
