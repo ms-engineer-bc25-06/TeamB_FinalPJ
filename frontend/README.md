@@ -4,34 +4,46 @@
 
 この README では `frontend` ディレクトリで必要なセットアップ手順をまとめています。
 
-## 📁 ディレクトリ構成
+## 🚀 TL;DR（最短クイックスタート）
 
-```
-frontend/
-├── src/
-│   ├── app/           # Next.js App Router（認証済み・公開ページ）
-│   ├── components/    # UIコンポーネント（Kokoron、ボタン等）
-│   ├── hooks/         # カスタムフック（音声、認証等）
-│   ├── lib/           # API通信・Firebase設定
-│   ├── styles/        # グローバルスタイル・テーマ
-│   ├── types/         # TypeScript型定義
-│   ├── utils/         # ユーティリティ関数
-│   └── contexts/      # React Context（認証状態管理）
-├── public/            # 静的ファイル（画像・音声）
-│   ├── images/        # 感情アイコン・キャラクター画像
-│   └── sounds/        # 音声ファイル
-└── tests/             # テストファイル
-```
+> **⚡ すぐに始めたい方はこちら！**
+> 
+> ```bash
+> cd frontend
+> cp .env.example .env.local  # Notion㊙️ページで値を設定
+> npm install
+> npm run dev
+> # http://localhost:3000 でアクセス
+> ```
+> 
+> これだけで開発環境が起動します！
+
+## 📋 前提条件
+
+### Node.js バージョン
+- **Node.js**: v18.17.0 以降
+- **npm**: v9.0.0 以降（Node.jsに同梱）
+
+### パッケージマネージャ
+- **npm**: 標準パッケージマネージャ
+- **yarn**: 使用可能（`yarn install`で代替）
+
+## 🔐 環境変数（.env.local）最小セット表
+
+| 変数名 | 必須 | 説明 | 例 |
+|--------|------|------|-----|
+| `NEXT_PUBLIC_FIREBASE_API_KEY` | ✅ | Firebase API Key | `AIza...` |
+| `NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN` | ✅ | Firebase Auth Domain | `project.firebaseapp.com` |
+| `NEXT_PUBLIC_FIREBASE_PROJECT_ID` | ✅ | Firebase Project ID | `project-id` |
+| `NEXT_PUBLIC_API_BASE_URL` | ✅ | バックエンドAPI URL | `http://localhost:8000` |
+
+> **設定方法**: `.env.example`をコピーして`.env.local`を作成し、Notion㊙️ページの値を設定してください。
 
 ## 🔧 セットアップ手順
-
-### 前提条件
 
 1. **環境変数ファイル設定**
    - `.env.example` をコピーして `.env.local` を作成
    - Notion ㊙️ページを参照し値を設定
-
-### 起動手順
 
 2. **依存パッケージインストール**
    ```bash
@@ -59,6 +71,48 @@ npm run lint     # ESLint実行
 npx tsc --noEmit # 型チェック
 ```
 
+## 📁 ディレクトリ構成
+
+```
+frontend/
+├── src/
+│   ├── app/           # Next.js App Router（認証済み・公開ページ）
+│   ├── components/    # UIコンポーネント（Kokoron、ボタン等）
+│   ├── hooks/         # カスタムフック（音声、認証等）
+│   ├── lib/           # API通信・Firebase設定
+│   ├── styles/        # グローバルスタイル・テーマ
+│   ├── types/         # TypeScript型定義
+│   ├── utils/         # ユーティリティ関数
+│   └── contexts/      # React Context（認証状態管理）
+├── public/            # 静的ファイル（画像・音声）
+│   ├── images/        # 感情アイコン・キャラクター画像
+│   └── sounds/        # 音声ファイル
+└── tests/             # テストファイル
+```
+
+## 🔧 トラブルシュート
+
+### よくある問題と解決方法
+
+1. **`npm install`でエラーが発生する**
+   - Node.jsのバージョンを確認（v18.17.0以降推奨）
+   - `npm cache clean --force`でキャッシュをクリア
+
+2. **`npm run dev`でポート3000が使用中**
+   - 他のプロセスがポート3000を使用している可能性
+   - `lsof -ti:3000 | xargs kill -9`でプロセスを終了
+
+3. **環境変数が読み込まれない**
+   - `.env.local`ファイルが正しい場所にあるか確認
+   - ファイル名が`.env.local`（拡張子なし）になっているか確認
+
+4. **TypeScriptエラーが発生する**
+   - `npx tsc --noEmit`で型チェックを実行
+   - `node_modules`を削除して`npm install`を再実行
+
+5. **ビルドエラーが発生する**
+   - `npm run build`で詳細なエラー情報を確認
+   - 依存関係のバージョン競合がないか確認
 
 ## 📚 関連ドキュメント
 
