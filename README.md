@@ -9,62 +9,18 @@
 
 ```
 TeamB_FinalPJ/
-├── frontend/                 # Next.js フロントエンド
-│   ├── src/
-│   │   ├── app/             # Next.js App Router
-│   │   │   ├── (authed)/    # 認証済みユーザー用ルート
-│   │   │   │   └── app/     # メインアプリ画面
-│   │   │   │       ├── emotion-selection/    # 感情選択画面
-│   │   │   │       ├── emotion-intensity/    # 強度選択画面
-│   │   │   │       ├── emotion-confirmation/ # 感情確認画面
-│   │   │   │       ├── voice/                # 音声入力画面
-│   │   │   │       ├── report/               # レポート画面
-│   │   │   │       └── ...                   # その他機能画面
-│   │   │   └── (public)/    # 未認証ユーザー用ルート
-│   │   ├── components/      # 再利用可能なUIコンポーネント
-│   │   │   └── ui/          # 基本UIコンポーネント
-│   │   ├── hooks/          # カスタムフック
-│   │   ├── lib/            # ユーティリティ・API
-│   │   ├── styles/         # グローバルスタイル・テーマ
-│   │   ├── types/          # TypeScript型定義
-│   │   ├── utils/          # ユーティリティ関数
-│   │   └── contexts/       # React Context
-│   ├── public/              # 静的ファイル（画像・音声）
-│   │   ├── images/         # 画像ファイル
-│   │   │   ├── emotions/   # 感情カード画像
-│   │   │   └── kokoron/    # キャラクター画像
-│   │   └── sounds/         # 音声ファイル
-│   └── tests/               # テストファイル
-├── backend/                  # FastAPI バックエンド
-│   ├── app/                 # メインアプリケーション
-│   │   ├── api/            # APIエンドポイント
-│   │   │   └── v1/
-│   │   │       └── endpoints/
-│   │   │           └── voice.py  # 音声処理API
-│   │   ├── services/       # ビジネスロジック
-│   │   │   ├── whisper.py  # Whisper音声認識
-│   │   │   ├── s3.py       # S3ファイル管理
-│   │   │   └── voice/      # 音声処理関連
-│   │   ├── models.py       # データベースモデル
-│   │   ├── crud.py         # CRUD操作
-│   │   ├── schemas.py      # Pydanticスキーマ
-│   │   ├── emotion_api.py  # 感情API
-│   │   ├── emotion_color_api.py # 感情色API
-│   │   ├── stripe_api.py   # Stripe決済API
-│   │   ├── children.py     # 子ども管理API
-│   │   └── main.py         # FastAPIアプリケーション
-│   ├── migrations/          # データベースマイグレーション
-│   ├── alembic/            # Alembic設定
-│   └── tests/               # テストファイル
-├── docs/                     # プロジェクトドキュメント
-│   ├── PRD.md              # プロダクト要件定義
-│   ├── UIDesign.md         # UI設計書
-│   ├── databaseDesign.md   # データベース設計
-│   ├── setup/              # セットアップ手順
-│   └── ...                 # その他設計書
-└── scripts/                  # 開発用スクリプト
-    ├── dev-setup.sh        # macOS/Linux用セットアップ
-    └── dev-setup.bat       # Windows用セットアップ
+├── frontend/           # Next.js フロントエンド
+│   ├── src/app/        # アプリ画面（感情選択、音声入力、レポート等）
+│   ├── src/components/ # UIコンポーネント
+│   ├── src/hooks/      # カスタムフック
+│   ├── src/lib/        # API・ユーティリティ
+│   └── public/         # 静的ファイル（画像・音声）
+├── backend/            # FastAPI バックエンド
+│   ├── app/            # メインアプリ（API、サービス、モデル）
+│   ├── migrations/     # データベースマイグレーション
+│   └── alembic/        # Alembic設定
+├── docs/               # プロジェクトドキュメント
+└── scripts/            # 開発用スクリプト
 ```
 
 ## 🛠 技術スタック

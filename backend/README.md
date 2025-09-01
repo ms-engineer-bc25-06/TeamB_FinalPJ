@@ -6,57 +6,17 @@
 
 ```
 backend/
-├── app/                        # メインアプリケーション
-│   ├── __init__.py
-│   ├── main.py                # FastAPI アプリケーションエントリーポイント
-│   ├── models.py              # SQLAlchemy データベースモデル
-│   ├── schemas.py             # Pydantic データバリデーションスキーマ
-│   ├── crud.py                # データベース操作関数
-│   ├── database.py            # データベース接続設定
-│   ├── children.py            # 子供情報管理API
-│   ├── emotion_api.py         # 感情API（感情カード、強度、記録）
-│   ├── emotion_color_api.py   # 感情色API（色管理、透明度調整）
-│   ├── stripe_api.py          # Stripe決済API
-│   ├── seed_data.py           # 初期データ投入
-│   ├── api/                   # APIエンドポイント
-│   │   └── v1/
-│   │       └── endpoints/
-│   │           └── voice.py   # 音声関連API（録音、文字起こし）
-│   ├── services/              # ビジネスロジック
-│   │   ├── whisper.py         # Whisper音声認識サービス
-│   │   ├── s3.py              # S3ファイル管理サービス
-│   │   └── voice/             # 音声処理関連
-│   │       ├── file_ops.py    # ファイル操作
-│   │       └── transcription.py # 音声文字起こし
-│   ├── utils/                  # ユーティリティ
-│   │   ├── audio.py           # 音声処理ユーティリティ（FFmpeg）
-│   │   ├── child_vocabulary.py # 子ども向け語彙生成
-│   │   ├── constants.py       # 定数定義
-│   │   ├── error_handlers.py  # エラーハンドラー
-│   │   ├── prompt_loader.py   # プロンプト読み込み
-│   │   └── quality.py         # 品質管理
-│   └── config/                 # 設定ファイル
-│       └── prompt_base.txt    # 基本プロンプト
-├── migrations/                 # データベースマイグレーション
-│   └── versions/              # マイグレーションファイル
-├── alembic/                   # Alembic設定
-│   ├── env.py                 # Alembic環境設定
-│   ├── README                 # Alembic説明
-│   └── script.py.mako         # マイグレーションテンプレート
-├── tests/                      # テストファイル
-│   └── mocks/                 # モックファイル
-├── scripts/                    # 開発用スクリプト
-├── postgres/                   # PostgreSQL設定
-├── .devcontainer/              # DevContainer設定
-├── alembic.ini                # Alembic設定
-├── requirements.txt            # 本番依存関係
-├── requirements-dev.txt        # 開発依存関係
-├── Dockerfile                  # Dockerイメージ定義
-├── compose.yaml                # Docker Compose設定
-├── compose.override.yaml       # Docker Compose上書き設定
-├── firebase-service-account.json # Firebase認証設定
-├── seed_db.py                  # データベース初期化
-└── wait-for-db.sh             # データベース起動待機スクリプト
+├── app/                # メインアプリケーション
+│   ├── api/           # APIエンドポイント（音声処理等）
+│   ├── services/      # ビジネスロジック（Whisper、S3等）
+│   ├── utils/         # ユーティリティ（音声処理、エラーハンドリング等）
+│   ├── models.py      # データベースモデル
+│   ├── schemas.py     # Pydanticスキーマ
+│   ├── crud.py        # CRUD操作
+│   └── main.py        # FastAPIアプリケーション
+├── migrations/         # データベースマイグレーション
+├── alembic/           # Alembic設定
+└── tests/             # テストファイル
 ```
 
 ## 🔧 セットアップ手順
