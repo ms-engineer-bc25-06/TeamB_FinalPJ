@@ -14,8 +14,7 @@
   - Notion（議事録・タスク分担・マイルストーン等）[リンク](https://www.notion.so/ms-engineer/TeamB-23c8f7a036288041a541ce30344b295c)
   - GitHub リポジトリ（docs 配下の補足ドキュメント）
 - **タスク管理**
-  <!-- TODO:これからきめる -->
-  - GitHub Projects（カンバン方式）
+  - GitHub Projects（カンバン方式）[リンク](https://github.com/orgs/ms-engineer-bc25-06/projects/21)
 
 ---
 
