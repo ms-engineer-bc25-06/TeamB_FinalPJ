@@ -1,6 +1,6 @@
 # 🌐 Frontend セットアップ (Next.js)
 
-この README では `frontend` ディレクトリでの開発手順をまとめています。
+この README では `frontend` ディレクトリで必要なセットアップ手順をまとめています。
 
 ## 📁 ディレクトリ構成
 
@@ -91,126 +91,52 @@ frontend/
 └── .prettierignore            # Prettier除外設定
 ```
 
-## 1. 環境変数ファイル設定
+## 🔧 セットアップ手順
 
-- `.env.example` をコピーして `.env.local` を作成
-- Notion ㊙️ページを参照し値を設定
+### 前提条件
 
-## 2. 依存パッケージインストール
+1. **環境変数ファイル設定**
+   - `.env.example` をコピーして `.env.local` を作成
+   - Notion ㊙️ページを参照し値を設定
 
-```bash
-npm install
-```
+### 起動手順
 
-## 3. 開発サーバー起動
+2. **依存パッケージインストール**
+   ```bash
+   npm install
+   ```
 
-```bash
-npm run dev
-```
+3. **開発サーバー起動**
+   ```bash
+   npm run dev
+   ```
 
-ブラウザで http://localhost:3000 を開き動作確認
+4. **動作確認**
+   - ブラウザで http://localhost:3000 を開き動作確認
 
-## 4. テスト実行
-
-```bash
-# 全テスト実行
-npm test
-
-# 特定のテストファイル実行
-npm test -- EmotionSelectionPage.test.tsx
-
-# テストカバレッジ
-npm run test:coverage
-```
-
-## 5. ビルド・リンター
+## 🛠️ よく使用するコマンド
 
 ```bash
-# 本番ビルド
-npm run build
-
-# リンター実行
-npm run lint
-
-# 型チェック
-npx tsc --noEmit
-```
-
-## 6. 今回の修正内容
-
-### ESLint警告の修正
-- 未使用の変数・インポートの削除
-- `any`型の適切な型への置き換え
-- 未使用の関数の削除
-
-### コンポーネントの最適化
-- `AudioPlayer`のエクスポート問題を修正
-- `HamburgerMenu`の使用方法を簡素化
-- `SpeechBubble`の未使用インポートを削除
-
-### フックの最適化
-- `useAudio`フックの簡素化
-- 未使用の型定義の削除
-
-## 7. S3 連携
-
-音声・テキストファイルは S3 に保存
-
-Presigned URL を使用して安全にアップロード
-
-### アップロード例
-
-```javascript
-const res = await fetch("/voice/get-upload-url", {
-  method: "POST",
-  headers: { "Content-Type": "application/json" },
-  body: JSON.stringify({ user_id: 1, file_type: "audio", file_format: "webm" }),
-});
-const { upload_url, content_type } = await res.json();
-
-await fetch(upload_url, {
-  method: "PUT",
-  headers: { "Content-Type": content_type },
-  body: fileBlob,
-});
-```
-
-## 8. 開発環境
-
-- **Node.js**: v18.17.0+
-- **Next.js**: 15.4.5
-- **React**: 19.1.0
-- **TypeScript**: 5.x
-- **ESLint**: 9.x
-- **Prettier**: 3.6.2
-- **Firebase**: 12.0.0
-- **Stripe**: 7.8.0
-- **SWR**: 2.3.4
-
-## 9. 利用可能なスクリプト
-
-```bash
+# 開発
 npm run dev      # 開発サーバー起動
 npm run build    # 本番ビルド
 npm run start    # 本番サーバー起動
+
+# 品質管理
 npm run lint     # ESLint実行
+npx tsc --noEmit # 型チェック
 ```
 
-## 10. 設定ファイル
 
-- **ESLint**: `eslint.config.mjs` (Next.js推奨設定)
-- **Prettier**: `.prettierrc.json` (コード整形)
-- **TypeScript**: `tsconfig.json` (型チェック設定)
-- **Next.js**: `next.config.ts` (フレームワーク設定)
+## 📚 関連ドキュメント
 
-## 11. デザインシステム
+### 開発・設計関連
+- **技術スタック詳細について**: [Tech Stack](../docs/techStack.md) で詳細を確認してください
+- **UI設計について**: [UI Design](../docs/UIDesign.md) で詳細を確認してください
+- **テスト方法について**: [Test Plan](../docs/testPlan.md) で詳細を確認してください
+- **API仕様について**: [API Specification](../docs/APISpecification.md) で詳細を確認してください
 
-`src/styles/theme.ts` で統一されたデザインシステムを管理：
-
-- **カラーパレット** - プライマリ、セカンダリ、感情カラー
-- **スペーシング** - 統一された間隔管理
-- **タイポグラフィ** - フォントサイズの階層
-- **アニメーション** - トランジション設定
-- **レスポンシブ** - ブレークポイント定義
-
-- [UI Design](../docs/UIDesign.md) - 画面設計の詳細
+### 設定・運用関連
+- **開発ガイドラインについて**: [Dev Guideline](../docs/devGuideline.md) で詳細を確認してください
+- **セキュリティ設計について**: [Security Design](../docs/securityDesign.md) で詳細を確認してください
+- **性能設計について**: [Performance Design](../docs/performanceDesign.md) で詳細を確認してください

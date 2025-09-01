@@ -161,11 +161,4 @@ stripe update
 - [Webhook設定ガイド](https://stripe.com/docs/webhooks)
 - [テストカード一覧](https://stripe.com/docs/testing#cards)
 - [Webhookイベント一覧](https://stripe.com/docs/api/events/types)
-
-## 🚀 次のステップ
-
-Stripe CLIのセットアップが完了したら、以下を確認してください：
-
-1. [Backend詳細セットアップ](../setup/backend-setup.md) - バックエンドの設定
-2. [Frontend詳細セットアップ](../setup/frontend-setup.md) - フロントエンドの設定
-3. [API仕様書](../APISpecification.md) - Stripe APIの詳細
+- [API仕様書](../APISpecification.md) - Stripe APIの詳細
