@@ -405,7 +405,7 @@ open coverage/index.html
 
 # バックエンド  
 cd backend
-docker compose exec backend pytest --cov=app
+docker exec teamb_backend pytest --cov=app
 open htmlcov/index.html
 ```
 
@@ -508,7 +508,7 @@ PRODUCTION_URL           # 本番環境URL（慎重に使用）
 
 ## セットアップ手順
 
-### 初回セットアップ（新メンバー向け）
+### 初回セットアップ
 
 #### 1. フロントエンド環境構築
 ```bash
@@ -526,7 +526,7 @@ docker compose up -d              # コンテナ起動（バックグラウン�
 docker compose up --build -d      # 初回ビルド付きで起動
 
 # Pytest依存関係の確認（コンテナ内）
-docker compose exec backend pip list | grep pytest
+docker exec teamb_backend pip list | grep pytest
 ```
 
 #### 3. E2Eテスト環境構築（🚨 各メンバー必須）
@@ -563,7 +563,7 @@ npx playwright install --dry-run
 cd frontend && npm run test:run
 
 # バックエンド：サンプルテストの実行（コンテナ内）
-cd backend && docker compose exec backend pytest tests/test_example.py
+docker exec teamb_backend pytest tests/test_example.py
 
 # E2E：サンプルテストの実行
 cd frontend && npm run test:e2e
@@ -596,12 +596,12 @@ cat coverage/coverage-summary.json  # JSONサマリー表示
 docker compose ps
 
 # テスト実行（コンテナ内）
-docker compose exec backend pytest                    # 全テスト実行 - 全てのテストファイルを実行
-docker compose exec backend pytest -v                # 詳細出力 - テスト名と結果の詳細表示
-docker compose exec backend pytest --cov=app         # カバレッジ付き実行 - コードカバレッジレポート生成
-docker compose exec backend pytest -m unit           # ユニットテストのみ - @pytest.mark.unitが付いたテストのみ
-docker compose exec backend pytest -m integration    # 統合テストのみ - @pytest.mark.integrationが付いたテストのみ
-docker compose exec backend pytest tests/test_voice_api.py  # 特定ファイルのみ - 指定したテストファイルのみ実行
+docker exec teamb_backend pytest                    # 全テスト実行 - 全てのテストファイルを実行
+docker exec teamb_backend pytest -v                # 詳細出力 - テスト名と結果の詳細表示
+docker exec teamb_backend pytest --cov=app         # カバレッジ付き実行 - コードカバレッジレポート生成
+docker exec teamb_backend pytest -m unit           # ユニットテストのみ - @pytest.mark.unitが付いたテストのみ
+docker exec teamb_backend pytest -m integration    # 統合テストのみ - @pytest.mark.integrationが付いたテストのみ
+docker exec teamb_backend pytest tests/test_voice_api.py  # 特定ファイルのみ - 指定したテストファイルのみ実行
 
 # コンテナ停止（作業終了時）
 docker compose down
