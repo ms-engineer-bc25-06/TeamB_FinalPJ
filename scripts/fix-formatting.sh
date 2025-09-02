@@ -26,16 +26,18 @@ fi
 
 # 2. Python環境の確認（Docker環境）
 echo "🐍 Python環境をチェック中..."
-if docker compose ps backend | grep -q "Up"; then
+if docker ps --format "table {{.Names}}\t{{.Status}}" | grep -q "teamb_backend.*Up"; then
   echo "✅ Backendコンテナが起動中"
   echo "Python version:"
-  docker compose exec backend python --version
+  docker exec teamb_backend python --version
   echo "Black version:"
-  docker compose exec backend python -m black --version || echo "❌ Black が見つかりません"
+  docker exec teamb_backend python -m black --version || echo "❌ Black が見つかりません"
   echo "Pylint version:"
-  docker compose exec backend python -m pylint --version || echo "❌ Pylint が見つかりません"
+  docker exec teamb_backend python -m pylint --version || echo "❌ Pylint が見つかりません"
 else
   echo "❌ Backendコンテナが起動していません"
+  echo "現在のコンテナ状態:"
+  docker ps --format "table {{.Names}}\t{{.Status}}" | grep -E "(teamb_|NAMES)" || echo "  コンテナが見つかりません"
   echo "docker compose up -d でコンテナを起動してください"
 fi
 
@@ -77,5 +79,5 @@ echo "- Python拡張機能の再読み込み: Ctrl+Shift+P → 'Python: Refresh 
 
 echo ""
 echo "🐳 Docker環境での確認コマンド:"
-echo "docker compose exec backend python -m black --check ."
-echo "docker compose exec backend python -m pylint app/"
+echo "docker exec teamb_backend python -m black --check ."
+echo "docker exec teamb_backend python -m pylint app/"
