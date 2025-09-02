@@ -1,5 +1,13 @@
 # データベース設計
 
+## 目的
+
+本ドキュメントは、感情教育アプリ『きもちみっけ！』のデータベース設計を明確に定義し、開発チームがデータモデルを理解し、適切なクエリ設計とデータ管理を実現することを目的としています。
+
+## このドキュメントの使い方
+
+データベースのテーブル構成やER図を確認したい時に参照してください。データモデルの理解やクエリ設計に使用します。
+
 ![ER図](./images/teamb_db2.png)
 
 本システムでは以下のテーブルを用いて、保護者および子どもの感情記録を管理しています。
@@ -182,32 +190,59 @@
 | created_at       | DateTime | NOT NULL | 登録日時                   |
 | updated_at       | DateTime | NOT NULL | 更新日時                   |
 
-"""
+---
 
-## 音声ファイル・テキストファイについての補足情報
+## 音声処理フロー
+
+### 概要
+本システムでは、子どもの音声を録音し、AIによる音声認識を経て感情記録として保存する処理フローを実装しています。
+
+### 処理フロー詳細
+
+#### 1. 音声録音
+- **フロントエンド**: MediaRecorder APIを使用してWebM形式で録音
+- **録音設定**: 16kHz/モノラル/16bit
+- **ファイル形式**: WebM（VP8/VP9）、WAV、MP3対応
+
+#### 2. S3アップロード
+- **方式**: Presigned URLを使用した直接アップロード
+- **セキュリティ**: 一時的な権限（1時間有効）による安全なアップロード
+- **パス構造**: `s3://{bucket}/audio/{user_id}/audio_{YYYYMMDD}_{HHMMSS}_{unique_id}.{extension}`
+
+#### 3. 音声正規化
+- **ツール**: FFmpegを使用
+- **変換**: 16kHz/モノラル/16bitに統一
+- **効果**: ファイルサイズ約70%削減、Whisper処理の最適化
+
+#### 4. テキスト保存
+- **保存先**: S3（`s3://{bucket}/text/{user_id}/text_{YYYYMMDD}_{HHMMSS}_{unique_id}.txt`）
+- **データベース**: ファイルパスとテキスト内容を`emotion_logs`テーブルに保存
+
+### ファイル管理
+
+#### 音声ファイル・テキストファイルについての補足情報
 
 - 音声ファイル: `s3://{bucket-name}/audio/{user_id}/audio_{YYYYMMDD}_{HHMMSS}_{unique_id}.wav`
 - テキストファイル: `s3://{bucket-name}/text/{user_id}/text_{YYYYMMDD}_{HHMMSS}_{unique_id}.txt`
 
-### 日時情報
+#### 日時情報
 
 作成日時はファイル名に含まれるため、DB に別途保存しない
 
 - 例: `audio_20241201_143022_abc123.wav` → 2024 年 12 月 1 日 14:30:22
 
-### 使用例
+#### 使用例
 
 ```sql
 -- ユーザー1の音声記録を取得
-SELECT * FROM voice_records WHERE user_id = 1 ORDER BY id DESC;
+SELECT * FROM emotion_logs WHERE user_id = 1 ORDER BY created_at DESC;
 
 -- 最新の記録を取得
-SELECT * FROM voice_records ORDER BY id DESC LIMIT 1;
+SELECT * FROM emotion_logs ORDER BY created_at DESC LIMIT 1;
 ```
 
-### 関連 API
+#### 関連 API
 
-- `POST /voice/get-upload` - ファイルアップロード用 PresignedURL 取得
-- `POST /voice/save-records` - ファイルパス保存
-
-- `POST /voice/records/{user_id}` - ユーザーの記録一覧取得
+- `POST /api/v1/voice/get-upload-url` - ファイルアップロード用 PresignedURL 取得
+- `POST /api/v1/voice/transcribe` - 音声文字起こし実行
+- `GET /emotion/logs/list` - 感情ログ一覧取得
