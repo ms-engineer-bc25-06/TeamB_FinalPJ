@@ -13,6 +13,8 @@ services:
       - db
     volumes:
       - ./firebase-service-account.json:/firebase-service-account.json
+      - ./tests:/app/tests  # テストファイル用マウント
+      - ./app:/app/app      # アプリケーションコード用マウント（開発時のホットリロード）
     entrypoint:
       [
         "/bin/sh",
