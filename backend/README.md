@@ -35,20 +35,7 @@
 - **メモリ**: 4GB以上
 - **ディスク**: 2GB以上の空き容量
 
-## 🔐 環境変数（.env）最小セット表
-
-| 変数名 | 必須 | 説明 | 例 |
-|--------|------|------|-----|
-| `DATABASE_URL` | ✅ | PostgreSQL接続URL | `postgresql://user:pass@db:5432/dbname` |
-| `FIREBASE_PROJECT_ID` | ✅ | Firebase Project ID | `project-id` |
-| `FIREBASE_PRIVATE_KEY` | ✅ | Firebase Private Key | `-----BEGIN PRIVATE KEY-----` |
-| `FIREBASE_CLIENT_EMAIL` | ✅ | Firebase Client Email | `firebase-adminsdk@project.iam.gserviceaccount.com` |
-| `AWS_ACCESS_KEY_ID` | ✅ | AWS S3 Access Key | `AKIA...` |
-| `AWS_SECRET_ACCESS_KEY` | ✅ | AWS S3 Secret Key | `secret...` |
-| `AWS_S3_BUCKET` | ✅ | S3 Bucket名 | `bucket-name` |
-| `STRIPE_SECRET_KEY` | ✅ | Stripe Secret Key | `sk_test_...` |
-| `STRIPE_WEBHOOK_SECRET` | ✅ | Stripe Webhook Secret | `whsec_...` |
-| `OPENAI_API_KEY` | ✅ | OpenAI API Key | `sk-...` |
+## 🔐 環境変数（.env）
 
 > **設定方法**: `.env.example`をコピーして`.env`を作成し、Notion㊙️ページの値を設定してください。
 

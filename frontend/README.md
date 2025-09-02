@@ -37,8 +37,6 @@
 ## 🔐 環境変数（.env.local）
 
 > **設定方法**: `.env.example`をコピーして`.env.local`を作成し、Notion㊙️ページの値を設定してください。
-> 
-> **主要な環境変数**: `NEXT_PUBLIC_FIREBASE_API_KEY`, `NEXT_PUBLIC_FIREBASE_PROJECT_ID`, `NEXT_PUBLIC_API_BASE_URL` など
 
 ## 🔧 セットアップ手順
 
