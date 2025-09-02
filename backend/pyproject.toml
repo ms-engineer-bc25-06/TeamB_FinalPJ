@@ -1,5 +1,5 @@
-# 設定管理のみ（Pytest設定、プロジェクトメタデータ）
-# 依存関係は requirements.txt / requirements-dev.txt で管理
+# 設定管理のみ（Pytest設定、プロジェクトメタデータ、Black設定）
+# 依存関係は requirements.txt / requirements-dev.txt で管理（Docker環境対応）
 
 [build-system]
 requires = ["setuptools>=61.0", "wheel"]
@@ -10,7 +10,7 @@ name = "teamb-backend"
 version = "0.1.0"
 description = "TeamB Final Project Backend"
 readme = "README.md"
-requires-python = ">=3.9"
+requires-python = ">=3.11"
 dependencies = []
 
 [project.optional-dependencies]
@@ -18,7 +18,7 @@ dev = []
 
 [tool.black]
 line-length = 88
-target-version = ['py39']
+target-version = ['py311']
 include = '\.pyi?$'
 extend-exclude = '''
 /(
