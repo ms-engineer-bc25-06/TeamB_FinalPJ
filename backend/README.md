@@ -175,6 +175,32 @@ docker compose exec backend python seed_db.py
    - Stripe CLIの状態確認: `stripe listen --forward-to localhost:8000/api/v1/stripe/webhook`
    - Webhook Secretの設定確認: `.env`の`STRIPE_WEBHOOK_SECRET`
 
+6. **自動整形（Black/Pylint）が効かない**
+   - **即座に試す**：
+     ```bash
+     # プロジェクトルートで診断スクリプト実行
+     ./scripts/fix-formatting.sh
+     ```
+   - **VS Code設定の確認**：
+     - Dev Container接続確認
+     - Ctrl+Shift+P → `Python: Select Interpreter` → `/usr/local/bin/python`
+     - Ctrl+Shift+P → `Python: Refresh Language Server`
+   - **手動整形テスト**：
+     ```bash
+     # Black実行
+     docker exec teamb_backend python -m black --check .
+     
+     # Pylint実行  
+     docker exec teamb_backend python -m pylint app/
+     ```
+   - **開発パッケージ再インストール**：
+     ```bash
+     docker compose exec backend pip install -r requirements-dev.txt
+     ```
+   - **設定ファイル確認**：
+     - `.vscode/settings.json` - 自動整形設定
+     - `pyproject.toml` - Black/Pylint設定
+
 ## ⚠️ 再セットアップが必要なケース
 
 | ケース | 再セットアップ必要？ | 理由 |
