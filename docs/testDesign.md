@@ -513,7 +513,9 @@ PRODUCTION_URL           # 本番環境URL（慎重に使用）
 #### 1. フロントエンド環境構築
 ```bash
 cd frontend
-npm install                    # 依存関係インストール
+npm install                    # 依存関係インストール + Playwrightブラウザ自動インストール
+# または E2Eテストを使わない場合：
+# SKIP_PLAYWRIGHT=true npm install
 ```
 
 #### 2. バックエンド環境構築（Docker使用）
@@ -528,25 +530,24 @@ docker compose exec backend pip list | grep pytest
 ```
 
 #### 3. E2Eテスト環境構築（🚨 各メンバー必須）
-
-**方法1：自動インストール（推奨）**
-```bash
-cd frontend
-npm install  # postinstallスクリプトで自動的にPlaywrightブラウザもインストール
-```
-
-**方法2：手動インストール**
-```bash
-cd frontend
-SKIP_PLAYWRIGHT=true npm install  # Playwrightをスキップ
-npm run playwright:install        # 後で手動インストール
-```
-
 **⚠️ 重要**：Playwrightブラウザインストールは**各開発者が個別に実行**必須
 - **理由**：Chromium/WebKit ブラウザバイナリをローカルマシンにダウンロード
 - **容量**：約500MB〜1GB（初回のみ）
 - **頻度**：Playwright バージョンアップ時のみ再実行
 - **スキップ不可**：このステップを飛ばすとE2Eテストが実行できません
+
+
+**上記手順1で`npm install`を実行済みの場合**：
+- ✅ **postinstallスクリプトで自動的にPlaywrightブラウザもインストール済み**
+- 追加作業は不要！
+
+**手順1で`SKIP_PLAYWRIGHT=true npm install`した場合**：
+```bash
+cd frontend
+npm run playwright:install        # 手動でPlaywrightブラウザをインストール
+```
+
+
 
 **💡 確認方法**：
 ```bash
