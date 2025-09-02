@@ -214,12 +214,7 @@
 - **変換**: 16kHz/モノラル/16bitに統一
 - **効果**: ファイルサイズ約70%削減、Whisper処理の最適化
 
-#### 4. Whisper処理
-- **AI**: OpenAI Whisper
-- **環境**: PyTorch
-- **出力**: 高精度な日本語音声認識結果
-
-#### 5. テキスト保存
+#### 4. テキスト保存
 - **保存先**: S3（`s3://{bucket}/text/{user_id}/text_{YYYYMMDD}_{HHMMSS}_{unique_id}.txt`）
 - **データベース**: ファイルパスとテキスト内容を`emotion_logs`テーブルに保存
 
