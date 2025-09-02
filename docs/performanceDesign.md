@@ -16,7 +16,7 @@
 - バックエンド: FastAPI  (Python )
 - データベース: PostgreSQL 
 - ストレージ: AWS S3
-- 音声処理: OpenAI Whisper (tinyモデル)
+- 音声処理: OpenAI Whisper (baseモデル)
 
 ### 1.2 性能要件
 
@@ -88,7 +88,7 @@ class EmotionLog(Base):
 ```python
 # whisper.py で実装済み
 _DEFAULTS = {
-    "model_name": os.getenv("WHISPER_MODEL_SIZE", "tiny"),  # 速度重視
+    "model_name": os.getenv("WHISPER_MODEL_SIZE", "base"),  # 速度重視
     "temperature": float(os.getenv("WHISPER_TEMPERATURE", "0.0")),
     "beam_size": int(os.getenv("WHISPER_BEAM_SIZE", "1")),  # 速度重視
     "best_of": int(os.getenv("WHISPER_BEST_OF", "1")),      # 速度重視
