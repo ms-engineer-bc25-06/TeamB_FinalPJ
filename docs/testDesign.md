@@ -527,10 +527,33 @@ docker compose up --build -d      # 初回ビルド付きで起動
 docker compose exec backend pip list | grep pytest
 ```
 
-#### 3. E2Eテスト環境構築
+#### 3. E2Eテスト環境構築（🚨 各メンバー必須）
+
+**方法1：自動インストール（推奨）**
 ```bash
 cd frontend
-npx playwright install         # Playwrightブラウザインストール
+npm install  # postinstallスクリプトで自動的にPlaywrightブラウザもインストール
+```
+
+**方法2：手動インストール**
+```bash
+cd frontend
+SKIP_PLAYWRIGHT=true npm install  # Playwrightをスキップ
+npm run playwright:install        # 後で手動インストール
+```
+
+**⚠️ 重要**：Playwrightブラウザインストールは**各開発者が個別に実行**必須
+- **理由**：Chromium/WebKit ブラウザバイナリをローカルマシンにダウンロード
+- **容量**：約500MB〜1GB（初回のみ）
+- **頻度**：Playwright バージョンアップ時のみ再実行
+- **スキップ不可**：このステップを飛ばすとE2Eテストが実行できません
+
+**💡 確認方法**：
+```bash
+# インストール状況確認
+npx playwright --version
+# ブラウザ一覧確認  
+npx playwright install --dry-run
 ```
 
 ### 動作確認

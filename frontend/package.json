@@ -16,7 +16,9 @@
     "test:e2e:headed": "dotenv -e .env.e2e.local -- playwright test --headed",
     "test:e2e:debug": "dotenv -e .env.e2e.local -- playwright test --debug",
     "test:e2e:staging": "dotenv -e .env.e2e.staging -- playwright test",
-    "test:e2e:production": "dotenv -e .env.e2e.production -- playwright test"
+    "test:e2e:production": "dotenv -e .env.e2e.production -- playwright test",
+    "playwright:install": "playwright install",
+    "postinstall": "if [ \"$SKIP_PLAYWRIGHT\" != \"true\" ]; then playwright install; fi"
   },
   "dependencies": {
     "@date-io/dayjs": "^3.2.0",
