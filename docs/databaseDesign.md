@@ -215,8 +215,8 @@
 - **効果**: ファイルサイズ約70%削減、Whisper処理の最適化
 
 #### 4. Whisper処理
-- **AI**: OpenAI Whisper（20231117）
-- **環境**: PyTorch（CPU版）
+- **AI**: OpenAI Whisper
+- **環境**: PyTorch
 - **出力**: 高精度な日本語音声認識結果
 
 #### 5. テキスト保存

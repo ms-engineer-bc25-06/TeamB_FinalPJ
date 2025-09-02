@@ -3,6 +3,7 @@
 ## 目的
 
 本ドキュメントは、感情教育アプリ『きもちみっけ！』の性能設計について定義する。ユーザー体験の向上とシステムの安定性を確保するため、適切な性能要件と対策を実装する。
+すでに実装しているものには（実装済み）と記載。
 
 ## このドキュメントの使い方
 
@@ -11,9 +12,9 @@
 ## 1. 概要
 
 ### 1.1 対象システム
-- フロントエンド: Next.js 15.4.5 (TypeScript)
-- バックエンド: FastAPI 0.111.0 (Python 3.11)
-- データベース: PostgreSQL 17.5
+- フロントエンド: Next.js  (TypeScript)
+- バックエンド: FastAPI  (Python )
+- データベース: PostgreSQL 
 - ストレージ: AWS S3
 - 音声処理: OpenAI Whisper (tinyモデル)
 
@@ -112,7 +113,7 @@ def optimize_for_whisper(self, input_path: str) -> Optional[str]:
 ### 3.2 ファイルサイズ最適化
 
 #### 3.2.1 音声ファイル圧縮
-- **形式**: WebM（VP8/VP9）、WAV、MP3
+- **形式**: WebM、WAV、MP3
 - **最適化**: 
   - 16kHz/モノラル/16bitに変換
   - ファイルサイズを約70%削減

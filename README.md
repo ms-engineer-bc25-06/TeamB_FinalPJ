@@ -42,7 +42,7 @@ TeamB_FinalPJ/
 | ツール | 目的 | インストール方法・情報源 |
 | ----------------------------------------------------------------------------------- | --------------------------------------------------------- | --------------------------------------------------------------------------------------------- |
 | **Git** | ソースコードのバージョン管理 | [公式サイト](https://git-scm.com/downloads) からダウンロード。 |
-| **Node.js** (v18.17.0 以降) | フロントエンドの実行環境・パッケージ管理 | [nvm](https://github.com/nvm-sh/nvm) などでのバージョン管理を推奨 |
+| **Node.js** | フロントエンドの実行環境・パッケージ管理 | [nvm](https://github.com/nvm-sh/nvm) などでのバージョン管理を推奨 |
 | **Docker** & **Docker Compose** | コンテナ技術による環境の分離・再現性向上 | [Docker Desktop 公式サイト](https://www.docker.com/products/docker-desktop/) からインストール |
 | **Visual Studio Code** | コードエディタ | [公式サイト](https://code.visualstudio.com/) より。以下の拡張機能も併せて導入。 |
 | └ **ESLint**, **Prettier**, **Python**, **Pylance**, **Docker**, **Dev Containers（推奨）** | コーディング支援、保存時整形、Lint、DevContainer 接続など | VSCode の拡張機能マーケットプレイスからインストール |
