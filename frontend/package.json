@@ -11,10 +11,12 @@
     "test:ui": "vitest --ui",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui",
-    "test:e2e:headed": "playwright test --headed",
-    "test:e2e:debug": "playwright test --debug"
+    "test:e2e": "dotenv -e .env.e2e.local -- playwright test",
+    "test:e2e:ui": "dotenv -e .env.e2e.local -- playwright test --ui",
+    "test:e2e:headed": "dotenv -e .env.e2e.local -- playwright test --headed",
+    "test:e2e:debug": "dotenv -e .env.e2e.local -- playwright test --debug",
+    "test:e2e:staging": "dotenv -e .env.e2e.staging -- playwright test",
+    "test:e2e:production": "dotenv -e .env.e2e.production -- playwright test"
   },
   "dependencies": {
     "@date-io/dayjs": "^3.2.0",
@@ -48,6 +50,7 @@
     "eslint-config-prettier": "^10.1.8",
     "jsdom": "^25.0.1",
     "@playwright/test": "^1.55.0",
+    "dotenv-cli": "^7.4.2",
     "prettier": "3.6.2",
     "typescript": "^5",
     "vitest": "^3.2.4"
