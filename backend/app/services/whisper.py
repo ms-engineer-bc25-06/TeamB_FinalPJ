@@ -12,15 +12,15 @@ from app.utils.child_vocabulary import generate_whisper_prompt, generate_situati
 logger = logging.getLogger(__name__)
 
 _DEFAULTS = {
-    "model_name": os.getenv("WHISPER_MODEL_SIZE", "tiny"),  # tinyに変更（速度重視）
+    "model_name": os.getenv("WHISPER_MODEL_SIZE", "base"),
     "language": os.getenv("WHISPER_LANGUAGE", "ja"),
     "temperature": float(os.getenv("WHISPER_TEMPERATURE", "0.0")),
-    "beam_size": int(os.getenv("WHISPER_BEAM_SIZE", "1")),  # 1に変更（速度重視）
-    "best_of": int(os.getenv("WHISPER_BEST_OF", "1")),      # 1に変更（速度重視）
+    "beam_size": int(os.getenv("WHISPER_BEAM_SIZE", "1")),
+    "best_of": int(os.getenv("WHISPER_BEST_OF", "1")),
     "condition_on_previous_text": os.getenv("WHISPER_COND_PREV", "false").lower() == "true",
-    "no_speech_threshold": float(os.getenv("WHISPER_NO_SPEECH_TH", "0.6")),  # 0.6に変更（処理軽量化）
-    "compression_ratio_threshold": float(os.getenv("WHISPER_COMP_RATIO_TH", "3.5")),  # 3.5に変更（処理軽量化）
-    "logprob_threshold": float(os.getenv("WHISPER_LOGPROB_TH", "-1.2")),  # -1.2に変更（処理軽量化）
+    "no_speech_threshold": float(os.getenv("WHISPER_NO_SPEECH_TH", "0.6")),
+    "compression_ratio_threshold": float(os.getenv("WHISPER_COMP_RATIO_TH", "3.5")),
+    "logprob_threshold": float(os.getenv("WHISPER_LOGPROB_TH", "-1.2")),
 }
 
 _SUPPORTED_LANGUAGES: List[str] = ["ja", "en"]
@@ -46,8 +46,16 @@ class WhisperService:
 
     # --- 前処理: 16kHz mono + 高速モード対応 ---
     def _preprocess_audio(self, src_path: str) -> str:
-        # 前処理を完全にスキップ（速度重視）
-        logger.info("前処理を完全にスキップ（速度重視）")
+        # FFmpeg最適化が有効な場合のみ前処理を実行
+        if os.getenv("ENABLE_AUDIO_OPTIMIZATION", "false").lower() == "true":
+            from app.services.audio_optimizer import AudioOptimizer
+            optimizer = AudioOptimizer()
+            optimized_path = optimizer.optimize_for_whisper(src_path)
+            if optimized_path:
+                logger.info("FFmpeg最適化を適用")
+                return optimized_path
+        
+        logger.info("前処理をスキップ")
         return src_path
 
     def _compute_avg_logprob(self, result: Dict[str, Any]) -> Optional[float]:
