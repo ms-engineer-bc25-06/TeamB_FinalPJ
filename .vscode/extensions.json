@@ -1,0 +1,21 @@
+{
+  "recommendations": [
+    // Python開発用
+    "ms-python.python",
+    "ms-python.black-formatter",
+    "ms-python.pylint",
+
+    // JavaScript/TypeScript開発用
+    "esbenp.prettier-vscode",
+    "dbaeumer.vscode-eslint",
+    "bradlc.vscode-tailwindcss",
+
+    // 開発支援
+    "ms-azuretools.vscode-docker",
+    "mhutchie.git-graph",
+    "ms-vscode.vscode-json",
+
+    // テスト関連
+    "ms-playwright.playwright"
+  ]
+}
