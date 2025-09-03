@@ -221,8 +221,15 @@ jobs:
           cache-dependency-path: "./backend/requirements.txt"
           cache-key: "pip-cache-v2"
 
-      - name: Install dependencies
+      - name: Clear cache and install dependencies
         run: |
+          # キャッシュを完全にクリア
+          rm -rf node_modules/.cache
+          rm -rf frontend/node_modules/.cache
+          rm -rf frontend/.next
+          rm -rf frontend/.tsbuildinfo
+          rm -rf frontend/tsconfig.tsbuildinfo
+          # 依存関係を再インストール
           npm ci
           cd frontend && npm ci
           cd ../backend && pip install -r requirements.txt -r requirements-dev.txt
