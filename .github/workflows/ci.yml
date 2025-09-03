@@ -332,6 +332,15 @@ jobs:
         run: npx playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
+      - name: Clean up existing processes
+        run: |
+          echo "🧹 既存プロセスを停止中..."
+          pkill -f "next" || true
+          pkill -f "node.*3000" || true
+          pkill -f "uvicorn" || true
+          sleep 2
+          echo "✅ プロセス停止完了"
+
       - name: Run E2E tests
         env:
           CI: true
