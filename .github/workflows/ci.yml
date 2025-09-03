@@ -140,12 +140,14 @@ jobs:
       - name: Run Alembic migration
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
         run: |
           alembic upgrade head
 
       - name: Run tests
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
         run: |
           pytest --cov=app --cov-report=xml --cov-report=html --cov-fail-under=0
 
