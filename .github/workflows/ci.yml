@@ -148,6 +148,7 @@ jobs:
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_teamb_db
           DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          PYTHONPATH: /home/runner/work/TeamB_FinalPJ/TeamB_FinalPJ/backend
         run: |
           pytest --cov=app --cov-report=xml --cov-report=html --cov-fail-under=0
 
