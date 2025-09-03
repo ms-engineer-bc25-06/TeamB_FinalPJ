@@ -211,7 +211,7 @@ jobs:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: "./package-lock.json"
-          cache-key: "npm-cache-v4"
+          cache-key: "npm-cache-v5"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -219,7 +219,7 @@ jobs:
           python-version: "3.11"
           cache: "pip"
           cache-dependency-path: "./backend/requirements.txt"
-          cache-key: "pip-cache-v4"
+          cache-key: "pip-cache-v5"
 
       - name: Clear cache and install dependencies
         run: |
@@ -233,6 +233,8 @@ jobs:
           rm -rf frontend/tsconfig.tsbuildinfo
           rm -rf frontend/.swc
           rm -rf frontend/.turbo
+          rm -rf frontend/.vscode
+          rm -rf frontend/.idea
           # 依存関係を再インストール
           npm ci
           cd frontend && npm ci
