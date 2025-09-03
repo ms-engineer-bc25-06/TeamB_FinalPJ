@@ -10,6 +10,7 @@ httpx==0.28.1
 pylint==3.3.7
 alembic==1.16.4
 asyncpg==0.30.0
+psycopg2-binary==2.9.9
 
 # NOTE:運用メモ（本番運用が近づいたら以下を検討）
 # - alembic を requirements.txt に含めるか？
