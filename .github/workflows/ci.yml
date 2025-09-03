@@ -146,7 +146,7 @@ jobs:
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_teamb_db
           DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
           PYTHONPATH: /home/runner/work/TeamB_FinalPJ/TeamB_FinalPJ/backend
         run: |
