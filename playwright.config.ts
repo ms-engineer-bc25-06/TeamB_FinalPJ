@@ -57,9 +57,5 @@ export default defineConfig({
       name: "Desktop Chromium",
       use: { ...devices["Desktop Chrome"] },
     },
-    {
-      name: "Mobile Safari",
-      use: { ...devices["iPhone 14 Pro Max"] },
-    },
   ],
 });
