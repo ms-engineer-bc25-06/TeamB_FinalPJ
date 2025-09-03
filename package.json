@@ -1,0 +1,18 @@
+{
+  "name": "teamb-final-project",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "test:e2e": "dotenv -e frontend/.env.e2e.local -- playwright test",
+    "test:e2e:ui": "dotenv -e frontend/.env.e2e.local -- playwright test --ui",
+    "test:e2e:headed": "dotenv -e frontend/.env.e2e.local -- playwright test --headed",
+    "test:e2e:debug": "dotenv -e frontend/.env.e2e.local -- playwright test --debug",
+    "playwright:install": "playwright install",
+    "playwright:show-report": "playwright show-report",
+    "postinstall": "if [ \"$SKIP_PLAYWRIGHT\" != \"true\" ]; then playwright install; fi"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "dotenv-cli": "^7.4.2"
+  }
+}
