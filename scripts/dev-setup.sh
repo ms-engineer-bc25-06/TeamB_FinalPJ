@@ -88,7 +88,7 @@ if [ -n "$WEBHOOK_SECRET" ]; then
     if [ -f "backend/.env" ]; then
         # 既存の設定を更新
         if grep -q "STRIPE_WEBHOOK_SECRET=" backend/.env; then
-            sed -i.bak "s/STRIPE_WEBHOOK_SECRET=.*/STRIPE_WEBHOOK_SECRET=$WEBHOOK_SECRET/" backend/.env
+            sed -i "" "s/STRIPE_WEBHOOK_SECRET=.*/STRIPE_WEBHOOK_SECRET=$WEBHOOK_SECRET/" backend/.env
         else
             echo "STRIPE_WEBHOOK_SECRET=$WEBHOOK_SECRET" >> backend/.env
         fi
