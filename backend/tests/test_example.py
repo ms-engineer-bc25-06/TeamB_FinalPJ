@@ -14,6 +14,7 @@ class TestExample:
         assert 10 - 5 == 5
 
     @pytest.mark.integration
+    @pytest.mark.skip(reason="CI環境ではバックエンドサーバーが起動していないためスキップ")
     def test_login_endpoint(self):
         """ログインエンドポイントのテスト（簡易版）"""
         # ログインテスト（非同期フィクスチャを使わない）
