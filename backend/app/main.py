@@ -27,11 +27,13 @@ logging.getLogger().setLevel(logging.INFO)
 load_dotenv()
 
 #  Firebase Adminの初期化し秘密鍵を読み込む
-cred_path = os.getenv(
-    "GOOGLE_APPLICATION_CREDENTIALS", "/firebase-service-account.json"
-)
-cred = credentials.Certificate(cred_path)
-firebase_admin.initialize_app(cred)
+# Firebase認証の初期化（テスト環境ではスキップ）
+if os.getenv("SKIP_FIREBASE_AUTH", "false").lower() != "true":
+    cred_path = os.getenv(
+        "GOOGLE_APPLICATION_CREDENTIALS", "/firebase-service-account.json"
+    )
+    cred = credentials.Certificate(cred_path)
+    firebase_admin.initialize_app(cred)
 
 # Stripe APIキーの設定
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
