@@ -24,7 +24,7 @@ export default defineConfig({
     command: webCommand,
     cwd: "./frontend",
     port: 3000,
-    reuseExistingServer: !isCI, // CI環境ではfalse、ローカルではtrue
+    reuseExistingServer: false, // 常に新しいサーバーを起動
     timeout: 180_000,
   },
   projects: [
