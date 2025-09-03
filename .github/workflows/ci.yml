@@ -211,7 +211,7 @@ jobs:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: "./package-lock.json"
-          cache-key: "npm-cache-v5"
+          cache-key: "npm-cache-v6"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -219,22 +219,22 @@ jobs:
           python-version: "3.11"
           cache: "pip"
           cache-dependency-path: "./backend/requirements.txt"
-          cache-key: "pip-cache-v5"
+          cache-key: "pip-cache-v6"
 
       - name: Clear cache and install dependencies
         run: |
           # キャッシュを完全にクリア
-          rm -rf node_modules/.cache
-          rm -rf frontend/node_modules/.cache
+          rm -rf node_modules
+          rm -rf frontend/node_modules
           rm -rf frontend/.next
           rm -rf frontend/.tsbuildinfo
           rm -rf frontend/tsconfig.tsbuildinfo
           rm -rf frontend/.eslintcache
-          rm -rf frontend/tsconfig.tsbuildinfo
           rm -rf frontend/.swc
           rm -rf frontend/.turbo
           rm -rf frontend/.vscode
           rm -rf frontend/.idea
+          rm -rf ~/.cache/ms-playwright
           # 依存関係を再インストール
           npm ci
           cd frontend && npm ci
@@ -307,7 +307,7 @@ jobs:
         id: playwright-cache
         with:
           path: ~/.cache/ms-playwright
-          key: ${{ runner.os }}-playwright-${{ hashFiles('package-lock.json') }}
+          key: ${{ runner.os }}-playwright-v6-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-playwright-
 
