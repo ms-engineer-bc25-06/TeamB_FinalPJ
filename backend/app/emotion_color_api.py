@@ -18,11 +18,14 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_async_engine(DATABASE_URL, echo=True)
 async_session_local = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 async def get_db():
     async with async_session_local() as session:
         yield session
 
+
 router = APIRouter(prefix="/emotion/colors", tags=["emotion-colors"])
+
 
 # 色の組み合わせ計算用レスポンスモデル
 class ColorCombinationResponse(BaseModel):
@@ -33,6 +36,7 @@ class ColorCombinationResponse(BaseModel):
     color_modifier: float
     final_color: str
     rgba_color: str
+
 
 @router.get(
     "/cards",
@@ -164,9 +168,7 @@ async def get_intensity_colors(db: AsyncSession = Depends(get_db)):
     response_description="感情+強度の色組み合わせを返します",
 )
 async def get_color_combination(
-    emotion_id: UUID, 
-    intensity_id: int, 
-    db: AsyncSession = Depends(get_db)
+    emotion_id: UUID, intensity_id: int, db: AsyncSession = Depends(get_db)
 ):
     try:
         # 感情カードと強度を取得
@@ -176,28 +178,28 @@ async def get_color_combination(
         intensity_result = await db.execute(
             select(Intensity).where(Intensity.id == intensity_id)
         )
-        
+
         emotion_card = emotion_result.scalar_one_or_none()
         intensity = intensity_result.scalar_one_or_none()
-        
+
         if not emotion_card:
             raise HTTPException(status_code=404, detail="Emotion card not found")
         if not intensity:
             raise HTTPException(status_code=404, detail="Intensity not found")
-        
+
         # 色の計算
         color_modifier = intensity.color_modifier / 100
         base_color = emotion_card.color
-        
+
         # HEXからRGBに変換（簡易版）
-        if base_color.startswith('#'):
+        if base_color.startswith("#"):
             r = int(base_color[1:3], 16)
             g = int(base_color[3:5], 16)
             b = int(base_color[5:7], 16)
             rgba_color = f"rgba({r}, {g}, {b}, {color_modifier})"
         else:
             rgba_color = f"rgba(0, 0, 0, {color_modifier})"
-        
+
         return {
             "success": True,
             "combination": ColorCombinationResponse(
@@ -207,10 +209,10 @@ async def get_color_combination(
                 intensity_id=intensity.id,
                 color_modifier=color_modifier,
                 final_color=base_color,
-                rgba_color=rgba_color
-            )
+                rgba_color=rgba_color,
+            ),
         }
-        
+
     except HTTPException:
         raise
     except Exception as e:
@@ -253,43 +255,44 @@ async def get_color_preview(db: AsyncSession = Depends(get_db)):
         # 感情カードと強度を全て取得
         emotion_result = await db.execute(select(EmotionCard))
         intensity_result = await db.execute(select(Intensity))
-        
+
         emotion_cards = emotion_result.scalars().all()
         intensities = intensity_result.scalars().all()
-        
+
         previews = []
         for emotion_card in emotion_cards:
             emotion_intensities = []
             for intensity in intensities:
                 color_modifier = intensity.color_modifier / 100
                 base_color = emotion_card.color
-                
+
                 # HEXからRGBに変換
-                if base_color.startswith('#'):
+                if base_color.startswith("#"):
                     r = int(base_color[1:3], 16)
                     g = int(base_color[3:5], 16)
                     b = int(base_color[5:7], 16)
                     rgba_color = f"rgba({r}, {g}, {b}, {color_modifier})"
                 else:
                     rgba_color = f"rgba(0, 0, 0, {color_modifier})"
-                
-                emotion_intensities.append({
-                    "id": intensity.id,
-                    "color_modifier": color_modifier,
-                    "rgba_color": rgba_color
-                })
-            
-            previews.append({
-                "emotion_id": str(emotion_card.id),
-                "emotion_label": emotion_card.label,
-                "base_color": emotion_card.color,
-                "intensities": emotion_intensities
-            })
-        
-        return {
-            "success": True,
-            "previews": previews
-        }
-        
+
+                emotion_intensities.append(
+                    {
+                        "id": intensity.id,
+                        "color_modifier": color_modifier,
+                        "rgba_color": rgba_color,
+                    }
+                )
+
+            previews.append(
+                {
+                    "emotion_id": str(emotion_card.id),
+                    "emotion_label": emotion_card.label,
+                    "base_color": emotion_card.color,
+                    "intensities": emotion_intensities,
+                }
+            )
+
+        return {"success": True, "previews": previews}
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

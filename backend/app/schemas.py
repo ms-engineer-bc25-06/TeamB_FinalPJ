@@ -5,8 +5,15 @@ from typing import Optional, Literal
 from uuid import UUID
 
 from pydantic import (
-    BaseModel, EmailStr, Field, AnyUrl, HttpUrl, ConfigDict, field_validator
+    BaseModel,
+    EmailStr,
+    Field,
+    AnyUrl,
+    HttpUrl,
+    ConfigDict,
+    field_validator,
 )
+
 
 # -------------------
 # 認証・ユーザー系
@@ -79,7 +86,7 @@ class EmotionLogResponse(BaseModel):
     audio_file_path: Optional[str] = None  # オプショナルに変更
     created_at: datetime
     updated_at: datetime
-    
+
     # リレーションシップデータ
     emotion_card: Optional[EmotionCardResponse] = None
     intensity: Optional[IntensityResponse] = None
@@ -102,22 +109,27 @@ AllowedFileFormat = Literal["webm", "wav", "mp3", "m4a"]
 
 class StrictModel(BaseModel):
     """余計なフィールドを拒否（タイプミスを早期検知）"""
+
     model_config = ConfigDict(extra="forbid")
 
 
 # ===== Request =====
 class VoiceUploadRequest(StrictModel):
-    user_id: UUID = Field(..., description="ユーザーID（UUID）",
-                          example="user-uuid-example")
-    file_type: AllowedFileType = Field(..., description="ファイルタイプ", example="audio")
+    user_id: UUID = Field(
+        ..., description="ユーザーID（UUID）", example="user-uuid-example"
+    )
+    file_type: AllowedFileType = Field(
+        ..., description="ファイルタイプ", example="audio"
+    )
     file_format: AllowedFileFormat = Field(
         default="webm", description="ファイル形式（webm/wav/mp3/m4a）", example="webm"
     )
 
 
 class VoiceSaveRequest(StrictModel):
-    user_id: UUID = Field(..., description="ユーザーID（UUID）",
-                          example="user-uuid-example")
+    user_id: UUID = Field(
+        ..., description="ユーザーID（UUID）", example="user-uuid-example"
+    )
     # S3キーを受ける（https は未対応）
     audio_file_path: str = Field(
         ...,
@@ -130,35 +142,27 @@ class VoiceSaveRequest(StrictModel):
         example="text/user-uuid-example/transcription_audio_YYYYMMDD_HHMMSS_xxx.txt",
     )
     voice_note: Optional[str] = Field(
-        None,
-        description="音声認識テキスト（任意）",
-        example="今日は楽しかった"
+        None, description="音声認識テキスト（任意）", example="今日は楽しかった"
     )
     # 感情データのフィールドを追加
-    emotion_card_id: str = Field(
-        ...,
-        description="感情カードID（必須）",
-        example="1"
-    )
-    intensity_id: str = Field(
-        ...,
-        description="感情強度ID（必須）",
-        example="2"
-    )
+    emotion_card_id: str = Field(..., description="感情カードID（必須）", example="1")
+    intensity_id: str = Field(..., description="感情強度ID（必須）", example="2")
     child_id: str = Field(
-        ...,
-        description="子供ID（必須）",
-        example="child-uuid-example"
+        ..., description="子供ID（必須）", example="child-uuid-example"
     )
 
     @field_validator("audio_file_path")
     @classmethod
     def validate_audio_key(cls, v: str) -> str:
         if v.startswith(("http://", "https://")):
-            raise ValueError("HTTP(S)のURLは未対応です。S3キー（例: 'audio/...') を渡してください。")
+            raise ValueError(
+                "HTTP(S)のURLは未対応です。S3キー（例: 'audio/...') を渡してください。"
+            )
         if "://" not in v:
             return v
-        raise ValueError("サポートされないパス形式です。S3キー（例: 'audio/...') を渡してください。")
+        raise ValueError(
+            "サポートされないパス形式です。S3キー（例: 'audio/...') を渡してください。"
+        )
 
     @field_validator("text_file_path")
     @classmethod
@@ -166,15 +170,20 @@ class VoiceSaveRequest(StrictModel):
         if v is None:
             return v
         if v.startswith(("http://", "https://")):
-            raise ValueError("HTTP(S)のURLは未対応です。S3キー（例: 'text/...') を渡してください。")
+            raise ValueError(
+                "HTTP(S)のURLは未対応です。S3キー（例: 'text/...') を渡してください。"
+            )
         if "://" not in v:
             return v
-        raise ValueError("サポートされないパス形式です。S3キー（例: 'text/...') を渡してください。")
+        raise ValueError(
+            "サポートされないパス形式です。S3キー（例: 'text/...') を渡してください。"
+        )
 
 
 class VoiceTranscribeRequest(StrictModel):
-    user_id: UUID = Field(..., description="ユーザーID（UUID）",
-                          example="user-uuid-example")
+    user_id: UUID = Field(
+        ..., description="ユーザーID（UUID）", example="user-uuid-example"
+    )
     audio_file_path: str = Field(
         ...,
         description="音声ファイルのS3キー（例: audio/<uuid>/xxx.webm）",
@@ -189,10 +198,14 @@ class VoiceTranscribeRequest(StrictModel):
     @classmethod
     def validate_audio_file_path(cls, v: str) -> str:
         if v.startswith(("http://", "https://")):
-            raise ValueError("HTTP(S)の音声URLは未対応です。S3キー（例: 'audio/...') を渡してください。")
+            raise ValueError(
+                "HTTP(S)の音声URLは未対応です。S3キー（例: 'audio/...') を渡してください。"
+            )
         if "://" not in v:
             return v
-        raise ValueError("サポートされないパス形式です。S3キー（例: 'audio/...') を渡してください。")
+        raise ValueError(
+            "サポートされないパス形式です。S3キー（例: 'audio/...') を渡してください。"
+        )
 
 
 # ===== Response =====
@@ -205,23 +218,33 @@ class VoiceUploadResponse(StrictModel):
         example="audio/user-uuid-example/audio_YYYYMMDD_HHMMSS_xxx.webm",
     )
     s3_url: AnyUrl = Field(..., description="S3上のファイルURL（https://）")
-    content_type: str = Field(..., description="ファイルのContent-Type（例: audio/webm）", example="audio/webm")
+    content_type: str = Field(
+        ...,
+        description="ファイルのContent-Type（例: audio/webm）",
+        example="audio/webm",
+    )
 
     @field_validator("content_type")
     @classmethod
     def validate_content_type(cls, v: str) -> str:
         # いまは音声のみプリサインPUTする運用なので audio/* のみ許可
         if "/" not in v:
-            raise ValueError("content_type は 'type/subtype' 形式（例: audio/webm）で指定してください")
+            raise ValueError(
+                "content_type は 'type/subtype' 形式（例: audio/webm）で指定してください"
+            )
         if not v.startswith("audio/"):
-            raise ValueError("audio 系のMIMEタイプのみ許可（例: audio/webm, audio/wav）")
+            raise ValueError(
+                "audio 系のMIMEタイプのみ許可（例: audio/webm, audio/wav）"
+            )
         return v
 
 
 class VoiceSaveResponse(StrictModel):
     success: bool = Field(..., description="処理成功フラグ", example=True)
     record_id: UUID = Field(..., description="保存されたレコードID（UUID）")
-    message: str = Field(..., description="処理結果メッセージ", example="Record saved successfully")
+    message: str = Field(
+        ..., description="処理結果メッセージ", example="Record saved successfully"
+    )
     saved_at: datetime = Field(
         default_factory=lambda: datetime.now(timezone.utc),
         description="保存時刻（UTC, timezone-aware）",
@@ -230,10 +253,14 @@ class VoiceSaveResponse(StrictModel):
 
 class VoiceTranscribeResponse(StrictModel):
     success: bool = Field(..., description="処理成功フラグ", example=True)
-    transcription_id: int = Field(..., description="音声認識ID（未使用なら 0 でも可）", example=0)
+    transcription_id: int = Field(
+        ..., description="音声認識ID（未使用なら 0 でも可）", example=0
+    )
     text: str = Field(..., description="認識されたテキスト")
     # 修正: Whisperのlogprob値（負の値）も受け付け
-    confidence: float = Field(..., ge=-10.0, le=10.0, description="認識精度（logprob値、-10.0〜10.0）")
+    confidence: float = Field(
+        ..., ge=-10.0, le=10.0, description="認識精度（logprob値、-10.0〜10.0）"
+    )
     language: str = Field(..., description="認識された言語", example="ja")
     duration: float = Field(..., ge=0.0, description="音声の長さ（秒）")
     processed_at: datetime = Field(
