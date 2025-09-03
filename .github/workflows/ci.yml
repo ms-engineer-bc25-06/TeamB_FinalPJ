@@ -211,7 +211,7 @@ jobs:
           node-version: "20"
           cache: "npm"
           cache-dependency-path: "./package-lock.json"
-          cache-key: "npm-cache-v2"
+          cache-key: "npm-cache-v3"
 
       - name: Setup Python
         uses: actions/setup-python@v5
@@ -219,7 +219,7 @@ jobs:
           python-version: "3.11"
           cache: "pip"
           cache-dependency-path: "./backend/requirements.txt"
-          cache-key: "pip-cache-v2"
+          cache-key: "pip-cache-v3"
 
       - name: Clear cache and install dependencies
         run: |
@@ -228,6 +228,8 @@ jobs:
           rm -rf frontend/node_modules/.cache
           rm -rf frontend/.next
           rm -rf frontend/.tsbuildinfo
+          rm -rf frontend/tsconfig.tsbuildinfo
+          rm -rf frontend/.eslintcache
           rm -rf frontend/tsconfig.tsbuildinfo
           # 依存関係を再インストール
           npm ci
