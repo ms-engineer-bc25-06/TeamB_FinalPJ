@@ -219,7 +219,7 @@ jobs:
           python-version: "3.11"
           cache: "pip"
           cache-dependency-path: "./backend/requirements.txt"
-          cache-key: "pip-cache-v6"
+          cache-key: "pip-cache-v7"
 
       - name: Clear cache and install dependencies
         run: |
@@ -254,12 +254,29 @@ jobs:
       - name: Start backend server
         working-directory: ./backend
         env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_teamb_db
           DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
           SKIP_FIREBASE_AUTH: true
         run: |
+          # PostgreSQLサービスの起動を待つ
+          echo "⏳ Waiting for PostgreSQL service to be ready..."
+          for i in {1..60}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "✅ PostgreSQL service is ready"
+              break
+            fi
+            echo "⏳ Waiting for PostgreSQL... ($i/60)"
+            sleep 1
+            if [ $i -eq 60 ]; then
+              echo "❌ PostgreSQL service failed to start"
+              exit 1
+            fi
+          done
+
+          # バックエンドサーバーを起動
           uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
           echo $! > backend.pid
+
           # ヘルスチェックで起動確認（堅牢化）
           for i in {1..30}; do
             if curl -f http://localhost:8000/api/v1/voice/health; then
