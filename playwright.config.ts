@@ -59,8 +59,10 @@ export default defineConfig({
     },
     {
       name: "Mobile Safari",
-      use: { ...devices["iPhone 14 Pro Max"] },
-      browserName: "webkit",
+      use: { 
+        ...devices["iPhone 14 Pro Max"],
+        browserName: "webkit",
+      },
     },
   ],
 });
