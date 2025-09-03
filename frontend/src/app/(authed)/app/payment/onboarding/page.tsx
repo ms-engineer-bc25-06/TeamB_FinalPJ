@@ -1,15 +1,15 @@
 // 成功戻り&案内ページ
 'use client';
 
-import { useEffect, useState } from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { SpeechBubble, PrimaryButton, Spinner } from '@/components/ui';
+import { PrimaryButton, SpeechBubble, Spinner } from '@/components/ui';
 import KokoronBowing from '@/components/ui/KokoronBowing';
-import { colors, commonStyles, spacing, fontSize } from '@/styles/theme';
-import { verifyPayment } from '@/lib/api';
 import { useAuth } from '@/contexts/AuthContext';
+import { verifyPayment } from '@/lib/api';
+import { colors, commonStyles, fontSize, spacing } from '@/styles/theme';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect, useState } from 'react';
 
-export default function PaymentOnboardingPage() {
+function PaymentOnboardingContent() {
   const { firebaseUser } = useAuth();
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -99,18 +99,22 @@ export default function PaymentOnboardingPage() {
   }
 
   return (
-    <div style={{
-      ...commonStyles.page.container,
-      backgroundImage: 'url(/images/background.webp)',
-      backgroundSize: 'cover',
-      backgroundPosition: 'center',
-      backgroundRepeat: 'no-repeat',
-    }}>
-      <div style={{
-        ...commonStyles.page.mainContent,
-        width: '90%',
-        maxWidth: '1000px',
-      }}>
+    <div
+      style={{
+        ...commonStyles.page.container,
+        backgroundImage: 'url(/images/background.webp)',
+        backgroundSize: 'cover',
+        backgroundPosition: 'center',
+        backgroundRepeat: 'no-repeat',
+      }}
+    >
+      <div
+        style={{
+          ...commonStyles.page.mainContent,
+          width: '90%',
+          maxWidth: '1000px',
+        }}
+      >
         {/* 吹き出し */}
         <SpeechBubble text="サブスクリプションをご利用いただき、本当にありがとうございます！" />
 
@@ -192,5 +196,13 @@ export default function PaymentOnboardingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+export default function PaymentOnboardingPage() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <PaymentOnboardingContent />
+    </Suspense>
   );
 }
