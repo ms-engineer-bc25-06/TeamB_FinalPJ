@@ -6,12 +6,20 @@ from pathlib import Path
 from httpx import AsyncClient
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import event
+from dotenv import load_dotenv
 from app.main import app
 from app.database import get_db
 from app.models import Base
 
-# テスト用PostgreSQLデータベースURL
-TEST_DATABASE_URL = "postgresql+asyncpg://postgres:password@db:5432/test_teamb_db"
+load_dotenv()
+
+# テスト用PostgreSQLデータベースURL（環境変数から取得）
+TEST_DATABASE_URL = os.getenv("TEST_DATABASE_URL")
+if not TEST_DATABASE_URL:
+    raise ValueError(
+        "TEST_DATABASE_URL environment variable is required. "
+        "Please set it in your .env file or environment."
+    )
 
 # テスト用非同期データベースエンジン
 # CI環境では無効、ローカルでは環境変数で制御
@@ -31,12 +39,6 @@ def restart_savepoint(sess, transaction):
         # 非同期接続の同期版でSAVEPOINTを再作成
         sess.get_bind().sync_connection.begin_nested()
 
-@pytest.fixture(scope="session")
-def event_loop():
-    """イベントループのフィクスチャ"""
-    loop = asyncio.get_event_loop_policy().new_event_loop()
-    yield loop
-    loop.close()
 
 def run_alembic_upgrade():
     """Alembic upgrade head を実行してスキーマを最新に更新"""
@@ -85,59 +87,66 @@ def run_alembic_downgrade():
         print("⚠️ Downgrade failure ignored for test cleanup")
 
 @pytest.fixture(scope="session", autouse=True)
-async def setup_test_database():
+def setup_test_database():
     """テストセッション開始時にAlembicでスキーマ作成、終了時に削除とクリーンアップ"""
     # Alembic upgrade head でテスト用スキーマを作成
     run_alembic_upgrade()
     
-    yield  # テスト実行
+    yield
     
     # Alembic downgrade base でスキーマを削除
     run_alembic_downgrade()
     
     # 接続プールを完全にクリーンアップ（ポート握りっぱなし防止）
-    await test_engine.dispose()
+    import asyncio
+    asyncio.run(test_engine.dispose())
 
 @pytest.fixture(scope="function")
-async def db_session():
+def db_session():
     """接続レベルトランザクション + SAVEPOINTによる非同期データベースセッションのフィクスチャ"""
-    # 接続を直接取得
-    conn = await test_engine.connect()
+    import asyncio
     
-    try:
-        # 明示的にトランザクション開始
-        trans = await conn.begin()
+    async def _get_session():
+        # 接続を直接取得
+        conn = await test_engine.connect()
         
         try:
-            # この接続にバインドしたセッションを作成（本番環境と同じ設定）
-            session = AsyncSession(
-                bind=conn, 
-                expire_on_commit=False,  # テスト用：オブジェクト再読み込み回避
-                autocommit=False,        # 本番環境と同じ
-                autoflush=False          # 本番環境と同じ
-            )
-            
-            # SAVEPOINTを作成（ネストトランザクション）
-            nested_trans = await conn.begin_nested()
-            
-            # SAVEPOINTの自動再作成リスナーを設定
-            event.listens_for(session.sync_session, "after_transaction_end")(restart_savepoint)
+            # 明示的にトランザクション開始
+            trans = await conn.begin()
             
             try:
-                yield session
-            finally:
-                # イベントリスナーを削除（メモリリーク防止）
-                event.remove(session.sync_session, "after_transaction_end", restart_savepoint)
+                # この接続にバインドしたセッションを作成（本番環境と同じ設定）
+                session = AsyncSession(
+                    bind=conn, 
+                    expire_on_commit=False,  # テスト用：オブジェクト再読み込み回避
+                    autocommit=False,        # 本番環境と同じ
+                    autoflush=False          # 本番環境と同じ
+                )
                 
-                # テスト終了時にSAVEPOINTまでロールバック
-                await nested_trans.rollback()
-                await session.close()
+                # SAVEPOINTを作成（ネストトランザクション）
+                nested_trans = await conn.begin_nested()
+                
+                # SAVEPOINTの自動再作成リスナーを設定
+                event.listens_for(session.sync_session, "after_transaction_end")(restart_savepoint)
+                
+                try:
+                    return session
+                finally:
+                    # イベントリスナーを削除（メモリリーク防止）
+                    event.remove(session.sync_session, "after_transaction_end", restart_savepoint)
+                    
+                    # テスト終了時にSAVEPOINTまでロールバック
+                    await nested_trans.rollback()
+                    await session.close()
+            finally:
+                # 外側のトランザクションを明示的にロールバック
+                await trans.rollback()
         finally:
-            # 外側のトランザクションを明示的にロールバック
-            await trans.rollback()
-    finally:
-        # 接続を閉じる
-        await conn.close()
+            # 接続を閉じる
+            await conn.close()
+    
+    # 非同期関数を同期的に実行してセッションを返す
+    return asyncio.run(_get_session())
 
 @pytest.fixture(scope="function")
 async def client(db_session):
@@ -155,7 +164,6 @@ async def client(db_session):
 @pytest.fixture
 def mock_settings(monkeypatch):
     """モック設定のフィクスチャ（monkeypatchで安全な環境変数設定）"""
-    # テスト用環境変数を設定（自動クリーンアップ付き）
     monkeypatch.setenv("DATABASE_URL", TEST_DATABASE_URL)
     monkeypatch.setenv("FIREBASE_CREDENTIALS", "mock_credentials")
     monkeypatch.setenv("STRIPE_SECRET_KEY", "sk_test_mock")
@@ -179,11 +187,8 @@ def mock_settings(monkeypatch):
     # 設定関数が存在する場合は差し替え（現在は未使用だが将来対応）
     try:
         from app.config.settings import get_settings
-        # monkeypatch.setattr による関数差し替え（@lru_cache回避）
         monkeypatch.setattr("app.config.settings.get_settings", mock_get_settings)
-        
-        # FastAPI dependency_overrides による差し替えも可能
-        # app.dependency_overrides[get_settings] = lambda: mock_get_settings()
+
     except ImportError:
         # get_settings関数が存在しない場合はスキップ
         pass
