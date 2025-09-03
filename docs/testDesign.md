@@ -354,16 +354,15 @@ setup('auth: storage state', async ({ page }) => {
 
 #### **実行コマンド（package.json）**
 ```bash
+# プロジェクトルートで実行
 npm run test:e2e         # ヘッドレスモード
 npm run test:e2e:ui      # UIモード  
 npm run test:e2e:headed  # ブラウザ表示モード
 npm run test:e2e:debug   # デバッグモード
-npm run test:e2e:staging # ステージング環境
-npm run test:e2e:production # 本番環境
 ```
 
 #### **設定ファイル**
-- **playwright.config.ts**: Playwright設定（環境変数対応、キャッシュ最適化済み）
+- **playwright.config.ts**: Playwright設定（プロジェクトルート、環境変数対応、キャッシュ最適化済み）
 - **frontend/.env.e2e.local**: 環境変数テンプレート（.env.e2e.example）を元にNotionを参照して各自作成すること
 
 [↑ 目次に戻る](#目次)
@@ -454,7 +453,7 @@ CODECOV_TOKEN          # Codecovアップロード用トークン（プライベ
 
 **GitHub Actions での使用例**:
 ```yaml
-# .github/workflows/e2e.yml
+# .github/workflows/ci.yml の E2E テスト部分
 jobs:
   e2e-test:
     runs-on: ubuntu-latest
@@ -464,7 +463,6 @@ jobs:
           E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
           E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
         run: |
-          cd frontend
           npm run test:e2e
 ```
 
@@ -513,9 +511,7 @@ PRODUCTION_URL           # 本番環境URL（慎重に使用）
 #### 1. フロントエンド環境構築
 ```bash
 cd frontend
-npm install                    # 依存関係インストール + Playwrightブラウザ自動インストール
-# または E2Eテストを使わない場合：
-# SKIP_PLAYWRIGHT=true npm install
+npm install                    # 依存関係インストール（Vitestのみ）
 ```
 
 #### 2. バックエンド環境構築（Docker使用）
@@ -536,27 +532,20 @@ docker exec teamb_backend pip list | grep pytest
 - **頻度**：Playwright バージョンアップ時のみ再実行
 - **スキップ不可**：このステップを飛ばすとE2Eテストが実行できません
 
-
-**上記手順1で`npm install`を実行済みの場合**：
-- ✅ **postinstallスクリプトで自動的にPlaywrightブラウザもインストール済み**
-- 追加作業は不要！
-
-**手順1で`SKIP_PLAYWRIGHT=true npm install`した場合**：
 ```bash
-cd frontend
-npm run playwright:install        # 手動でPlaywrightブラウザをインストール
+# プロジェクトルートで実行
+npm install                      # Playwright依存関係をインストール + ブラウザ自動インストール
 ```
 
 
 
 **💡 確認方法**：
 ```bash
-# インストール状況確認
+# プロジェクトルートで実行
 npx playwright --version
 # ブラウザ一覧確認  
 npx playwright install --dry-run
 ```
-
 ### 動作確認
 ```bash
 # フロントエンド：サンプルテストの実行
@@ -566,7 +555,7 @@ cd frontend && npm run test:run
 docker exec teamb_backend pytest tests/test_example.py
 
 # E2E：サンプルテストの実行
-cd frontend && npm run test:e2e
+npm run test:e2e
 ```
 
 ## テスト実行環境
@@ -625,12 +614,19 @@ docker compose cp backend:/app/coverage.xml ./backend/coverage.xml
 
 #### E2E（Playwright）
 ```bash
-npm run test:e2e         # ヘッドレスモード - バックグラウンドでブラウザテスト実行
+# プロジェクトルートで実行
+npm run test:e2e         # ヘッドレスモード - とりあえずテストを実行して結果を確認したい時はこちらを実行
 npm run test:e2e:headed  # ブラウザ表示モード - 実際のブラウザ画面を見ながらテスト実行
 npm run test:e2e:ui      # UIモード - Playwrightの専用UIでテスト管理・実行
 npm run test:e2e:debug   # デバッグモード - ステップ実行でテストをデバッグ
 ```
 **実行されるテスト**: ユーザーの実際の操作フローを模擬した統合テスト（ログイン→音声録音→感情選択→レポート閲覧など）
+
+**🎯 おすすめの確認方法**:
+- **初回確認**: `npm run test:e2e:headed` でブラウザ画面を見ながらテスト実行
+- **詳細分析**: `npm run test:e2e:ui` でPlaywright UIを使用
+- **問題調査**: `npx playwright show-report` で失敗時のスクリーンショット確認
+- **デバッグ**: `npm run test:e2e:debug` でステップ実行による問題箇所特定
 
 ### CI環境
 
@@ -648,11 +644,13 @@ npm run test:e2e:debug   # デバッグモード - ステップ実行でテス�
 - **アーティファクト**: 失敗時の詳細情報を7-30日保存
 - **ヘルスチェック**: サーバー起動の確実な検証
 
+
+
 [↑ 目次に戻る](#目次)
 
 ## テストデータ管理
 
-### テスト専用アカウント
+### 1. テスト専用アカウントについて
 
 #### 実アカウントを使用したE2Eテスト
 本プロジェクトでは、実際のGoogleアカウントを使用したサインイン機能のテストを行うため、テスト専用のGoogleアカウントを作成しています。
@@ -669,15 +667,113 @@ npm run test:e2e:debug   # デバッグモード - ステップ実行でテス�
 - テスト専用アカウントは本番データと完全に分離されています。
 - パスワード等の機密情報はリポジトリには含めず、Notionで管理します。
 
-### フロントエンド
-- **MSW**: API レスポンスのモック
-- **テストフィクスチャ**: 再利用可能なテストデータ
+### 2. テスト実行時のデータ管理
 
-### バックエンド
-- **テスト用DB**: PostgreSQL (Docker環境内)
-- **シードデータ**: 各テストで独立したデータ
-- **クリーンアップ**: テスト後の自動データ削除
+#### **フロントエンド（テスト用モックデータ）**
+- **Vitestモック機能**: `vi.fn().mockImplementation()` によるAPI・関数のモック
+- **テストフィクスチャ**: 再利用可能なテストデータ（`__mocks__`ディレクトリ対応）
+
+#### **バックエンド（テスト用データベース）**
+- **テスト用DB**: PostgreSQL (Docker環境内の`test_teamb_db`)
+- **マスターデータ**: 感情カード・強度のシードデータ（本番と同じスキーマ＋シードデータを投入）
+- **テスト用データ**: 各テストで独立した動的データ（テスト内で個別作成）
 - **Docker統合**: 既存コンテナインフラを活用
+
+### 3. テスト結果ファイル管理
+
+#### **(1) Vitest（フロントエンド）**
+
+**📁 ファイル生成条件**：
+- `npm run test` / `npm run test:run` → ❌ ファイル生成なし（ターミナル出力のみ）
+- `npm run test:coverage` → ✅ `frontend/coverage/` ディレクトリ生成
+
+**🚫 Git除外設定**（`frontend/.gitignore`）：
+```gitignore
+/coverage          # カバレッジレポート
+```
+
+**🧹 推奨削除タイミング・コマンド**：
+```bash
+# 手動削除（フロントエンドのみ）
+rm -rf frontend/coverage
+
+# 全体クリーンアップに含まれる
+npm run clean:test
+./scripts/test-cleanup.sh
+```
+
+**💾 削除を避けるべきケース**：
+- カバレッジレポート確認中（`open frontend/coverage/index.html`で詳細確認時）
+- チームレビュー前（カバレッジ改善状況の共有時）
+
+#### **(2) Pytest（バックエンド）**
+
+**📁 ファイル生成条件**：
+- `docker exec teamb_backend pytest` → ✅ **常に生成**（`pyproject.toml`で`--cov=app`が設定済み）
+  - `backend/htmlcov/` ディレクトリ
+  - `backend/coverage.xml` ファイル
+  - `backend/.coverage` データファイル
+  - `backend/.pytest_cache/` キャッシュディレクトリ
+
+**🚫 Git除外設定**（プロジェクトルート`.gitignore`）：
+```gitignore
+htmlcov/           # HTMLカバレッジ
+coverage.xml       # XMLカバレッジ  
+.coverage          # カバレッジデータ
+*.cover
+.pytest_cache/     # Pytestキャッシュ
+```
+
+**🧹 推奨削除タイミング・コマンド**：
+```bash
+# 手動削除（バックエンドのみ）
+rm -rf backend/htmlcov backend/coverage.xml backend/.coverage backend/.pytest_cache
+
+# 全体クリーンアップに含まれる
+./scripts/test-cleanup.sh
+```
+
+**💾 削除を避けるべきケース**：
+- カバレッジレポート確認中（`open backend/htmlcov/index.html`で詳細確認時）
+- CI/CDでのカバレッジ比較時（`coverage.xml`を参照）
+- テスト失敗の原因調査中（詳細ログ確認時）
+
+#### **(3) Playwright（E2E）**
+
+**📁 ファイル生成条件**：
+- `npm run test:e2e` 系のコマンド → ✅ **常に生成**
+  - `test-results/` ディレクトリ（スクリーンショット・動画）
+  - `playwright-report/` ディレクトリ（HTMLレポート）
+  - `blob-report/` ディレクトリ（トレースファイル）
+
+**🚫 Git除外設定**（プロジェクトルート`.gitignore`）：
+```gitignore
+test-results/       # Playwrightテスト結果
+playwright-report/  # Playwrightレポート
+blob-report/        # Playwrightトレース
+```
+
+**🧹 推奨削除タイミング・コマンド**：
+```bash
+# 手動削除（E2Eのみ）
+rm -rf test-results playwright-report blob-report
+
+# 全体クリーンアップに含まれる
+./scripts/test-cleanup.sh
+```
+
+**💾 削除を避けるべきケース**：
+- E2Eテスト失敗のデバッグ中（スクリーンショット・動画で問題箇所特定時）
+- 複雑なユーザーフローの調査中（トレースファイルでステップ確認時）
+- チームレビュー前（テスト結果の共有・議論時）
+
+#### **(全てのテストフレームワーク共通) 🗓️ 定期的な全体クリーンアップコマンド**
+
+```bash
+./scripts/test-cleanup.sh  # 週次実行推奨（容量とサイズ表示付き）
+```
+
+**対象**：上記3つのテストフレームワーク全ての結果ファイルを一括削除
 
 [↑ 目次に戻る](#目次)
 
@@ -714,6 +810,8 @@ npm run test:e2e:debug   # デバッグモード - ステップ実行でテス�
 - **E2E/RTL用に `data-testid` を必ず付与**（ボタン/入力/重要UIのみ）（計画中）
 - **命名規則**: `<page>-<feature>-<element>`（計画中）
 - **例**: `login-form-email`, `voice-recorder-start-button`, `report-daily-chart`
+
+
 
 [↑ 目次に戻る](#目次)
 
