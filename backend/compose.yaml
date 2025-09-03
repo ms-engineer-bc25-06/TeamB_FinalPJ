@@ -13,6 +13,7 @@ services:
       - db
     volumes:
       - ./firebase-service-account.json:/firebase-service-account.json
+      - ./.env:/app/.env     # 環境変数ファイル用マウント
       - ./tests:/app/tests  # テストファイル用マウント
       - ./app:/app/app      # アプリケーションコード用マウント（開発時のホットリロード）
     entrypoint:
