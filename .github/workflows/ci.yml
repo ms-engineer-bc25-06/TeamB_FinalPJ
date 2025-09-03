@@ -223,12 +223,13 @@ jobs:
         run: |
           npm ci
           cd frontend && npm ci
-          cd ../backend && pip install -r requirements.txt
+          cd ../backend && pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run Alembic migration for E2E
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
         run: alembic upgrade head
 
       - name: Build frontend
@@ -239,6 +240,8 @@ jobs:
         working-directory: ./backend
         env:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          SKIP_FIREBASE_AUTH: true
         run: |
           uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
           echo $! > backend.pid
