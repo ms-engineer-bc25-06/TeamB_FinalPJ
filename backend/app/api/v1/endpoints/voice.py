@@ -38,6 +38,7 @@ logger = logging.getLogger(__name__)
 # -------------------------------------------------
 JST = timezone(timedelta(hours=9))
 
+
 def _to_uuid(v) -> UUID:
     if isinstance(v, UUID):
         return v
@@ -45,6 +46,7 @@ def _to_uuid(v) -> UUID:
         return UUID(str(v))
     except Exception:
         raise HTTPException(status_code=400, detail="Invalid UUID")
+
 
 def _to_intensity_id(v) -> int:
     """
@@ -63,8 +65,10 @@ def _to_intensity_id(v) -> int:
         return v
     return 2
 
+
 def _today_jst_date():
     return datetime.now(JST).date()  # YYYY-MM-DD (JST)
+
 
 def _stable_lock_key(user_id: UUID, child_id: UUID, jst_date) -> int:
     """
@@ -75,6 +79,7 @@ def _stable_lock_key(user_id: UUID, child_id: UUID, jst_date) -> int:
     h = hashlib.sha1(seed).digest()
     n = int.from_bytes(h[-8:], "big") & 0x7FFFFFFFFFFFFFFF  # 符号なし63bit
     return n
+
 
 # -------------------------------------------------
 # Validation for local audio
@@ -91,7 +96,9 @@ def _validate_local_audio_file(path: str, language: str) -> None:
         logger.error(f"❌ バリデーションエラー: ファイルが空です - {path}")
         raise HTTPException(status_code=400, detail="Audio file is empty")
     if size > 25 * 1024 * 1024:
-        logger.error(f"❌ バリデーションエラー: ファイルサイズが大きすぎます - {path}, {size} bytes")
+        logger.error(
+            f"❌ バリデーションエラー: ファイルサイズが大きすぎます - {path}, {size} bytes"
+        )
         raise HTTPException(status_code=413, detail="Audio file too large")
 
     ext = os.path.splitext(path)[1].lower().lstrip(".")
@@ -102,13 +109,18 @@ def _validate_local_audio_file(path: str, language: str) -> None:
     if language not in ALLOWED_LANG:
         logger.error(f"❌ バリデーションエラー: サポートされていない言語 - {language}")
         raise HTTPException(status_code=400, detail=f"Unsupported language: {language}")
-    
-    logger.info(f"✅ バリデーション完了: {path}, サイズ: {size} bytes, 形式: {ext}, 言語: {language}")
+
+    logger.info(
+        f"✅ バリデーション完了: {path}, サイズ: {size} bytes, 形式: {ext}, 言語: {language}"
+    )
+
 
 # -------------------------------------------------
 # Whisper singleton
 # -------------------------------------------------
 _whisper_service: Optional[WhisperService] = None
+
+
 def get_whisper_service() -> WhisperService:
     global _whisper_service
     if _whisper_service is None:
@@ -117,14 +129,18 @@ def get_whisper_service() -> WhisperService:
         logger.info(" WhisperService: 初期化完了")
     return _whisper_service
 
+
 # -------------------------------------------------
 # Health
 # -------------------------------------------------
-@router.get("/health", summary="音声APIヘルスチェック", description="音声APIの稼働状態を確認")
+@router.get(
+    "/health", summary="音声APIヘルスチェック", description="音声APIの稼働状態を確認"
+)
 async def health_check():
     logger.info("🔍 ヘルスチェック開始")
     logger.info("✅ ヘルスチェック完了")
     return {"status": "healthy", "service": "voice-api"}
+
 
 # -------------------------------------------------
 # Transcribe
@@ -148,11 +164,13 @@ async def transcribe_voice(
 
     p = request.audio_file_path
     path_kind = (
-        "local" if (os.path.isabs(p) and os.path.exists(p))
-        else "http" if p.startswith(("http://", "https://"))
-        else "s3key"
+        "local"
+        if (os.path.isabs(p) and os.path.exists(p))
+        else "http" if p.startswith(("http://", "https://")) else "s3key"
     )
-    logger.info(f" 音声認識開始: 種類={path_kind}, 言語={request.language}, ファイル={p}")
+    logger.info(
+        f" 音声認識開始: 種類={path_kind}, 言語={request.language}, ファイル={p}"
+    )
 
     t0 = time.monotonic()
     try:
@@ -163,17 +181,28 @@ async def transcribe_voice(
             suffix = os.path.splitext(p)[1] or ".wav"
             fd, tmp_path = tempfile.mkstemp(suffix=suffix)
             os.close(fd)
-            logger.info(f" S3ダウンロード: bucket={s3.bucket_name}, key={p}, tmp={tmp_path}")
+            logger.info(
+                f" S3ダウンロード: bucket={s3.bucket_name}, key={p}, tmp={tmp_path}"
+            )
             try:
-                s3.download_file(s3_key=p, local_file_path=tmp_path, bucket_name=s3.bucket_name)
+                s3.download_file(
+                    s3_key=p, local_file_path=tmp_path, bucket_name=s3.bucket_name
+                )
             except Exception as e:
                 logger.exception("s3 download: error")
-                raise HTTPException(status_code=500, detail=f"S3ダウンロードエラー: {str(e)}")
+                raise HTTPException(
+                    status_code=500, detail=f"S3ダウンロードエラー: {str(e)}"
+                )
             if not os.path.exists(tmp_path) or os.path.getsize(tmp_path) == 0:
-                raise HTTPException(status_code=400, detail="S3からのファイルダウンロードに失敗しました")
+                raise HTTPException(
+                    status_code=400, detail="S3からのファイルダウンロードに失敗しました"
+                )
             local_path = tmp_path
         else:
-            raise HTTPException(status_code=400, detail="HTTP(S)の音声URLは未対応です。S3キーを渡してください。")
+            raise HTTPException(
+                status_code=400,
+                detail="HTTP(S)の音声URLは未対応です。S3キーを渡してください。",
+            )
 
         _validate_local_audio_file(local_path, request.language)
 
@@ -205,7 +234,11 @@ async def transcribe_voice(
         avg_lp = result.get("avg_logprob")
         if avg_lp is None:
             segs = result.get("segments") or []
-            vals = [s.get("avg_logprob") for s in segs if isinstance(s.get("avg_logprob"), (int, float))]
+            vals = [
+                s.get("avg_logprob")
+                for s in segs
+                if isinstance(s.get("avg_logprob"), (int, float))
+            ]
             if vals:
                 avg_lp = float(sum(vals) / len(vals))
 
@@ -215,7 +248,9 @@ async def transcribe_voice(
         # ログに信頼度を出す（しきい値は -0.50 を目安）
         logger.info(f"Whisper avg_logprob(confidence)={confidence}")
         if confidence < -0.50:
-            logger.warning("低信頼テキスト検出（avg_logprob < -0.50）: 再録音や再推論の導線を提示してください")
+            logger.warning(
+                "低信頼テキスト検出（avg_logprob < -0.50）: 再録音や再推論の導線を提示してください"
+            )
 
         resp = VoiceTranscribeResponse(
             success=True,
@@ -226,14 +261,18 @@ async def transcribe_voice(
             duration=float(result.get("duration", 0.0)),
             processed_at=datetime.now(timezone.utc),
         )
-        logger.info(f"✅ Whisper完了: {round(t2 - t1, 2)}秒 / 総処理 {round(time.monotonic()-t0,2)}秒")
+        logger.info(
+            f"✅ Whisper完了: {round(t2 - t1, 2)}秒 / 総処理 {round(time.monotonic()-t0,2)}秒"
+        )
         return resp
 
     except HTTPException:
         raise
     except Exception as e:
         logger.exception("transcribe: failed")
-        raise HTTPException(status_code=500, detail=f"Transcription failed: {type(e).__name__}: {e}")
+        raise HTTPException(
+            status_code=500, detail=f"Transcription failed: {type(e).__name__}: {e}"
+        )
     finally:
         if tmp_path and os.path.exists(tmp_path):
             try:
@@ -255,7 +294,9 @@ async def transcribe_voice(
         "- `file_path` はDBに保存するべき **S3のキー**"
     ),
 )
-async def get_upload_url(request: VoiceUploadRequest, db: AsyncSession = Depends(get_db)):
+async def get_upload_url(
+    request: VoiceUploadRequest, db: AsyncSession = Depends(get_db)
+):
     s3 = S3Service()
     t0 = time.monotonic()
     try:
@@ -275,7 +316,9 @@ async def get_upload_url(request: VoiceUploadRequest, db: AsyncSession = Depends
             file_path = f"audio/{request.user_id}/audio_{timestamp}_{unique_id}.{ext}"
         elif request.file_type == "text":
             ext, content_type = "txt", "text/plain"
-            file_path = f"text/{request.user_id}/transcript_{timestamp}_{unique_id}.{ext}"
+            file_path = (
+                f"text/{request.user_id}/transcript_{timestamp}_{unique_id}.{ext}"
+            )
         else:
             raise HTTPException(status_code=400, detail="Invalid file type")
 
@@ -284,7 +327,9 @@ async def get_upload_url(request: VoiceUploadRequest, db: AsyncSession = Depends
             raise HTTPException(status_code=500, detail="Failed to generate upload URL")
 
         processing_time = round(time.monotonic() - t0, 2)
-        logger.info(f"✅ Presigned URL: key={file_path}, type={content_type}, 処理={processing_time}秒")
+        logger.info(
+            f"✅ Presigned URL: key={file_path}, type={content_type}, 処理={processing_time}秒"
+        )
         return {
             "success": True,
             "upload_url": presigned_url,
@@ -297,6 +342,7 @@ async def get_upload_url(request: VoiceUploadRequest, db: AsyncSession = Depends
     except Exception as e:
         logger.exception("presign: failed")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # -------------------------------------------------
 # SAVE (Advisory lock: DELETE → INSERT)
@@ -311,7 +357,7 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
     print(f"[DEBUG] Request body: {request}")
     print(f"[DEBUG] voice_note: {request.voice_note}")
     print(f"[DEBUG] voice_note type: {type(request.voice_note)}")
-    
+
     s3 = S3Service()
     t0 = time.monotonic()
 
@@ -321,6 +367,7 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
             return None
         if p.startswith(("http://", "https://")):
             from urllib.parse import urlparse, unquote
+
             u = urlparse(p)
             path = unquote(u.path.lstrip("/"))
             if path.startswith(f"{s3.bucket_name}/"):
@@ -330,8 +377,16 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
 
     try:
         # 必須
-        if not (request.user_id and request.child_id and request.emotion_card_id and request.intensity_id):
-            raise HTTPException(status_code=400, detail="user_id, child_id, emotion_card_id, intensity_id は必須です。")
+        if not (
+            request.user_id
+            and request.child_id
+            and request.emotion_card_id
+            and request.intensity_id
+        ):
+            raise HTTPException(
+                status_code=400,
+                detail="user_id, child_id, emotion_card_id, intensity_id は必須です。",
+            )
 
         user_id = _to_uuid(request.user_id)
         child_id = _to_uuid(request.child_id)
@@ -339,14 +394,14 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
         intensity_id = _to_intensity_id(request.intensity_id)
 
         audio_key = to_key(request.audio_file_path)
-        text_key  = to_key(request.text_file_path)
+        text_key = to_key(request.text_file_path)
 
         jst_date = _today_jst_date()
         lock_k = _stable_lock_key(user_id, child_id, jst_date)
 
         # 古いS3の孤児掃除用に一時保管
         old_audio_keys: list[str] = []
-        old_text_keys: list[str]  = []
+        old_text_keys: list[str] = []
 
         async with db.begin():
             # 同日同ユーザー×子どもで直列化
@@ -354,21 +409,26 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
 
             # 当日(JST)の既存行を削除しつつ、古いキーを回収
             res_del = await db.execute(
-                sa.text("""
+                sa.text(
+                    """
                     DELETE FROM emotion_logs
                     WHERE user_id = :uid
                       AND child_id = :cid
                       AND DATE(created_at AT TIME ZONE 'Asia/Tokyo') = :d
                     RETURNING audio_file_path, text_file_path
-                """),
-                {"uid": user_id, "cid": child_id, "d": jst_date}
+                """
+                ),
+                {"uid": user_id, "cid": child_id, "d": jst_date},
             )
             for a, t in res_del.fetchall():
-                if a: old_audio_keys.append(a)
-                if t: old_text_keys.append(t)
+                if a:
+                    old_audio_keys.append(a)
+                if t:
+                    old_text_keys.append(t)
 
             # 新規1件を挿入
-            insert_sql = sa.text("""
+            insert_sql = sa.text(
+                """
                 INSERT INTO emotion_logs
                     (id, user_id, child_id, emotion_card_id, intensity_id,
                      voice_note, text_file_path, audio_file_path,
@@ -378,22 +438,26 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
                      :note, :textp, :audiop,
                      now(), now())
                 RETURNING id
-            """)
+            """
+            )
             new_id = uuid.uuid4()
-            
+
             # voice_noteを実際のリクエストから取得
             voice_note = request.voice_note if request.voice_note is not None else ""
-            
-            res = await db.execute(insert_sql, {
-                "id": new_id,
-                "uid": user_id,
-                "cid": child_id,
-                "eid": emotion_card_id,
-                "iid": int(intensity_id),
-                "note": voice_note,    # 修正: Noneではなく実際のvoice_noteを使用
-                "textp": text_key,
-                "audiop": audio_key,
-            })
+
+            res = await db.execute(
+                insert_sql,
+                {
+                    "id": new_id,
+                    "uid": user_id,
+                    "cid": child_id,
+                    "eid": emotion_card_id,
+                    "iid": int(intensity_id),
+                    "note": voice_note,  # 修正: Noneではなく実際のvoice_noteを使用
+                    "textp": text_key,
+                    "audiop": audio_key,
+                },
+            )
             record_id = res.scalar_one()
 
         # Tx後に古いS3を削除（DBは確定済み。失敗は警告ログに留める）
@@ -405,7 +469,9 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
                 logger.warning(f"[S3] old object delete failed: key={key} err={e}")
 
         processing_time = round(time.monotonic() - t0, 2)
-        logger.info(f"✅ 置き換え保存完了 (locked): record_id={record_id}, jst_date={jst_date}, 処理時間={processing_time}秒")
+        logger.info(
+            f"✅ 置き換え保存完了 (locked): record_id={record_id}, jst_date={jst_date}, 処理時間={processing_time}秒"
+        )
         return {
             "success": True,
             "record_id": str(record_id),
@@ -417,6 +483,7 @@ async def save_record(request: VoiceSaveRequest, db: AsyncSession = Depends(get_
     except Exception as e:
         logger.exception("save-record advisory-lock replace: failed")
         raise HTTPException(status_code=500, detail=str(e))
+
 
 # -------------------------------------------------
 # Records list
@@ -446,6 +513,7 @@ async def get_records(user_id: UUID, db: AsyncSession = Depends(get_db)):
                 return None
             if isinstance(p, str) and p.startswith(("http://", "https://")):
                 from urllib.parse import urlparse, unquote
+
                 u = urlparse(p)
                 path = unquote(u.path.lstrip("/"))
                 if path.startswith(f"{s3.bucket_name}/"):
@@ -462,16 +530,19 @@ async def get_records(user_id: UUID, db: AsyncSession = Depends(get_db)):
                     "text_path": to_key(r.text_file_path),
                     "audio_download_url": (
                         s3.generate_presigned_download_url(to_key(r.audio_file_path))
-                        if r.audio_file_path else None
+                        if r.audio_file_path
+                        else None
                     ),
                     "text_download_url": (
                         s3.generate_presigned_download_url(to_key(r.text_file_path))
-                        if r.text_file_path else None
+                        if r.text_file_path
+                        else None
                     ),
                     # ファイル名から日時を抽出（audio_YYYYMMDD_HHMMSS_xxx.ext を想定）
                     "created_at": (
                         (to_key(r.audio_file_path) or "").split("/")[-1].split("_")[1:3]
-                        if r.audio_file_path else None
+                        if r.audio_file_path
+                        else None
                     ),
                 }
                 for r in records

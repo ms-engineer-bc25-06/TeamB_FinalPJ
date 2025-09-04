@@ -1,37 +1,32 @@
 'use client';
-import { useEffect } from 'react';
 import { useAudio } from '@/hooks/useAudio';
+import React, { useEffect } from 'react';
 
 interface AudioPlayerProps {
   src: string;
   autoPlay?: boolean;
   volume?: number;
   onEnded?: () => void;
-  onError?: (error: Event) => void;
+  onError?: React.ReactEventHandler<HTMLAudioElement>;
   onLoad?: () => void;
   className?: string;
 }
 
-export const AudioPlayer = ({ 
-  src, 
-  autoPlay = false, 
+export const AudioPlayer = ({
+  src,
+  autoPlay = false,
   volume = 1.0,
   onEnded,
   onError,
   onLoad,
-  className = ''
+  className = '',
 }: AudioPlayerProps) => {
-  const { 
-    audioRef, 
-    isPlaying, 
-    isLoaded, 
-    setIsLoaded 
-  } = useAudio({ 
-    src, 
-    autoPlay, 
-    volume, 
-    onEnded, 
-    onError 
+  const { audioRef, isPlaying, isLoaded, setIsLoaded } = useAudio({
+    src,
+    autoPlay,
+    volume,
+    onEnded,
+    onError,
   });
 
   useEffect(() => {
@@ -41,7 +36,7 @@ export const AudioPlayer = ({
   }, [isLoaded, onLoad]);
 
   return (
-    <audio 
+    <audio
       ref={audioRef}
       src={src}
       preload="auto"

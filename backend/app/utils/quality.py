@@ -1,5 +1,6 @@
 from typing import List, Dict
 
+
 def score_from_segments(segments: List[Dict]) -> float:
     """avg_logprob（概ね -1.5〜0）を 0.0〜1.0 に正規化。UIゲージ用。"""
     if not segments:

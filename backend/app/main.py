@@ -27,14 +27,17 @@ logging.getLogger().setLevel(logging.INFO)
 load_dotenv()
 
 #  Firebase Adminの初期化し秘密鍵を読み込む
-cred_path = os.getenv(
-    "GOOGLE_APPLICATION_CREDENTIALS", "/firebase-service-account.json"
-)
-cred = credentials.Certificate(cred_path)
-firebase_admin.initialize_app(cred)
+# Firebase認証の初期化（テスト環境ではスキップ）
+if os.getenv("SKIP_FIREBASE_AUTH", "false").lower() != "true":
+    cred_path = os.getenv(
+        "GOOGLE_APPLICATION_CREDENTIALS", "/firebase-service-account.json"
+    )
+    cred = credentials.Certificate(cred_path)
+    firebase_admin.initialize_app(cred)
 
 # Stripe APIキーの設定
 stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
+
 
 # --- Lifespan Manager ---
 @asynccontextmanager
@@ -46,12 +49,12 @@ async def lifespan(app: FastAPI):
     #         await conn.run_sync(Base.metadata.create_all)
     yield
 
+
 security_schemes = {"bearerAuth": {"type": "http", "scheme": "bearer"}}
 
 # lifespanを登録して、起動時の処理を有効化
 app = FastAPI(
-    lifespan=lifespan,
-    openapi_components={"securitySchemes": security_schemes}
+    lifespan=lifespan, openapi_components={"securitySchemes": security_schemes}
 )
 
 # エラーハンドラの登録

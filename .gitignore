@@ -21,6 +21,18 @@ Thumbs.db
 __pycache__/
 *.pyc
 
+# Test coverage files
+htmlcov/
+coverage.xml
+.coverage
+*.cover
+.pytest_cache/
+
+# Playwright test results
+test-results/
+playwright-report/
+blob-report/
+
 # Node cache
 node_modules/
 .next/

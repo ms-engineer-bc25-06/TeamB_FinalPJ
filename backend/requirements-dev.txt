@@ -1,12 +1,19 @@
-# 本番環境ではこのファイルは使用しない（ローカル開発用）
+# NOTE:本番環境ではこのファイルは使用しない（ローカル開発用）
 # CI/CDではrequirements.txt のみを使用すること
 -r requirements.txt
 
 black==25.1.0
 pytest==8.4.1
+pytest-asyncio==0.24.0
+pytest-cov==6.0.0
+httpx==0.28.1
 pylint==3.3.7
 alembic==1.16.4
+# asyncpgを優先的に使用（非同期ドライバー）
+asyncpg==0.30.0
+# psycopg2-binaryはAlembic用（同期ドライバー）
+psycopg2-binary==2.9.9
 
-# 運用メモ（本番運用が近づいたら以下を検討）
+# NOTE:運用メモ（本番運用が近づいたら以下を検討）
 # - alembic を requirements.txt に含めるか？
 #   （本番での自動マイグレーション適用が必要な場合）

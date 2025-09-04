@@ -1,19 +1,19 @@
-import { useRef, useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 interface UseAudioOptions {
   src: string;
   autoPlay?: boolean;
   volume?: number;
   onEnded?: () => void;
-  onError?: (error: Event) => void;
+  onError?: React.ReactEventHandler<HTMLAudioElement>;
 }
 
-export const useAudio = ({ 
-  src, 
-  autoPlay = false, 
+export const useAudio = ({
+  src,
+  autoPlay = false,
   volume = 1.0,
   onEnded,
-  onError 
+  onError,
 }: UseAudioOptions) => {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -22,7 +22,7 @@ export const useAudio = ({
   useEffect(() => {
     if (audioRef.current) {
       audioRef.current.volume = volume;
-      
+
       if (autoPlay && isLoaded) {
         playAudio();
       }
@@ -69,6 +69,6 @@ export const useAudio = ({
     stopAudio,
     pauseAudio,
     setVolume,
-    setIsLoaded
+    setIsLoaded,
   };
 };

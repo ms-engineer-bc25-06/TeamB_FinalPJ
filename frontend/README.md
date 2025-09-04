@@ -107,9 +107,31 @@ frontend/
 
 4. **TypeScriptエラーが発生する**
    - `npx tsc --noEmit`で型チェックを実行
-   - `node_modules`を削除して`npm install`を再実行
 
-5. **ビルドエラーが発生する**
+5. **自動整形（Prettier/ESLint）が効かない**
+   - **即座に試す**：
+     ```bash
+     # プロジェクトルートで診断スクリプト実行
+     ./scripts/fix-formatting.sh
+     ```
+   - **VS Code設定の確認**：
+     - Ctrl+Shift+P → `ESLint: Restart ESLint Server`
+     - 拡張機能が有効：`esbenp.prettier-vscode`, `dbaeumer.vscode-eslint`
+   - **手動整形テスト**：
+     ```bash
+     # ESLintチェック
+     npm run lint
+     
+     # Prettierチェック
+     npx prettier --check src/
+     ```
+   - **設定ファイル確認**：
+     - `.vscode/settings.json` - 自動整形設定
+     - `eslint.config.mjs` - ESLint設定
+     - `.prettierrc.json` - Prettier設定
+   - **最終手段**：`node_modules`を削除して`npm install`を再実行
+
+6. **ビルドエラーが発生する**
    - `npm run build`で詳細なエラー情報を確認
    - 依存関係のバージョン競合がないか確認
 
@@ -125,3 +147,4 @@ frontend/
 - **開発ガイドラインについて**: [Dev Guideline](../docs/devGuideline.md) で詳細を確認してください
 - **セキュリティ設計について**: [Security Design](../docs/securityDesign.md) で詳細を確認してください
 - **性能設計について**: [Performance Design](../docs/performanceDesign.md) で詳細を確認してください
+- **テスト設計について**: [Test Design](../docs/testDesign.md) で詳細を確認してください

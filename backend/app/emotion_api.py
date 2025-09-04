@@ -21,11 +21,14 @@ DATABASE_URL = os.getenv("DATABASE_URL")
 engine = create_async_engine(DATABASE_URL, echo=True)
 async_session_local = async_sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
+
 async def get_db():
     async with async_session_local() as session:
         yield session
 
+
 router = APIRouter(prefix="/emotion", tags=["emotion"])
+
 
 # 感情記録作成用リクエストモデル（段階的保存対応）
 class CreateEmotionLogRequest(BaseModel):
@@ -36,6 +39,7 @@ class CreateEmotionLogRequest(BaseModel):
     voice_note: str | None = None
     text_file_path: str | None = None
     audio_file_path: str | None = None
+
 
 @router.get(
     "/cards",
@@ -187,10 +191,11 @@ async def create_emotion_log(
     try:
         # Firebase UIDからユーザーIDを検索
         from app.crud import get_user_by_uid
+
         user = await get_user_by_uid(db, request.user_id)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # 感情記録を作成（音声・テキスト関連は後で更新）
         emotion_log = EmotionLog(
             user_id=user.id,  # 検索したユーザーのUUIDを使用
@@ -205,13 +210,13 @@ async def create_emotion_log(
         db.add(emotion_log)
         await db.commit()
         await db.refresh(emotion_log)
-        
+
         return {
             "success": True,
             "log_id": str(emotion_log.id),
             "message": "Emotion log created successfully",
         }
-        
+
     except Exception as e:
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
@@ -221,92 +226,108 @@ async def create_emotion_log(
     "/logs/list",
     response_model=List[EmotionLogResponse],
     summary="感情ログ一覧取得",
-    description="ユーザーに紐づく感情ログを取得します。child_idが指定された場合は、その子どものログのみを取得します。"
+    description="ユーザーに紐づく感情ログを取得します。child_idが指定された場合は、その子どものログのみを取得します。",
 )
 async def get_emotion_logs(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     child_id: Optional[str] = None,
     limit: int = 100,
-    offset: int = 0
+    offset: int = 0,
 ):
     try:
         # クエリの構築（リレーションシップデータも含める）
-        query = select(EmotionLog).options(
-            selectinload(EmotionLog.emotion_card),
-            selectinload(EmotionLog.intensity)
-        ).where(EmotionLog.user_id == current_user.id)
-        
+        query = (
+            select(EmotionLog)
+            .options(
+                selectinload(EmotionLog.emotion_card),
+                selectinload(EmotionLog.intensity),
+            )
+            .where(EmotionLog.user_id == current_user.id)
+        )
+
         if child_id:
             query = query.where(EmotionLog.child_id == child_id)
-        
+
         query = query.order_by(EmotionLog.created_at.desc()).limit(limit).offset(offset)
-        
+
         result = await db.execute(query)
         emotion_logs = result.scalars().all()
-        
+
         return emotion_logs
-        
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch emotion logs: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch emotion logs: {str(e)}"
+        )
 
 
 @router.get(
     "/logs/daily/{date}",
     response_model=List[EmotionLogResponse],
     summary="指定日の感情ログ取得",
-    description="指定された日付の感情ログを取得します。日付はYYYY-MM-DD形式で指定してください。"
+    description="指定された日付の感情ログを取得します。日付はYYYY-MM-DD形式で指定してください。",
 )
 async def get_emotion_logs_by_date(
     date: str,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    child_id: Optional[str] = None
+    child_id: Optional[str] = None,
 ):
     try:
         # 日付文字列をパース
         target_date = datetime.strptime(date, "%Y-%m-%d").date()
-        
+
         # クエリの構築（リレーションシップデータも含める）
-        query = select(EmotionLog).options(
-            selectinload(EmotionLog.emotion_card),
-            selectinload(EmotionLog.intensity)
-        ).where(
-            and_(
-                EmotionLog.user_id == current_user.id,
-                EmotionLog.created_at >= datetime.combine(target_date, datetime.min.time()),
-                EmotionLog.created_at < datetime.combine(target_date, datetime.max.time())
+        query = (
+            select(EmotionLog)
+            .options(
+                selectinload(EmotionLog.emotion_card),
+                selectinload(EmotionLog.intensity),
+            )
+            .where(
+                and_(
+                    EmotionLog.user_id == current_user.id,
+                    EmotionLog.created_at
+                    >= datetime.combine(target_date, datetime.min.time()),
+                    EmotionLog.created_at
+                    < datetime.combine(target_date, datetime.max.time()),
+                )
             )
         )
-        
+
         if child_id:
             query = query.where(EmotionLog.child_id == child_id)
-        
+
         query = query.order_by(EmotionLog.created_at.desc())
-        
+
         result = await db.execute(query)
         emotion_logs = result.scalars().all()
-        
+
         return emotion_logs
-        
+
     except ValueError:
-        raise HTTPException(status_code=400, detail="Invalid date format. Use YYYY-MM-DD")
+        raise HTTPException(
+            status_code=400, detail="Invalid date format. Use YYYY-MM-DD"
+        )
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch emotion logs: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch emotion logs: {str(e)}"
+        )
 
 
 @router.get(
     "/logs/monthly/{year}/{month}",
     response_model=List[EmotionLogResponse],
     summary="指定月の感情ログ取得",
-    description="指定された年月の感情ログを取得します。"
+    description="指定された年月の感情ログを取得します。",
 )
 async def get_emotion_logs_by_month(
     year: int,
     month: int,
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
-    child_id: Optional[str] = None
+    child_id: Optional[str] = None,
 ):
     try:
         # 月の開始日と終了日を計算
@@ -315,31 +336,37 @@ async def get_emotion_logs_by_month(
             end_date = datetime(year + 1, 1, 1)
         else:
             end_date = datetime(year, month + 1, 1)
-        
+
         # クエリの構築（リレーションシップデータも含める）
-        query = select(EmotionLog).options(
-            selectinload(EmotionLog.emotion_card),
-            selectinload(EmotionLog.intensity)
-        ).where(
-            and_(
-                EmotionLog.user_id == current_user.id,
-                EmotionLog.created_at >= start_date,
-                EmotionLog.created_at < end_date
+        query = (
+            select(EmotionLog)
+            .options(
+                selectinload(EmotionLog.emotion_card),
+                selectinload(EmotionLog.intensity),
+            )
+            .where(
+                and_(
+                    EmotionLog.user_id == current_user.id,
+                    EmotionLog.created_at >= start_date,
+                    EmotionLog.created_at < end_date,
+                )
             )
         )
-        
+
         if child_id:
             query = query.where(EmotionLog.child_id == child_id)
-        
+
         query = query.order_by(EmotionLog.created_at.desc())
-        
+
         result = await db.execute(query)
         emotion_logs = result.scalars().all()
-        
+
         return emotion_logs
-        
+
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to fetch emotion logs: {str(e)}")
+        raise HTTPException(
+            status_code=500, detail=f"Failed to fetch emotion logs: {str(e)}"
+        )
 
 
 @router.get(
@@ -376,16 +403,15 @@ async def get_user_children(user_uid: str, db: AsyncSession = Depends(get_db)):
     try:
         # Firebase UIDからユーザーIDを検索
         from app.crud import get_user_by_uid
+
         user = await get_user_by_uid(db, user_uid)
         if not user:
             raise HTTPException(status_code=404, detail="User not found")
-        
+
         # ユーザーに紐づく子供を取得
-        result = await db.execute(
-            select(Child).where(Child.user_id == user.id)
-        )
+        result = await db.execute(select(Child).where(Child.user_id == user.id))
         children = result.scalars().all()
-        
+
         return {
             "success": True,
             "children": [
@@ -396,10 +422,11 @@ async def get_user_children(user_uid: str, db: AsyncSession = Depends(get_db)):
                     gender=child.gender,
                     user_id=child.user_id,
                     created_at=child.created_at,
-                    updated_at=child.updated_at
-                ) for child in children
-            ]
+                    updated_at=child.updated_at,
+                )
+                for child in children
+            ],
         }
-        
+
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))

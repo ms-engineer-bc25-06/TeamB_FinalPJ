@@ -84,7 +84,7 @@ async def seed_emotion_cards(db: AsyncSession):
     for card_data in emotion_cards:
         card = EmotionCard(**card_data)
         db.add(card)
-    
+
     await db.commit()
     print(f"✅ {len(emotion_cards)}個の感情カードをシードしました")
 
@@ -100,7 +100,7 @@ async def seed_intensities(db: AsyncSession):
     for intensity_data in intensities:
         intensity = Intensity(**intensity_data)
         db.add(intensity)
-    
+
     await db.commit()
     print(f"✅ {len(intensities)}個の強度をシードしました")
 
@@ -108,10 +108,10 @@ async def seed_intensities(db: AsyncSession):
 async def run_seeds(db: AsyncSession):
     """全てのシードを実行"""
     print("シードデータを作成中...")
-    
+
     # 既存データをチェック
     from sqlalchemy import select
-    
+
     # 感情カードのチェック
     result = await db.execute(select(EmotionCard))
     existing_cards = result.scalars().all()
@@ -119,7 +119,7 @@ async def run_seeds(db: AsyncSession):
         await seed_emotion_cards(db)
     else:
         print(f"⚠️ 感情カードは既に{len(existing_cards)}個存在します")
-    
+
     # 強度のチェック
     result = await db.execute(select(Intensity))
     existing_intensities = result.scalars().all()
@@ -127,5 +127,5 @@ async def run_seeds(db: AsyncSession):
         await seed_intensities(db)
     else:
         print(f"⚠️ 強度は既に{len(existing_intensities)}個存在します")
-    
+
     print("✅ シード完了！")

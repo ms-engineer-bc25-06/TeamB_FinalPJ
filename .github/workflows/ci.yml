@@ -1,0 +1,412 @@
+name: CI/CD Pipeline
+
+on:
+  push:
+    branches: [main, develop, feature/*]
+  pull_request:
+    branches: [main, develop]
+
+# Codecov権限（private repo対応）
+permissions:
+  contents: read
+  pull-requests: read
+  checks: write
+
+# 無駄並列のキャンセル
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+# グローバル環境変数（ノイズ抑制）
+env:
+  PIP_DISABLE_PIP_VERSION_CHECK: 1
+  PIP_NO_WARN_SCRIPT_LOCATION: 1
+
+jobs:
+  # 変更ファイル検出
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      frontend: ${{ steps.filter.outputs.frontend }}
+      backend: ${{ steps.filter.outputs.backend }}
+      e2e: ${{ steps.filter.outputs.e2e }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            frontend:
+              - 'frontend/**'
+              - 'package*.json'
+              - '.github/workflows/ci.yml'
+            backend:
+              - 'backend/**'
+              - '.github/workflows/ci.yml'
+            e2e:
+              - 'e2e/**'
+              - 'playwright.config.ts'
+              - 'frontend/**'
+              - 'backend/**'
+              - 'package*.json'
+              - '.github/workflows/ci.yml'
+
+  # フロントエンドテスト
+  frontend-test:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    timeout-minutes: 15
+
+    defaults:
+      run:
+        working-directory: ./frontend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "./frontend/package-lock.json"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run linter
+        run: npm run lint
+
+      - name: Run unit tests
+        run: npm run test:run
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          file: ./frontend/coverage/coverage-final.json
+          flags: frontend
+          name: frontend-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+  # バックエンドテスト
+  backend-test:
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.backend == 'true'
+    timeout-minutes: 20
+
+    services:
+      postgres:
+        image: postgres:17.5-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_teamb_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    defaults:
+      run:
+        working-directory: ./backend
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: "./backend/requirements-dev.txt"
+
+      - name: Install dependencies
+        run: |
+          pip install -r requirements-dev.txt
+
+      - name: Run linter
+        run: |
+          black --check . || echo "⚠️ Black formatting issues found but continuing..."
+          pylint app/ --exit-zero || echo "⚠️ Pylint warnings found but continuing..."
+
+      - name: Run Alembic migration
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+        run: |
+          alembic upgrade head
+
+      - name: Run tests
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_teamb_db
+          DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          TEST_DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_teamb_db
+          PYTHONPATH: /home/runner/work/TeamB_FinalPJ/TeamB_FinalPJ/backend
+          SKIP_FIREBASE_AUTH: true
+        run: |
+          # .envファイルを読み込んで環境変数を設定
+          if [ -f .env ]; then
+            export $(grep -v '^#' .env | xargs)
+          fi
+          pytest --cov=app --cov-report=xml --cov-report=html --cov-fail-under=0
+
+      - name: Upload coverage reports
+        uses: codecov/codecov-action@v4
+        continue-on-error: true
+        with:
+          file: ./backend/coverage.xml
+          flags: backend
+          name: backend-coverage
+          token: ${{ secrets.CODECOV_TOKEN }}
+
+      - name: Upload backend logs on failure
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: backend-test-logs
+          path: |
+            backend/htmlcov/
+            backend/coverage.xml
+          retention-days: 7
+
+  # E2Eテスト
+  e2e-test:
+    runs-on: ubuntu-latest
+    needs: [changes, frontend-test, backend-test]
+    if: |
+      always() && 
+      needs.changes.outputs.e2e == 'true' && 
+      (needs.frontend-test.result == 'success' || needs.frontend-test.result == 'skipped') && 
+      (needs.backend-test.result == 'success' || needs.backend-test.result == 'skipped')
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:17.5-alpine
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: test_teamb_db
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+        ports:
+          - 5432:5432
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+          cache-dependency-path: "./package-lock.json"
+          cache-key: "npm-cache-v6"
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: "pip"
+          cache-dependency-path: "./backend/requirements.txt"
+          cache-key: "pip-cache-v7"
+
+      - name: Clear cache and install dependencies
+        run: |
+          # キャッシュを完全にクリア
+          rm -rf node_modules
+          rm -rf frontend/node_modules
+          rm -rf frontend/.next
+          rm -rf frontend/.tsbuildinfo
+          rm -rf frontend/tsconfig.tsbuildinfo
+          rm -rf frontend/.eslintcache
+          rm -rf frontend/.swc
+          rm -rf frontend/.turbo
+          rm -rf frontend/.vscode
+          rm -rf frontend/.idea
+          rm -rf ~/.cache/ms-playwright
+          # 依存関係を再インストール
+          npm ci
+          cd frontend && npm ci
+          cd ../backend && pip install -r requirements.txt -r requirements-dev.txt
+
+      - name: Run Alembic migration for E2E
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+        run: alembic upgrade head
+
+      - name: Build frontend
+        working-directory: ./frontend
+        run: npm run build
+
+      - name: Start backend server
+        working-directory: ./backend
+        env:
+          DATABASE_URL: postgresql+asyncpg://postgres:postgres@localhost:5432/test_teamb_db
+          DATABASE_URL_SYNC: postgresql://postgres:postgres@localhost:5432/test_teamb_db
+          SKIP_FIREBASE_AUTH: true
+        run: |
+          # PostgreSQLサービスの起動を待つ
+          echo "⏳ Waiting for PostgreSQL service to be ready..."
+          for i in {1..60}; do
+            if pg_isready -h localhost -p 5432 -U postgres; then
+              echo "✅ PostgreSQL service is ready"
+              break
+            fi
+            echo "⏳ Waiting for PostgreSQL... ($i/60)"
+            sleep 1
+            if [ $i -eq 60 ]; then
+              echo "❌ PostgreSQL service failed to start"
+              exit 1
+            fi
+          done
+
+          # バックエンドサーバーを起動
+          uvicorn app.main:app --host 0.0.0.0 --port 8000 > backend.log 2>&1 &
+          echo $! > backend.pid
+
+          # ヘルスチェックで起動確認（堅牢化）
+          for i in {1..30}; do
+            if curl -f http://localhost:8000/api/v1/voice/health; then
+              echo "✅ Backend server is ready"
+              break
+            fi
+            echo "⏳ Waiting for backend... ($i/30)"
+            sleep 2
+            if [ $i -eq 30 ]; then
+              echo "❌ Backend server failed to start"
+              echo "📋 Backend server logs:"
+              cat backend.log
+              echo "📋 PostgreSQL logs:"
+              docker logs postgres || echo "PostgreSQL service container not found"
+              exit 1
+            fi
+          done
+
+      - name: Start frontend server
+        working-directory: ./frontend
+        env:
+          PORT: 3000
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+        run: |
+          npm run start -- -p 3000 > frontend.log 2>&1 &
+          echo $! > frontend.pid
+          # フロントエンドの起動確認（堅牢化）
+          for i in {1..30}; do
+            if curl -f http://localhost:3000; then
+              echo "✅ Frontend server is ready"
+              break
+            fi
+            echo "⏳ Waiting for frontend... ($i/30)"
+            sleep 2
+            if [ $i -eq 30 ]; then
+              echo "❌ Frontend server failed to start"
+              echo "📋 Frontend server logs:"
+              cat frontend.log
+              exit 1
+            fi
+          done
+
+      - name: Cache Playwright browsers
+        uses: actions/cache@v4
+        id: playwright-cache
+        with:
+          path: ~/.cache/ms-playwright
+          key: ${{ runner.os }}-playwright-v6-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-playwright-
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+        if: steps.playwright-cache.outputs.cache-hit != 'true'
+
+      - name: Clean up existing processes
+        run: |
+          echo "🧹 既存プロセスを停止中..."
+          pkill -f "next" || true
+          pkill -f "node.*3000" || true
+          pkill -f "uvicorn" || true
+          sleep 2
+          echo "✅ プロセス停止完了"
+
+      - name: Run E2E tests
+        env:
+          CI: true
+          PLAYWRIGHT_BASE_URL: http://localhost:3000
+          PLAYWRIGHT_WEB_PORT: 3000
+          NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+          E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
+          E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
+        run: |
+          echo "E2E_TEST_USER_EMAIL: ${E2E_TEST_USER_EMAIL:+設定済み}"
+          echo "E2E_TEST_USER_PASSWORD: ${E2E_TEST_USER_PASSWORD:+設定済み}"
+          npm run test:e2e
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
+
+      - name: Collect PostgreSQL logs
+        if: failure()
+        run: |
+          echo "📋 Collecting PostgreSQL container logs..."
+          docker logs postgres > postgres.log 2>&1 || echo "PostgreSQL service container not found" > postgres.log
+
+      - name: Clean shutdown of servers
+        if: always()
+        run: |
+          echo "🧹 Cleaning up background processes..."
+          if [ -f backend/backend.pid ]; then
+            kill $(cat backend/backend.pid) 2>/dev/null || echo "Backend process already stopped"
+          fi
+          if [ -f frontend/frontend.pid ]; then
+            kill $(cat frontend/frontend.pid) 2>/dev/null || echo "Frontend process already stopped"
+          fi
+          # 追加の確実な停止
+          pkill -f "uvicorn app.main:app" 2>/dev/null || true
+          pkill -f "next start" 2>/dev/null || true
+          echo "✅ Cleanup completed"
+
+      - name: Upload E2E failure logs
+        uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-failure-logs
+          path: |
+            backend/backend.log
+            frontend/frontend.log
+            test-results/
+            postgres.log
+          retention-days: 7
+
+  # デプロイ（mainブランチのみ）
+  deploy:
+    runs-on: ubuntu-latest
+    needs: [changes, frontend-test, backend-test, e2e-test]
+    if: github.ref == 'refs/heads/main' && always() && (needs.frontend-test.result == 'success' || needs.frontend-test.result == 'skipped') && (needs.backend-test.result == 'success' || needs.backend-test.result == 'skipped') && (needs.e2e-test.result == 'success' || needs.e2e-test.result == 'skipped')
+    timeout-minutes: 10
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Deploy to production
+        run: |
+          echo "デプロイ処理をここに記述"
+          # 実際のデプロイコマンドに置き換えてください

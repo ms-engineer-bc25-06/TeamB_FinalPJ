@@ -16,8 +16,11 @@ from app import models
 logger = logging.getLogger(__name__)
 
 UTC = timezone.utc
+
+
 def now_utc() -> datetime:
     return datetime.now(UTC)
+
 
 # UIDでユーザーを1件取得
 async def get_user_by_uid(db: AsyncSession, uid: str) -> Optional[models.User]:
@@ -32,6 +35,7 @@ async def get_user_by_uid(db: AsyncSession, uid: str) -> Optional[models.User]:
     except SQLAlchemyError as e:
         logger.error("get_user_by_uid failed", exc_info=e)
         return None
+
 
 # UIDでユーザーをUPSERT（なければ作成・あれば更新）
 async def upsert_user_by_uid(
@@ -60,7 +64,7 @@ async def upsert_user_by_uid(
                 email=email,
                 email_verified=email_verified,
                 nickname=nickname,
-                last_login_at=func.now(), 
+                last_login_at=func.now(),
                 login_count=1,
             )
             .on_conflict_do_update(
@@ -97,39 +101,40 @@ async def get_or_create_user(
         nickname=nickname,
     )
 
+
 # ユーザーに紐づくSubscriptionレコードの作成/更新
 async def upsert_subscription_customer_id(
     db: AsyncSession,
     *,
-    user_id: uuid.UUID,             
+    user_id: uuid.UUID,
     stripe_customer_id: str,
 ) -> Optional[models.Subscription]:
     try:
         # 現在時刻から7日後を計算
         trial_started_at = now_utc()
         trial_expires_at = trial_started_at.replace(tzinfo=UTC) + timedelta(days=7)
-        
+
         stmt = (
             insert(models.Subscription)
             .values(
                 user_id=user_id,
                 stripe_customer_id=stripe_customer_id,
-                subscription_status='trial',
+                subscription_status="trial",
                 is_trial=True,
                 trial_started_at=trial_started_at,
                 trial_expires_at=trial_expires_at,
-                is_paid=False
+                is_paid=False,
             )
             .on_conflict_do_update(
                 index_elements=[models.Subscription.user_id],
                 set_={
                     "stripe_customer_id": stripe_customer_id,
-                    "subscription_status": 'trial',
+                    "subscription_status": "trial",
                     "is_trial": True,
                     "trial_started_at": trial_started_at,
                     "trial_expires_at": trial_expires_at,
-                    "is_paid": False
-                }
+                    "is_paid": False,
+                },
             )
             .returning(models.Subscription.id)
         )
@@ -143,7 +148,8 @@ async def upsert_subscription_customer_id(
         logger.error("upsert_subscription_customer_id failed", exc_info=e)
         return None
 
-# 上のUPSERTを使い、必要なら user をリフレッシュ   
+
+# 上のUPSERTを使い、必要なら user をリフレッシュ
 async def update_stripe_customer_id(
     db: AsyncSession, user: models.User, stripe_customer_id: str
 ) -> Optional[models.User]:
@@ -158,9 +164,9 @@ async def update_stripe_customer_id(
         logger.warning("refresh user after subscription upsert failed", exc_info=e)
     return user
 
+
 async def get_user_by_stripe_customer_id(
-    db: AsyncSession, 
-    stripe_customer_id: str
+    db: AsyncSession, stripe_customer_id: str
 ) -> Optional[models.User]:
     """Stripe顧客IDからユーザーを取得"""
     try:
@@ -174,6 +180,7 @@ async def get_user_by_stripe_customer_id(
     except SQLAlchemyError as e:
         logger.error("get_user_by_stripe_customer_id failed", exc_info=e)
         return None
+
 
 async def update_subscription_status(
     db: AsyncSession,
@@ -192,7 +199,7 @@ async def update_subscription_status(
         stmt = select(models.Subscription).where(models.Subscription.user_id == user_id)
         result = await db.execute(stmt)
         subscription = result.scalar_one_or_none()
-        
+
         if not subscription:
             # 新規作成
             subscription = models.Subscription(
@@ -219,45 +226,45 @@ async def update_subscription_status(
                 subscription.trial_expires_at = trial_expires_at
             if is_paid is not None:
                 subscription.is_paid = is_paid
-            
+
             # trial_expires_atが設定されている場合、現在の日付に基づいてis_trialを自動更新
             if subscription.trial_expires_at:
                 current_time = now_utc()
                 is_trial_calculated = current_time < subscription.trial_expires_at
-                
+
                 # デバッグログ追加
                 logger.info(f"=== update_subscription_status トライアル判定 ===")
                 logger.info(f"current_time: {current_time}")
                 logger.info(f"trial_expires_at: {subscription.trial_expires_at}")
                 logger.info(f"calculated is_trial: {is_trial_calculated}")
                 logger.info(f"========================")
-                
+
                 subscription.is_trial = is_trial_calculated
-        
+
         await db.commit()
         await db.refresh(subscription)
         return subscription
-        
+
     except SQLAlchemyError as e:
         await db.rollback()
         logger.error("update_subscription_status failed", exc_info=e)
         return None
 
+
 async def get_subscription_by_user_id(
-    db: AsyncSession, 
-    user_id: uuid.UUID
+    db: AsyncSession, user_id: uuid.UUID
 ) -> Optional[models.Subscription]:
     """ユーザーIDからサブスクリプション情報を取得"""
     try:
         stmt = select(models.Subscription).where(models.Subscription.user_id == user_id)
         result = await db.execute(stmt)
         subscription = result.scalar_one_or_none()
-        
+
         if subscription and subscription.trial_expires_at:
             # trial_expires_atが設定されている場合、現在の日付に基づいてis_trialを自動更新
             current_time = now_utc()
             is_trial_calculated = current_time < subscription.trial_expires_at
-            
+
             # デバッグログ追加
             logger.info(f"=== トライアル判定デバッグ ===")
             logger.info(f"current_time: {current_time}")
@@ -266,13 +273,13 @@ async def get_subscription_by_user_id(
             logger.info(f"stored is_trial: {subscription.is_trial}")
             logger.info(f"needs update: {subscription.is_trial != is_trial_calculated}")
             logger.info(f"========================")
-            
+
             if subscription.is_trial != is_trial_calculated:
                 subscription.is_trial = is_trial_calculated
                 await db.commit()
                 await db.refresh(subscription)
                 logger.info(f"Updated is_trial to: {subscription.is_trial}")
-        
+
         return subscription
     except SQLAlchemyError as e:
         logger.error("get_subscription_by_user_id failed", exc_info=e)
@@ -292,19 +299,19 @@ async def create_child(
     try:
         # 誕生日をDate型に変換
         birth_date_obj = datetime.strptime(birth_date, "%Y-%m-%d").date()
-        
+
         child = models.Child(
             user_id=user_id,
             nickname=nickname,
             birth_date=birth_date_obj,
             gender=gender,
         )
-        
+
         db.add(child)
         await db.commit()
         await db.refresh(child)
         return child
-        
+
     except SQLAlchemyError as e:
         await db.rollback()
         logger.error("create_child failed", exc_info=e)
@@ -315,8 +322,7 @@ async def create_child(
 
 
 async def get_children_by_user_id(
-    db: AsyncSession, 
-    user_id: uuid.UUID
+    db: AsyncSession, user_id: uuid.UUID
 ) -> list[models.Child]:
     """ユーザーIDから子どものリストを取得"""
     try:
@@ -327,9 +333,9 @@ async def get_children_by_user_id(
         logger.error("get_children_by_user_id failed", exc_info=e)
         return []
 
+
 async def get_child_by_id(
-    db: AsyncSession,
-    child_id: uuid.UUID
+    db: AsyncSession, child_id: uuid.UUID
 ) -> Optional[models.Child]:
     """IDから子どものプロフィールを取得"""
     try:
@@ -339,6 +345,7 @@ async def get_child_by_id(
     except SQLAlchemyError as e:
         logger.error("get_child_by_id failed", exc_info=e)
         return None
+
 
 async def update_child(
     db: AsyncSession,
@@ -354,20 +361,20 @@ async def update_child(
         child = await get_child_by_id(db, child_id)
         if not child:
             return None
-        
+
         # 誕生日をDate型に変換
         birth_date_obj = datetime.strptime(birth_date, "%Y-%m-%d").date()
-        
+
         # プロフィールを更新
         child.nickname = nickname
         child.birth_date = birth_date_obj
         child.gender = gender
         child.updated_at = now_utc()
-        
+
         await db.commit()
         await db.refresh(child)
         return child
-        
+
     except SQLAlchemyError as e:
         await db.rollback()
         logger.error("update_child failed", exc_info=e)

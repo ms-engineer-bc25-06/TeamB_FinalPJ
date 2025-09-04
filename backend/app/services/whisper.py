@@ -7,7 +7,10 @@ import shlex
 import whisper
 
 # 既存のimportに追加
-from app.utils.child_vocabulary import generate_whisper_prompt, generate_situation_prompt
+from app.utils.child_vocabulary import (
+    generate_whisper_prompt,
+    generate_situation_prompt,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +20,8 @@ _DEFAULTS = {
     "temperature": float(os.getenv("WHISPER_TEMPERATURE", "0.0")),
     "beam_size": int(os.getenv("WHISPER_BEAM_SIZE", "1")),
     "best_of": int(os.getenv("WHISPER_BEST_OF", "1")),
-    "condition_on_previous_text": os.getenv("WHISPER_COND_PREV", "false").lower() == "true",
+    "condition_on_previous_text": os.getenv("WHISPER_COND_PREV", "false").lower()
+    == "true",
     "no_speech_threshold": float(os.getenv("WHISPER_NO_SPEECH_TH", "0.6")),
     "compression_ratio_threshold": float(os.getenv("WHISPER_COMP_RATIO_TH", "3.5")),
     "logprob_threshold": float(os.getenv("WHISPER_LOGPROB_TH", "-1.2")),
@@ -27,9 +31,9 @@ _SUPPORTED_LANGUAGES: List[str] = ["ja", "en"]
 
 # DEFAULT_INITIAL_PROMPT_JAの部分を更新
 DEFAULT_INITIAL_PROMPT_JA = os.getenv(
-    "WHISPER_INITIAL_PROMPT_JA",
-    generate_whisper_prompt()  # 動的に生成
+    "WHISPER_INITIAL_PROMPT_JA", generate_whisper_prompt()  # 動的に生成
 )
+
 
 class WhisperService:
     def __init__(self) -> None:
@@ -39,7 +43,9 @@ class WhisperService:
             self.model = whisper.load_model(self.model_name)
             # CPU環境用の設定
             device = "cpu"
-            logger.info(f"Whisperモデル読み込み完了: {self.model_name}（device={device}）")
+            logger.info(
+                f"Whisperモデル読み込み完了: {self.model_name}（device={device}）"
+            )
         except Exception as e:
             logger.error(f"Whisperモデル読み込みエラー: {e}")
             raise WhisperModelLoadError(f"Whisperモデルの読み込みに失敗しました: {e}")
@@ -49,28 +55,28 @@ class WhisperService:
         # FFmpeg最適化が有効な場合のみ前処理を実行
         if os.getenv("ENABLE_AUDIO_OPTIMIZATION", "false").lower() == "true":
             from app.services.audio_optimizer import AudioOptimizer
+
             optimizer = AudioOptimizer()
             optimized_path = optimizer.optimize_for_whisper(src_path)
             if optimized_path:
                 logger.info("FFmpeg最適化を適用")
                 return optimized_path
-        
+
         logger.info("前処理をスキップ")
         return src_path
 
     def _compute_avg_logprob(self, result: Dict[str, Any]) -> Optional[float]:
         segs = result.get("segments") or []
-        vals = [s.get("avg_logprob") for s in segs if isinstance(s.get("avg_logprob"), (int, float))]
+        vals = [
+            s.get("avg_logprob")
+            for s in segs
+            if isinstance(s.get("avg_logprob"), (int, float))
+        ]
         if not vals:
             return None
         return float(sum(vals) / len(vals))
 
-    def _transcribe_once(
-        self,
-        model,
-        audio_path: str,
-        **kwargs
-    ) -> Dict[str, Any]:
+    def _transcribe_once(self, model, audio_path: str, **kwargs) -> Dict[str, Any]:
         """1回の音声認識実行（最速設定）"""
         try:
             # 最速設定で実行
@@ -78,18 +84,18 @@ class WhisperService:
                 audio_path,
                 **kwargs,
                 # 最速設定
-                temperature=0.0,          # 決定的
-                best_of=1,                # 最小値
-                beam_size=1,              # 最小値
+                temperature=0.0,  # 決定的
+                best_of=1,  # 最小値
+                beam_size=1,  # 最小値
                 condition_on_previous_text=False,
                 no_speech_threshold=0.6,  # 緩和（処理軽量化）
                 compression_ratio_threshold=3.5,  # 緩和（処理軽量化）
-                logprob_threshold=-1.2,   # 緩和（処理軽量化）
-                fp16=False,               # CPU環境
+                logprob_threshold=-1.2,  # 緩和（処理軽量化）
+                fp16=False,  # CPU環境
             )
-            
+
             return result
-            
+
         except Exception as e:
             logger.error(f"音声認識エラー: {e}")
             raise
@@ -110,7 +116,9 @@ class WhisperService:
         beam_size: int = _DEFAULTS["beam_size"],
     ) -> Dict[str, Any]:
         if language not in self.get_supported_languages():
-            raise WhisperLanguageError(f"サポートされていない言語です: {language}. サポート: {self.get_supported_languages()}")
+            raise WhisperLanguageError(
+                f"サポートされていない言語です: {language}. サポート: {self.get_supported_languages()}"
+            )
 
         model_to_use = self._get_model(model_name) if model_name else self.model
 
@@ -127,12 +135,17 @@ class WhisperService:
 
         # --- 前処理 ---
         preprocessed = self._preprocess_audio(audio_file_path)
-        remove_tmp = (preprocessed != audio_file_path)
+        remove_tmp = preprocessed != audio_file_path
 
         try:
             logger.info(
                 "音声認識開始: %s (lang=%s, temp=%.2f, beam=%d, cond_prev=%s, fp16=%s)",
-                audio_file_path, language, temperature, beam_size, condition_on_previous_text, fp16
+                audio_file_path,
+                language,
+                temperature,
+                beam_size,
+                condition_on_previous_text,
+                fp16,
             )
 
             # 最速設定で実行
@@ -198,11 +211,13 @@ class WhisperTranscriptionError(Exception):
         self.error_code = error_code
         super().__init__(self.message)
 
+
 class WhisperModelLoadError(Exception):
     def __init__(self, message: str, error_code: str = "WHISPER_MODEL_LOAD_ERROR"):
         self.message = message
         self.error_code = error_code
         super().__init__(self.message)
+
 
 class WhisperLanguageError(Exception):
     def __init__(self, message: str, error_code: str = "WHISPER_LANGUAGE_ERROR"):
