@@ -180,9 +180,23 @@ backend/
 - **モック**: 外部サービス（Firebase、Stripe、S3）のレスポンス
 
 #### **Docker環境での注意点**
-- **環境変数**: テスト用設定の分離
+
+- **環境変数**: 
+  > テスト時に本番データを壊さないようにするため、本番環境とテスト環境で異なる設定を使い分ける
+
+  **⚠️ 注意点**: `.env`ファイルで`TEST_DATABASE_URL`を必ず設定すること。設定しないとテストが実行できない
+
 - **ファイル出力**: カバレッジレポートのホストアクセス
-- **ネットワーク**: コンテナ間通信の設定
+  > コンテナ内で生成されたファイルをローカルで見るため、テスト結果のレポートファイルをDockerコンテナの外（ローカルPC）で確認できるようにする仕組み導入。テスト実行後にブラウザでカバレッジレポートを開いて確認可能。
+  
+  **⚠️ 注意点**: テスト実行後に`docker cp teamb_backend:/app/htmlcov ./htmlcov`でコンテナからローカルにコピーする必要がある。コピーしないとローカルでテスト結果が見られない
+  
+  **📋 コピー手順**:
+  1. テスト実行: `docker exec teamb_backend pytest --cov=app --cov-report=html`
+  2. コンテナからローカルにコピー: `docker cp teamb_backend:/app/htmlcov ./htmlcov`
+  3. ブラウザで確認: `open htmlcov/index.html`
+
+
 
 ### 現在の導入状況
 
@@ -217,13 +231,8 @@ markers = [
 ]
 ```
 
-#### **🚧 今後の実装予定**
-- **実際のAPIテスト**: 各エンドポイントのテスト作成
-- **データベーステスト**: モデル・CRUD操作のテスト
-- **外部サービスモック**: Firebase・Stripe・S3のモック実装
-- **統合テスト**: API間連携のテスト
 
-#### **📝 他メンバー担当機能のテスト計画**
+#### **📝 テスト計画**
 **※ 新しい機能のテスト内容は以下に追加してください**
 
 <!-- 
@@ -253,7 +262,7 @@ TODO: 新機能テスト追加テンプレート:
 -->
 
 ```markdown
-<!-- ここに新機能のテスト計画を追加 -->
+<!-- TODO: ここに新機能のテスト計画を追加 -->
 ```
 
 #### **⚠️ Docker環境での注意事項**
@@ -286,7 +295,7 @@ TODO: 新機能テスト追加テンプレート:
 - **レスポンシブデザイン**
 
 ### テストファイル構成
-
+<!-- TODO: 新機能追加もしくは内容訂正する場合: テストファイルを追加もしくは訂正してください -->
 ```text
 プロジェクトルート/
 ├── e2e/                        # E2Eテストディレクトリ
@@ -304,53 +313,15 @@ TODO: 新機能テスト追加テンプレート:
 - **独立性**: UI層・API層・DB層すべてを含む統合的なテスト層として独立
 - **保守性**: フロントエンド・バックエンドの変更に依存しない中立的な位置
 
-**📋 今後の拡張予定**:
-<!-- TODO: 新機能追加もしくは内容訂正する場合: テストファイルを追加もしくは訂正してください -->
-```text
-e2e/ (拡張計画)
-├── auth/
-│   ├── registration.spec.ts    # ユーザー登録フローテスト（計画中）
-│   └── logout.spec.ts          # ログアウトフローテスト（計画中）
-├── voice/
-│   ├── recording.spec.ts       # 音声録音フローテスト（計画中）
-│   └── emotion-selection.spec.ts # 感情選択フローテスト（計画中）
-├── roleplay/
-│   └── emotion-advice.spec.ts  # ロールプレイ感情アドバイステスト（計画中）
-├── subscription/
-│   ├── purchase.spec.ts        # サブスク購入フローテスト（計画中）
-│   └── trial.spec.ts           # トライアルフローテスト（計画中）
-├── report/
-│   ├── daily-report.spec.ts    # 日次レポート表示テスト（計画中）
-│   └── weekly-report.spec.ts   # 週次レポート表示テスト（計画中）
-└── utils/
-    ├── helpers.ts              # テストヘルパー関数（計画中）
-    └── fixtures.ts             # テストフィクスチャ（計画中）
-```
 
-### 外部サービス（Auth/Stripe）の扱い
-このプロジェクトのE2Eは**Emulator/固定データで代替**し、実サービスの本流は**手動回帰**で担保する。（計画中）
+### 外部サービス（Auth/Stripe）の扱い（計画中）
+このプロジェクトのE2Eは**Emulator/固定データで代替**し、実サービスの本流は**手動回帰**で担保する。
 
 #### **外部サービス依存の回避**
-- **CI環境**: Firebase Auth Emulator を使用し、`storageState` を使ってログイン済み状態を再利用（計画中）
-- **CI環境**: Stripe は「サブスク状態=active」のテストデータを事前投入し、Checkout 実行自体はスキップ（計画中）
-- **手動回帰(ステージング)**: Google/Stripeの実フローを週1回/リリース前に実施（チェックリスト化）（計画中）
+- **CI環境**: Firebase Auth Emulator を使用し、`storageState` を使ってログイン済み状態を再利用
+- **CI環境**: Stripe は「サブスク状態=active」のテストデータを事前投入し、Checkout 実行自体はスキップ
+- **手動回帰(ステージング)**: Google/Stripeの実フローを週1回/リリース前に実施（チェックリスト化）
 
-#### **ログイン状態の再利用例**
-```typescript
-// e2e/utils/auth.ts
-import { test as setup, expect } from '@playwright/test';
-
-setup('auth: storage state', async ({ page }) => {
-  await page.goto('/login');
-  await page.getByTestId('login-email').fill(process.env.E2E_TEST_USER_EMAIL!);
-  await page.getByTestId('login-password').fill(process.env.E2E_TEST_USER_PASSWORD!);
-  await page.getByRole('button', { name: /ログイン/ }).click();
-  await page.waitForURL(/dashboard|subscription/);
-  await page.context().storageState({ path: 'e2e/.auth/state.json' });
-});
-```
-
-### 実行コマンド・設定ファイル
 
 #### **実行コマンド（package.json）**
 ```bash
@@ -429,15 +400,28 @@ npm run test:e2e:debug   # デバッグモード
 2. **並列実行**: フロントエンド・バックエンドテストを並列実行  
 3. **段階実行**: Unit → Integration → E2E の順序
 4. **無駄削減**: PR連投時の自動キャンセル機能
+<!-- NOTE:GitHub ActionにてmainにマージするときDeployされる設定にしたが、まだデプロイ未実装 -->
 5. **ブランチ戦略**: feature → develop → main の段階的マージで自動テスト実行
 
 #### **🔧 技術的改善点**
-- **PostgreSQL統一**: 本番環境と同じv17.5-alpine使用
-- **Codecov安定化**: プライベートリポジトリ対応 + 失敗時非ブロック
-- **ログ収集強化**: PostgreSQL・Backend・Frontendの詳細ログ保存
-- **Playwrightキャッシュ**: ブラウザ再ダウンロードを回避して高速化
-- **API参照先固定**: `NEXT_PUBLIC_API_BASE_URL`で本番/CI差分を解消
-- **プロセス管理**: 明示的cleanup でリソースリーク防止
+
+- **PostgreSQL統一**:
+  > 本番環境とCI環境で同じPostgreSQLバージョンを使用することで、データベース関連の不具合を早期発見
+
+- **Codecov安定化**: 
+  > カバレッジレポートのアップロード失敗がCI全体を止めないように改善
+
+- **ログ収集強化**:
+  > テスト失敗時の原因特定を容易にするため、PostgreSQL・Backend・Frontendの詳細ログを保存できるように
+
+- **Playwrightキャッシュ**: 
+  > 毎回ブラウザをダウンロードする時間を削減し、CI実行時間を短縮
+
+- **API参照先固定**: 
+  > フロントエンドが参照するAPIのURLを`NEXT_PUBLIC_API_BASE_URL`で統一管理
+
+- **プロセス管理**: 
+  > 明示的cleanup でリソースリーク防止。
 
 ### カバレッジ目標
 
@@ -559,6 +543,10 @@ PRODUCTION_URL           # 本番環境URL（慎重に使用）
 ## セットアップ手順
 
 ### 初回セットアップ
+
+#### 0. 環境変数設定
+
+**重要性**: テスト実行前に必ず設定が必要。Notionを参照してbackend/.env ファイルとfrontend/.env.e2e.local ファイルを更新すること。
 
 #### 1. フロントエンド環境構築
 ```bash
@@ -730,6 +718,22 @@ npm run test:e2e:debug   # デバッグモード - ステップ実行でテス�
 - **マスターデータ**: 感情カード・強度のシードデータ（本番と同じスキーマ＋シードデータを投入）
 - **テスト用データ**: 各テストで独立した動的データ（テスト内で個別作成）
 - **Docker統合**: 既存コンテナインフラを活用
+
+### 4. テストデータ生成手法の詳細
+
+#### **Fixtures（フィクスチャ）**
+> テストで使用する再利用可能なデータや設定を事前に準備する仕組み
+
+**本プロジェクトでの使用箇所**:
+- **バックエンド**: `backend/tests/conftest.py` で `db_session` フィクスチャを定義
+- **フロントエンド**: 現在未実装（計画中）
+
+#### **Mocks（モック）**
+> 外部サービスや複雑な依存関係を模擬する仕組み
+
+**本プロジェクトでの使用箇所**:
+- **バックエンド**: Whisper API、Firebase Auth のモック実装済み
+- **フロントエンド**: API呼び出しのモック実装済み
 
 ### 3. テスト結果ファイル管理
 
