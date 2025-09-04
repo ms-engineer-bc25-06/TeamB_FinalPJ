@@ -255,13 +255,32 @@ backend/
 └── tests/             # テストファイル
 ```
 
+## 🔧 API 動作確認方法
+
+### Swagger UI での動作確認
+- ブラウザで http://localhost:8000/docs にアクセス
+- 確認したい API をクリックして展開
+- 「Try it out」ボタンを押し、必要な情報を入力
+- 「Execute」ボタンを押して API を実行
+
+### curl での動作確認例
+
+```bash
+# 感情カード一覧取得
+curl -X GET http://localhost:8000/emotion/cards
+
+# 音声アップロードURL取得
+curl -X POST http://localhost:8000/api/v1/voice/get-upload-url \
+  -H "Content-Type: application/json" \
+  -d '{"user_id":1,"file_type":"audio","file_format":"webm"}'
+```
+
 ## 📚 関連ドキュメント
 
 ### API・開発関連
 - **Swagger UI**: http://localhost:8000/docs
 - **API仕様について**: [API Specification](../docs/APISpecification.md) で詳細を確認してください
 - **技術スタック詳細について**: [Tech Stack](../docs/techStack.md) で詳細を確認してください
-- **テスト方法について**: [Test Plan](../docs/testPlan.md) で詳細を確認してください
 
 ### 設計・運用関連
 - **データベース設計について**: [Database Design](../docs/databaseDesign.md) で詳細を確認してください
@@ -269,3 +288,4 @@ backend/
 - **性能設計について**: [Performance Design](../docs/performanceDesign.md) で詳細を確認してください
 - **運用設計について**: [Operations Plan](../docs/operationsPlan.md) で詳細を確認してください
 - **開発ガイドラインについて**: [Dev Guideline](../docs/devGuideline.md) で詳細を確認してください
+- **テスト設計について**: [Test Design](../docs/testDesign.md) で詳細を確認してください

@@ -147,3 +147,4 @@ frontend/
 - **開発ガイドラインについて**: [Dev Guideline](../docs/devGuideline.md) で詳細を確認してください
 - **セキュリティ設計について**: [Security Design](../docs/securityDesign.md) で詳細を確認してください
 - **性能設計について**: [Performance Design](../docs/performanceDesign.md) で詳細を確認してください
+- **テスト設計について**: [Test Design](../docs/testDesign.md) で詳細を確認してください
