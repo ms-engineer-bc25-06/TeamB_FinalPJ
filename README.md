@@ -50,9 +50,8 @@ TeamB_FinalPJ/
 ここでの説明は概要です。詳しいセットアップ手順は各ディレクトリの README を参照してください。
 
 ## 📂 ディレクトリ別 README
-
-- [frontend/README.md](frontend/README.md) : フロントエンドセットアップ手順
 - [backend/README.md](backend/README.md) : バックエンドセットアップ手順
+- [frontend/README.md](frontend/README.md) : フロントエンドセットアップ手順
 - [docs/README.md](docs/README.md) : プロジェクトドキュメント一覧
 
 
@@ -87,6 +86,6 @@ TeamB_FinalPJ/
 - **自動整形が効かない場合**：`./scripts/fix-formatting.sh` で診断・復旧
 
 ### セットアップ・開発環境
-- [Backend Setup](docs/setup/backend-setup.md) - バックエンド詳細セットアップ
-- [Frontend Setup](docs/setup/frontend-setup.md) - フロントエンド詳細セットアップ
-- [Stripe Setup](docs/setup/stripe-setup.md) - Stripe詳細セットアップ
+- [Backend Setup](backend/README.md) - バックエンド詳細セットアップ
+- [Frontend Setup](frontend/README.md) - フロントエンド詳細セットアップ
+- [Stripe Setup](docs/stripe-setup.md) - Stripe詳細セットアップ
