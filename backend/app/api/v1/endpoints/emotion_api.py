@@ -8,6 +8,7 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import datetime
+from functools import lru_cache
 
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -239,11 +240,11 @@ async def get_emotion_logs(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     child_id: Optional[str] = None,
-    limit: int = 100,
+    limit: int = 50,  # PERFORMANCE: デフォルト値を50に削減（メモリ使用量削減）
     offset: int = 0,
 ):
     try:
-        # クエリの構築
+        # PERFORMANCE: クエリの構築（selectinloadでN+1問題を回避）
         query = (
             select(EmotionLog)
             .options(

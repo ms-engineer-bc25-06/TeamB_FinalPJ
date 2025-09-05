@@ -1,6 +1,6 @@
 import { API_ENDPOINTS, DEFAULT_EMOTIONS } from '@/constants/emotion';
 import { Emotion } from '@/types/emotion';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 export const useEmotionSelection = () => {
   const [emotions, setEmotions] = useState<Emotion[]>(DEFAULT_EMOTIONS);
@@ -44,8 +44,11 @@ export const useEmotionSelection = () => {
     fetchEmotions();
   }, []);
 
+  // PERFORMANCE: 感情データをメモ化して不要な再レンダリングを防止
+  const memoizedEmotions = useMemo(() => emotions, [emotions]);
+
   return {
-    emotions,
+    emotions: memoizedEmotions,
     isLoadingEmotions,
     error,
   };
