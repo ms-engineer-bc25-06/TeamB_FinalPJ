@@ -10,15 +10,15 @@ from firebase_admin import credentials, auth
 import stripe
 
 from app import crud, schemas
-from app.database import engine, async_session_local, get_db
+from app.config.database import engine, async_session_local, get_db
 from app.models import Base, User
 
 from app.api.v1.endpoints.voice import router as new_voice_router
-from app.children import router as children_router
+from app.api.v1.endpoints.children import router as children_router
 from app.utils.error_handlers import register_error_handlers
-from app.emotion_color_api import router as emotion_color_router
-from app.emotion_api import router as emotion_router
-from app.stripe_api import router as stripe_router
+from app.api.v1.endpoints.emotion_color_api import router as emotion_color_router
+from app.api.v1.endpoints.emotion_api import router as emotion_router
+from app.api.v1.endpoints.stripe_api import router as stripe_router
 
 logging.basicConfig(level=logging.INFO, force=True)
 logging.getLogger().setLevel(logging.INFO)

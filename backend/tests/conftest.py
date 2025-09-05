@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 from sqlalchemy import event
 from dotenv import load_dotenv
 from app.main import app
-from app.database import get_db
+from app.config.database import get_db
 from app.models import Base
 
 load_dotenv()
