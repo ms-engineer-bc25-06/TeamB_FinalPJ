@@ -15,7 +15,7 @@ import { useSearchParams } from 'next/navigation';
 import { useEffect, useRef, useState } from 'react';
 
 export const useEmotionConfirmation = () => {
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const searchParams = useSearchParams();
 
   const [selectedEmotion, setSelectedEmotion] = useState<Emotion | null>(null);
@@ -226,6 +226,8 @@ export const useEmotionConfirmation = () => {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          // NOTE: 認証トークンをヘッダーに含める必要がある
+          Authorization: `Bearer ${await firebaseUser?.getIdToken()}`,
         },
         body: JSON.stringify({
           // user_idは送信しない（バックエンドで認証されたユーザーから取得）
