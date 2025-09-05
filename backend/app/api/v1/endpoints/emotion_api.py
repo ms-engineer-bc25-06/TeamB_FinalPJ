@@ -192,10 +192,10 @@ async def create_emotion_log(
     db: AsyncSession = Depends(get_db)
 ):
     try:
-        # 認証されたユーザーのIDを使用（request.user_idは無視）
+        # SECURITY: 認証されたユーザーのIDを使用（request.user_idは無視してセキュリティを確保）
         user_id = current_user.id
 
-        # 選択された子供が自分の子供かチェック
+        # SECURITY: 選択された子供が自分の子供かチェック（他のユーザーの子供への感情記録作成を防止）
         child = await db.get(Child, uuid.UUID(request.child_id))
         if not child or child.user_id != user_id:
             raise HTTPException(
@@ -205,13 +205,13 @@ async def create_emotion_log(
 
         # 感情記録を作成（音声・テキスト関連は後で更新）
         emotion_log = EmotionLog(
-            user_id=user_id,  # 認証されたユーザーのIDを使用
-            child_id=uuid.UUID(request.child_id),  # 文字列をUUIDに変換
-            emotion_card_id=uuid.UUID(request.emotion_card_id),  # 文字列をUUIDに変換
+            user_id=user_id,
+            child_id=uuid.UUID(request.child_id),
+            emotion_card_id=uuid.UUID(request.emotion_card_id),
             intensity_id=request.intensity_id,
-            voice_note=request.voice_note,  # nullのまま（後で更新）
-            text_file_path=request.text_file_path,  # nullのまま（後で更新）
-            audio_file_path=request.audio_file_path,  # nullのまま
+            voice_note=request.voice_note,
+            text_file_path=request.text_file_path,
+            audio_file_path=request.audio_file_path,
         )
 
         db.add(emotion_log)
@@ -243,7 +243,7 @@ async def get_emotion_logs(
     offset: int = 0,
 ):
     try:
-        # クエリの構築（リレーションシップデータも含める）
+        # クエリの構築
         query = (
             select(EmotionLog)
             .options(
@@ -282,10 +282,10 @@ async def get_emotion_logs_by_date(
     child_id: Optional[str] = None,
 ):
     try:
-        # 日付文字列をパース
+        # NOTE: 日付文字列をパース（YYYY-MM-DD形式）
         target_date = datetime.strptime(date, "%Y-%m-%d").date()
 
-        # クエリの構築（リレーションシップデータも含める）
+        # クエリの構築
         query = (
             select(EmotionLog)
             .options(
@@ -337,14 +337,14 @@ async def get_emotion_logs_by_month(
     child_id: Optional[str] = None,
 ):
     try:
-        # 月の開始日と終了日を計算
+        # NOTE: 月の開始日と終了日を計算（12月の場合は翌年1月を考慮）
         start_date = datetime(year, month, 1)
         if month == 12:
             end_date = datetime(year + 1, 1, 1)
         else:
             end_date = datetime(year, month + 1, 1)
 
-        # クエリの構築（リレーションシップデータも含める）
+        # クエリの構築
         query = (
             select(EmotionLog)
             .options(
@@ -406,9 +406,10 @@ async def get_emotion_logs_by_month(
     """,
     response_description="ユーザーの子供一覧を返します",
 )
+# WARNING: このAPIは認証チェックなしでユーザーIDを推測可能（セキュリティリスク）
 async def get_user_children(user_uid: str, db: AsyncSession = Depends(get_db)):
     try:
-        # Firebase UIDからユーザーIDを検索
+        # NOTE: Firebase UIDからユーザーIDを検索（認証チェックなしの古いAPI）
         from app.crud import get_user_by_uid
 
         user = await get_user_by_uid(db, user_uid)

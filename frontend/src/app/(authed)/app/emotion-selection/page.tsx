@@ -32,18 +32,16 @@ export default function EmotionSelectionPage() {
   const handleEmotionSelect = (emotionId: string) => {
     console.log('🎯 感情選択: emotionId =', emotionId);
 
-    // 選択された感情のラベルを取得
     const selectedEmotion = emotions.find((e) => e.id === emotionId);
     console.log('🎯 選択された感情:', selectedEmotion);
 
-    // 「わからない」が選択された場合は強度選択画面を飛ばして直接感情確認画面に遷移
+    // NOTE: 「わからない」が選択された場合は強度選択画面を飛ばして直接感情確認画面に遷移
     if (selectedEmotion && selectedEmotion.label === 'わからない') {
       console.log('🎯 「わからない」が選択されました。感情確認画面に直接遷移');
       router.push(
         `/app/emotion-confirmation?emotion=${emotionId}&intensity=medium`,
       );
     } else {
-      // その他の感情は強度選択画面に遷移
       console.log(
         '🎯 強度選択画面に遷移:',
         `/app/emotion-intensity?emotion=${emotionId}`,
@@ -51,7 +49,6 @@ export default function EmotionSelectionPage() {
       router.push(`/app/emotion-intensity?emotion=${emotionId}`);
     }
   };
-
   // 戻るボタンの処理
   const handleBack = () => {
     router.push('/app');
@@ -82,8 +79,6 @@ export default function EmotionSelectionPage() {
       />
     );
   }
-
-  // 感情データ読み込み中
   if (isLoadingEmotions) {
     return (
       <div style={commonStyles.loading.container}>
@@ -95,7 +90,6 @@ export default function EmotionSelectionPage() {
 
   return (
     <div style={commonStyles.page.container}>
-      {/* こころんによる問いかけ音声再生 */}
       <AudioPlayer
         src="/sounds/characterAskFeeling01.mp3"
         autoPlay={true}
@@ -104,10 +98,7 @@ export default function EmotionSelectionPage() {
         onError={(error) => console.log('音声エラー:', error)}
       />
 
-      {/* 左上の戻るボタン */}
       <BackButton onClick={handleBack} />
-
-      {/* デフォルトのこころん（右側に配置） */}
       <div
         style={{
           position: 'fixed',
@@ -119,7 +110,6 @@ export default function EmotionSelectionPage() {
         <KokoronDefault size={100} />
       </div>
 
-      {/* メインコンテンツ */}
       <div
         style={{
           position: 'fixed',
@@ -142,7 +132,6 @@ export default function EmotionSelectionPage() {
           gap: '8px',
         }}
       >
-        {/* 感情カードの一番上に配置する白い四角 */}
         <div
           style={{
             background: '#ffffff',
@@ -189,7 +178,7 @@ export default function EmotionSelectionPage() {
               key={emotion.id}
               onClick={() => handleEmotionSelect(emotion.id)}
               style={{
-                background: '#ffffff', // カード自体は白
+                background: '#ffffff',
                 border: `4px solid ${emotion.color}`,
                 borderRadius: '16px',
                 padding: '12px 8px',
@@ -240,7 +229,7 @@ export default function EmotionSelectionPage() {
                     maxHeight: '80px',
                   }}
                   onError={(e) => {
-                    // 画像の読み込みに失敗した場合はデフォルト画像にフォールバック
+                    // NOTE: 画像の読み込みに失敗した場合はデフォルト画像にフォールバック
                     console.log(
                       `画像読み込みエラー: ${emotion.image_url} -> デフォルト画像にフォールバック`,
                     );
