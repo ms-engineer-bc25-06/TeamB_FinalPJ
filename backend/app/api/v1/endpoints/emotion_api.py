@@ -195,6 +195,14 @@ async def create_emotion_log(
         # 認証されたユーザーのIDを使用（request.user_idは無視）
         user_id = current_user.id
 
+        # 選択された子供が自分の子供かチェック
+        child = await db.get(Child, uuid.UUID(request.child_id))
+        if not child or child.user_id != user_id:
+            raise HTTPException(
+                status_code=403, 
+                detail="この子供の感情記録を作成する権限がありません"
+            )
+
         # 感情記録を作成（音声・テキスト関連は後で更新）
         emotion_log = EmotionLog(
             user_id=user_id,  # 認証されたユーザーのIDを使用
