@@ -9,12 +9,11 @@ import firebase_admin
 from firebase_admin import credentials, auth
 import stripe
 
-from app import crud, schemas
-from app.config.database import engine, async_session_local, get_db
-from app.models import Base, User
+from app.config.database import engine, async_session_local
 
 from app.api.v1.endpoints.voice import router as new_voice_router
 from app.api.v1.endpoints.children import router as children_router
+from app.api.v1.endpoints.auth import router as auth_router
 from app.utils.error_handlers import register_error_handlers
 from app.api.v1.endpoints.emotion_color_api import router as emotion_color_router
 from app.api.v1.endpoints.emotion_api import router as emotion_router
@@ -74,6 +73,7 @@ app.add_middleware(
 )
 
 # ルーター登録
+app.include_router(auth_router, prefix="/api/v1")
 app.include_router(new_voice_router, prefix="/api/v1")
 app.include_router(children_router, prefix="/api/v1/children")
 app.include_router(emotion_router)
@@ -81,24 +81,3 @@ app.include_router(emotion_color_router)
 app.include_router(stripe_router)
 
 
-# ログイン
-@app.post("/api/v1/login", response_model=schemas.UserResponse)
-async def login(token: schemas.Token, db: AsyncSession = Depends(get_db)):
-    try:
-        decoded_token = auth.verify_id_token(token.id_token)
-    except Exception as e:
-        logging.warning("Login token invalid", exc_info=e)
-        raise HTTPException(status_code=401, detail="Invalid token")
-
-    uid = decoded_token["uid"]
-    email = decoded_token.get("email")
-    email_verified = decoded_token.get("email_verified", False)
-    nickname = decoded_token.get("name")
-
-    user = await crud.get_or_create_user(
-        db, uid=uid, email=email, email_verified=email_verified, nickname=nickname
-    )
-    if not user:
-        raise HTTPException(status_code=500, detail="Failed to create user")
-
-    return user
