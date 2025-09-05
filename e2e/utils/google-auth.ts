@@ -71,11 +71,31 @@ export class GoogleAuthHelper {
     // 認証状態が適切に管理されているか確認
     return await this.page.evaluate(() => {
       return new Promise<{ uid: string; email: string } | null>((resolve) => {
+        console.log("=== checkAuthState debug ===");
+        console.log("window exists:", typeof window !== "undefined");
+        console.log("firebase exists:", !!(window as any).firebase);
+        console.log("firebase object:", (window as any).firebase);
+
         if (typeof window !== "undefined" && (window as any).firebase) {
-          (window as any).firebase.auth().onAuthStateChanged((user: any) => {
+          console.log("Firebase is available, checking auth state");
+          // 即座に現在のユーザーをチェック
+          const auth = (window as any).firebase.auth();
+          if (auth.currentUser) {
+            console.log("Current user found:", auth.currentUser);
+            resolve({
+              uid: auth.currentUser.uid,
+              email: auth.currentUser.email,
+            });
+            return;
+          }
+
+          // onAuthStateChangedで確認
+          auth.onAuthStateChanged((user: any) => {
+            console.log("onAuthStateChanged triggered:", user);
             resolve(user ? { uid: user.uid, email: user.email } : null);
           });
         } else {
+          console.log("Firebase not available, returning null");
           resolve(null);
         }
       });
@@ -91,7 +111,7 @@ export class GoogleAuthHelper {
   async mockGoogleAuthSuccess() {
     await this.page.evaluate(() => {
       // Firebase Authの状態をMock
-      if (typeof window !== "undefined" && (window as any).firebase) {
+      if (typeof window !== "undefined") {
         const mockUser = {
           uid: "mock-user-123",
           email: "test@example.com",
@@ -99,12 +119,32 @@ export class GoogleAuthHelper {
           photoURL: "https://example.com/photo.jpg",
         };
 
-        // 認証状態をMock
-        (window as any).firebase.auth().onAuthStateChanged = (
-          callback: any
-        ) => {
-          callback(mockUser);
-        };
+        // Firebaseが存在しない場合は作成
+        if (!(window as any).firebase) {
+          (window as any).firebase = {
+            auth: () => ({
+              onAuthStateChanged: (callback: any) => {
+                // 即座にコールバックを実行
+                setTimeout(() => callback(mockUser), 100);
+              },
+              currentUser: mockUser,
+              getIdToken: () => Promise.resolve("mock-id-token"),
+            }),
+          };
+        } else {
+          // Firebaseが存在する場合は上書き
+          (window as any).firebase.auth().onAuthStateChanged = (
+            callback: any
+          ) => {
+            setTimeout(() => callback(mockUser), 100);
+          };
+          (window as any).firebase.auth().currentUser = mockUser;
+          (window as any).firebase.auth().getIdToken = () =>
+            Promise.resolve("mock-id-token");
+        }
+
+        // グローバルにFirebase認証状態を設定
+        (window as any).__MOCK_FIREBASE_USER__ = mockUser;
       }
     });
   }
@@ -145,7 +185,7 @@ export class GoogleAuthHelper {
    */
   async createTestUser(email: string, password: string) {
     const response = await this.page.request.post(
-      `${this.baseUrl}/www.googleapis.com/identitytoolkit/v3/relyingparty/signupNewUser`,
+      `${this.baseUrl}/identitytoolkit.googleapis.com/v1/accounts:signUp?key=fake-api-key`,
       {
         data: {
           email,
@@ -155,8 +195,19 @@ export class GoogleAuthHelper {
       }
     );
 
-    expect(response.status()).toBe(200);
-    return await response.json();
+    if (response.status() !== 200) {
+      const errorText = await response.text();
+      console.log(`User creation failed with status ${response.status()}: ${errorText}`);
+      // ユーザーが既に存在する場合は続行
+      if (response.status() === 400 && errorText.includes('EMAIL_EXISTS')) {
+        console.log(`User ${email} already exists, continuing...`);
+        return { success: true, email };
+      }
+      throw new Error(`User creation failed: ${response.status()}`);
+    }
+    
+    const result = await response.json();
+    return { success: true, ...result };
   }
 
   /**
@@ -164,7 +215,7 @@ export class GoogleAuthHelper {
    */
   async signInWithEmail(email: string, password: string) {
     const response = await this.page.request.post(
-      `${this.baseUrl}/www.googleapis.com/identitytoolkit/v3/relyingparty/verifyPassword`,
+      `${this.baseUrl}/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=fake-api-key`,
       {
         data: {
           email,
@@ -174,16 +225,26 @@ export class GoogleAuthHelper {
       }
     );
 
-    expect(response.status()).toBe(200);
-    return await response.json();
+    if (response.status() !== 200) {
+      const errorText = await response.text();
+      console.log(`Login failed with status ${response.status()}: ${errorText}`);
+      throw new Error(`Login failed: ${response.status()}`);
+    }
+    
+    const result = await response.json();
+    return { success: true, ...result };
   }
 
   /**
    * テストユーザーを削除
    */
-  async deleteTestUser(idToken: string) {
+  async deleteTestUser(email: string) {
+    // まずユーザーにログインしてIDトークンを取得
+    const loginResult = await this.signInWithEmail(email, "testpassword123");
+    const idToken = loginResult.idToken;
+
     const response = await this.page.request.post(
-      `${this.baseUrl}/www.googleapis.com/identitytoolkit/v3/relyingparty/deleteAccount`,
+      `${this.baseUrl}/identitytoolkit.googleapis.com/v1/accounts:delete?key=fake-api-key`,
       {
         data: {
           idToken,
@@ -192,6 +253,20 @@ export class GoogleAuthHelper {
     );
 
     expect(response.status()).toBe(200);
+  }
+
+  /**
+   * ログアウト
+   */
+  async signOut() {
+    await this.page.evaluate(() => {
+      if (typeof window !== "undefined" && (window as any).firebase) {
+        const auth = (window as any).firebase.auth();
+        if (auth.signOut) {
+          auth.signOut();
+        }
+      }
+    });
   }
 }
 
