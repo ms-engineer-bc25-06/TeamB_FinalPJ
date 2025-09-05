@@ -22,7 +22,7 @@ from app.schemas import (
     VoiceSaveRequest,
 )
 from app.services.whisper import WhisperService
-from app.database import get_db
+from app.config.database import get_db
 from app.models import EmotionLog
 from app.services.voice.file_ops import VoiceFileService
 from app.utils.constants import (
