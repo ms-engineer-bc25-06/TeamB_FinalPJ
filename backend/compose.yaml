@@ -16,6 +16,7 @@ services:
       - ./.env:/app/.env     # 環境変数ファイル用マウント
       - ./tests:/app/tests  # テストファイル用マウント
       - ./app:/app/app      # アプリケーションコード用マウント（開発時のホットリロード）
+      - ./htmlcov:/app/htmlcov  # カバレッジレポート用マウント
     entrypoint:
       [
         "/bin/sh",
