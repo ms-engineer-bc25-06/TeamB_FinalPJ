@@ -218,7 +218,10 @@ export const useEmotionConfirmation = () => {
     });
 
     try {
-      console.log('🎯 感情確認: APIリクエスト送信中...');
+      // LOG: APIリクエスト送信（本番環境では削除推奨）
+      if (process.env.NODE_ENV === 'development') {
+        console.log('🎯 感情確認: APIリクエスト送信中...');
+      }
       const response = await fetch(API_ENDPOINTS.EMOTION_LOGS, {
         method: 'POST',
         headers: {

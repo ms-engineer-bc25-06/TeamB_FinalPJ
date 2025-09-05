@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import datetime
 from functools import lru_cache
+import logging
 
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -29,6 +30,9 @@ async def get_db():
 
 
 router = APIRouter(prefix="/emotion", tags=["emotion"])
+
+# ログ設定
+logger = logging.getLogger(__name__)
 
 
 # 感情記録作成用リクエストモデル（段階的保存対応）
@@ -193,12 +197,16 @@ async def create_emotion_log(
     db: AsyncSession = Depends(get_db)
 ):
     try:
+        # LOG: 感情記録作成開始
+        logger.info(f"感情記録作成開始 - ユーザーID: {current_user.id}, 子供ID: {request.child_id}, 感情ID: {request.emotion_card_id}")
+        
         # SECURITY: 認証されたユーザーのIDを使用（request.user_idは無視してセキュリティを確保）
         user_id = current_user.id
 
         # SECURITY: 選択された子供が自分の子供かチェック（他のユーザーの子供への感情記録作成を防止）
         child = await db.get(Child, uuid.UUID(request.child_id))
         if not child or child.user_id != user_id:
+            logger.warning(f"権限なしアクセス試行 - ユーザーID: {user_id}, 子供ID: {request.child_id}")
             raise HTTPException(
                 status_code=403, 
                 detail="この子供の感情記録を作成する権限がありません"
@@ -219,13 +227,21 @@ async def create_emotion_log(
         await db.commit()
         await db.refresh(emotion_log)
 
+        # LOG: 感情記録作成成功
+        logger.info(f"感情記録作成成功 - 記録ID: {emotion_log.id}, ユーザーID: {user_id}")
+
         return {
             "success": True,
             "log_id": str(emotion_log.id),
             "message": "Emotion log created successfully",
         }
 
+    except HTTPException:
+        # HTTPExceptionは再発生（ログは既に記録済み）
+        raise
     except Exception as e:
+        # LOG: 予期しないエラー
+        logger.error(f"感情記録作成エラー - ユーザーID: {current_user.id}, エラー: {str(e)}", exc_info=True)
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
