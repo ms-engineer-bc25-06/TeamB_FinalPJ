@@ -1,39 +1,16 @@
 import logging
 from typing import List
 from uuid import UUID
-from fastapi import APIRouter, Depends, HTTPException, Security
-from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
+from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from firebase_admin import auth
 
 from app.config.database import get_db
 from app.models import User
+from app.api.v1.endpoints.auth import get_current_user
 import app.crud as crud
 import app.schemas as schemas
 
 router = APIRouter(tags=["children"])
-
-# HTTPBearer認証スキーム
-security = HTTPBearer()
-
-
-async def get_current_user(
-    token: HTTPAuthorizationCredentials = Security(security),
-    db: AsyncSession = Depends(get_db),
-) -> User:
-    """認証トークンからユーザー情報を取得"""
-    try:
-        decoded_token = auth.verify_id_token(token.credentials)
-        uid = decoded_token["uid"]
-
-        user = await crud.get_user_by_uid(db, uid)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        return user
-    except Exception as e:
-        logging.error(f"Authentication failed: {e}")
-        raise HTTPException(status_code=401, detail="Invalid authentication token")
 
 
 @router.post("", response_model=schemas.ChildResponse)
