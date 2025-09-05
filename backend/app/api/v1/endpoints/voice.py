@@ -22,7 +22,7 @@ from app.schemas import (
 )
 from app.services.whisper import WhisperService
 from app.services.s3 import S3Service
-from app.database import get_db
+from app.config.database import get_db
 from app.models import EmotionLog
 from app.services.audio_optimizer import AudioOptimizer
 

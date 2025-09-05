@@ -14,7 +14,7 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 from app.models import EmotionCard, Intensity, EmotionLog, Child, User
 from app.schemas import ChildResponse, EmotionLogResponse
-from app.children import get_current_user
+from app.api.v1.endpoints.auth import get_current_user
 
 # データベース接続を直接定義
 DATABASE_URL = os.getenv("DATABASE_URL")

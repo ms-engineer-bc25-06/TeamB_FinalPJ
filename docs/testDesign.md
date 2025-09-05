@@ -17,7 +17,8 @@
 8. [テスト実行環境](#テスト実行環境)
 9. [テストデータ管理](#テストデータ管理)
 10. [パフォーマンス目標](#パフォーマンス目標)
-11. [メンテナンス方針](#メンテナンス方針)
+11. [トラブルシューティング](#トラブルシューティング)
+12. [メンテナンス方針](#メンテナンス方針)
 
 ## 概要
 
@@ -42,7 +43,7 @@ Unit Tests (Vitest + Pytest)     \
 [↑ 目次に戻る](#目次)
 
 ## フロントエンド テスト設計
-**この章のゴール**: UI/状態/音声UIの単体・結合テスト方針を定義する
+> UI/状態/音声UIの単体・結合テスト方針
 
 ### 技術スタック
 - **テストフレームワーク**: Vitest
@@ -103,20 +104,17 @@ frontend/src/
 #### **基本的なモック対象**
 - **Firebase**: 認証、データベース操作をモック
 - **Next.js Router**: ナビゲーション処理をモック
-- **Web APIs**: `matchMedia`, `navigator.mediaDevices`をモック
-- **外部API**: Stripe、音声認識APIをモック
+- **Web APIs**: `matchMedia`をモック
+- **外部API**: Stripe、音声認識APIをモック（計画中）
 
-#### **音声系テストの堅牢なモック（計画中）**
-- **ブラウザAPI**: `navigator.mediaDevices.getUserMedia` / `MediaRecorder` を完全モック（計画中）
-- **固定バイナリ**: 短いテスト用WebMファイルをリポジトリに同梱（計画中）
-- **バックエンド**: Whisper呼び出しを関数レベルでモック（計画中）
+
 
 
 
 [↑ 目次に戻る](#目次)
 
 ## バックエンド テスト設計
-**この章のゴール**: API/データベース/外部サービス連携の単体・結合テスト方針を定義する
+> API/データベース/外部サービス連携の単体・結合テスト方針
 
 ### 技術スタック
 - **テストフレームワーク**: Pytest
@@ -169,34 +167,17 @@ backend/
 ### テストデータ戦略
 
 #### **データベーステスト戦略**
-- **テスト用DB**: 既存PostgreSQLコンテナを活用（test_teamb_db使用）
-- **非同期対応**: SQLAlchemy 2.0 + asyncio完全対応
-- **トランザクション分離**: 各テストで独立したデータベース状態
-- **自動クリーンアップ**: テスト後の自動テーブル削除
+- **テスト用データベース**: 本番と同じPostgreSQLデータベースを使用
+- **非同期処理**: データベースへの接続を効率的に処理（SQLAlchemy 2.0 + asyncio）
+- **テストの独立性**: 各テストが他のテストに影響しないよう、データベースの状態を分離
+- **DB接続管理**: テスト終了後にデータベースを自動で元の状態に戻す
 
 #### **テストデータ管理**
 - **フィクスチャ**: 再利用可能なテストデータ（conftest.py）
-- **ファクトリ**: 動的テストデータ生成
-- **モック**: 外部サービス（Firebase、Stripe、S3）のレスポンス
-
-#### **Docker環境での注意点**
-
-- **環境変数**: 
-  > テスト時に本番データを壊さないようにするため、本番環境とテスト環境で異なる設定を使い分ける
-
-  **⚠️ 注意点**: `.env`ファイルで`TEST_DATABASE_URL`を必ず設定すること。設定しないとテストが実行できない
-
-- **ファイル出力**: カバレッジレポートのホストアクセス
-  > コンテナ内で生成されたファイルをローカルで見るため、テスト結果のレポートファイルをDockerコンテナの外（ローカルPC）で確認できるようにする仕組み導入。テスト実行後にブラウザでカバレッジレポートを開いて確認可能。
-  
-  **⚠️ 注意点**: テスト実行後に`docker cp teamb_backend:/app/htmlcov ./htmlcov`でコンテナからローカルにコピーする必要がある。コピーしないとローカルでテスト結果が見られない
-  
-  **📋 コピー手順**:
-  1. テスト実行: `docker exec teamb_backend pytest --cov=app --cov-report=html`
-  2. コンテナからローカルにコピー: `docker cp teamb_backend:/app/htmlcov ./htmlcov`
-  3. ブラウザで確認: `open htmlcov/index.html`
-
-
+- **モック**: 外部サービスのレスポンス
+  - **Firebase**: 認証・データベース操作のモック（導入済み）
+  - **Stripe**: 決済処理のモック（計画中）
+  - **S3**: ファイルアップロードのモック（計画中）
 
 ### 現在の導入状況
 
@@ -233,7 +214,6 @@ markers = [
 
 
 #### **📝 テスト計画**
-**※ 新しい機能のテスト内容は以下に追加してください**
 
 <!-- 
 TODO: 新機能テスト追加テンプレート:
@@ -247,7 +227,6 @@ TODO: 新機能テスト追加テンプレート:
   **テスト品質チェックリスト:**
   - [ ] ユースケースやクリティカルパスを考慮したテストになっている
   - [ ] 正常系/異常系の考慮がなされたテストケースがある
-  - [ ] テストコードが記載されており、正常系・異常系が含まれている
   - [ ] Mockなどを使って依存度の低いテストコードが書かれている
   
   **異常系・境界値テスト観点（例）:**
@@ -261,20 +240,23 @@ TODO: 新機能テスト追加テンプレート:
   ※ 機能に応じて検討してください。
 -->
 
-```markdown
 <!-- TODO: ここに新機能のテスト計画を追加 -->
-```
 
-#### **⚠️ Docker環境での注意事項**
-- **データベース**: PostgreSQL（本番環境と同一）でテスト用データベース使用
-- **環境変数**: テスト用設定の分離（モック認証情報使用）
-- **ファイル出力**: カバレッジレポートのホストアクセス設定
-- **外部サービス**: 本番APIキーの分離（モック値使用）
+- **Google認証によるログインフローの動作確認機能テスト**: 
+  - テスト対象: Firebase Auth Emulatorを使用した実際の認証フロー、認証失敗時のエラーハンドリング、ログアウト機能、認証状態の永続化
+  - テスト方針: E2E（Playwright）
+  - 担当者: みお
+  
+  **テスト品質チェックリスト:**
+  - [ ] ユースケースやクリティカルパスを考慮したテストになっている
+  - [ ] 正常系/異常系の考慮がなされたテストケースがある
+  - [ ] Mockなどを使って依存度の低いテストコードが書かれている
+---
 
 [↑ 目次に戻る](#目次)
 
 ## E2E テスト設計 
-**この章のゴール**: ユーザーフロー全体の統合テスト方針を定義する
+> ユーザーフロー全体の統合テスト方針
 
 ### 技術スタック
 - **テストフレームワーク**: Playwright
@@ -299,7 +281,8 @@ TODO: 新機能テスト追加テンプレート:
 ```text
 プロジェクトルート/
 ├── e2e/                        # E2Eテストディレクトリ
-│   ├── login.spec.ts           # ログインフローテスト（導入済み）
+│   ├── login.spec.ts           # ログインテスト（導入済み）
+│   ├── logout.spec.ts          # ログアウトテスト（計画中）
 │   ├── subscription.spec.ts    # サブスクリプション遷移テスト（導入済み）
 │   └── utils/
 │       └── auth.ts             # 認証ヘルパー関数（導入済み）
@@ -339,7 +322,7 @@ npm run test:e2e:debug   # デバッグモード
 [↑ 目次に戻る](#目次)
 
 ## CI/CD テスト戦略
-**この章のゴール**: GitHub Actions による自動テスト・デプロイメント戦略を定義する
+> GitHub Actions による自動テスト・デプロイメント戦略
 
 ### GitHub Actions 導入の意義
 
@@ -542,42 +525,63 @@ PRODUCTION_URL           # 本番環境URL（慎重に使用）
 
 ## セットアップ手順
 
+**💡 うまくセットアップできない場合は[トラブルシューティング](#トラブルシューティング)をご覧ください**
+
 ### 初回セットアップ
 
 #### 0. 環境変数設定
 
 **重要性**: テスト実行前に必ず設定が必要。Notionを参照してbackend/.env ファイルとfrontend/.env.e2e.local ファイルを更新すること。
 
-#### 1. フロントエンド環境構築
+
+#### 1. 既存プロセスの確認・停止（🚨 重要）
+
+**⚠️ 必須**: E2Eテスト実行前に、ポート3000を使用している既存プロセスを停止する必要があります。
+
+```bash
+# ポート3000を使用しているプロセスを確認
+lsof -ti:3000
+
+# 既存のNext.js開発サーバーを停止
+pkill -f "next dev"
+# または特定のプロセスIDを停止
+lsof -ti:3000 | xargs kill -9
+
+# ポート8000を使用しているプロセスも確認（バックエンド）
+lsof -ti:8000
+```
+
+#### 2. フロントエンド環境構築
 ```bash
 cd frontend
 npm install                    # 依存関係インストール（Vitestのみ）
 ```
 
-#### 2. バックエンド環境構築（Docker使用）
+#### 3. バックエンド環境構築（Docker使用）
 ```bash
 cd backend
-docker compose up -d              # コンテナ起動（バックグラウンド）
-# または
+
+# 既存のコンテナを停止・削除（初回または問題がある場合）
+docker compose down
+
+# コンテナを再起動（ボリュームマウントを確実にするため）
 docker compose up --build -d      # 初回ビルド付きで起動
+
+# コンテナ起動を確認
+docker compose ps
 
 # Pytest依存関係の確認（コンテナ内）
 docker exec teamb_backend pip list | grep pytest
 ```
 
-#### 3. E2Eテスト環境構築（🚨 各メンバー必須）
-**⚠️ 重要**：Playwrightブラウザインストールは**各開発者が個別に実行**必須
-- **理由**：Chromium/WebKit ブラウザバイナリをローカルマシンにダウンロード
-- **容量**：約500MB〜1GB（初回のみ）
-- **頻度**：Playwright バージョンアップ時のみ再実行
-- **スキップ不可**：このステップを飛ばすとE2Eテストが実行できません
+#### 4. E2Eテスト環境構築（🚨 各メンバー必須）
+**⚠️ 重要**：Playwrightブラウザのインストールが必要です。**npm installを実行すると自動でインストールされます**が、各開発者が個別に実行する必要があります。
+
 
 ```bash
 # プロジェクトルートで実行
-npm install                      # Playwright依存関係をインストール + ブラウザ自動インストール
+npm install                      # Playwright依存関係とブラウザを自動インストール
 ```
-
-
 
 **💡 確認方法**：
 ```bash
@@ -586,6 +590,7 @@ npx playwright --version
 # ブラウザ一覧確認  
 npx playwright install --dry-run
 ```
+
 ### 動作確認
 ```bash
 # フロントエンド：サンプルテストの実行
@@ -594,11 +599,15 @@ cd frontend && npm run test:run
 # バックエンド：サンプルテストの実行（コンテナ内）
 docker exec teamb_backend pytest tests/test_example.py
 
-# E2E：サンプルテストの実行
+# E2E：サンプルテストの実行（既存プロセス停止後）
 npm run test:e2e
 ```
 
 ## テスト実行環境
+
+### **⚠️ Docker環境ならではの注意事項と対策**
+- コンテナ内で生成されたレポートをローカルPCで直接確認可能になるよう、compose.yamlにて自動マウントを設定。
+- テストファイルがコンテナ内に正しくマウントされない場合は、 `docker compose up --build`で再起動し、ボリュームマウントを確実にする必要あり。
 
 ### ローカル開発
 
@@ -643,7 +652,8 @@ docker compose down
 open backend/htmlcov/index.html     # ブラウザでHTMLレポート表示
 cat backend/coverage.xml            # XML形式レポート（CI用）
 
-# コンテナ内からホストにファイルコピー（必要に応じて）
+# レポートが見えない場合のみ：コンテナ内からホストにファイルコピー
+# （通常は自動マウントされるため、このコマンドは不要）
 docker compose cp backend:/app/htmlcov ./backend/htmlcov
 docker compose cp backend:/app/coverage.xml ./backend/coverage.xml
 ```
@@ -849,10 +859,236 @@ rm -rf test-results playwright-report blob-report
 
 [↑ 目次に戻る](#目次)
 
-## メンテナンス方針
+## トラブルシューティング
+> テスト環境構築・実行時のよくある問題と解決方法をまとめる
 
-**状態**: 🧪試験中  
-**この章のゴール**: テスト環境の継続的な品質向上とメンテナンス戦略を定義する
+### **🚨 よくある問題と解決方法**
+
+#### **1. E2Eテストでポート競合エラーが発生する**
+
+**エラーメッセージ**:
+```
+Error: http://localhost:3000 is already used, make sure that nothing is running on the port/url or set reuseExistingServer:true in config.webServer.
+```
+
+**原因**: フロントエンド開発サーバー（Next.js）が既にポート3000で起動している
+
+**解決方法**:
+```bash
+# 1. ポート3000を使用しているプロセスを確認
+lsof -ti:3000
+
+# 2. Next.js開発サーバーを停止
+pkill -f "next dev"
+# または特定のプロセスIDを停止
+lsof -ti:3000 | xargs kill -9
+
+# 3. プロセスが停止したことを確認
+lsof -ti:3000
+
+# 4. E2Eテストを再実行
+npm run test:e2e
+```
+
+#### **2. バックエンドテストでテストファイルが見つからない**
+
+**エラーメッセージ**:
+```
+ERROR: file or directory not found: tests/test_example.py
+```
+
+**原因**: Dockerボリュームマウントが正しく動作していない
+
+**解決方法**:
+```bash
+# 1. コンテナを完全に停止・削除
+cd backend
+docker compose down
+
+# 2. コンテナを再起動（ボリュームマウントを確実にする）
+docker compose up --build -d
+
+# 3. テストファイルがマウントされているか確認
+docker exec teamb_backend ls -la /app/tests/
+
+# 4. テストを実行
+docker exec teamb_backend pytest tests/test_example.py -v
+```
+
+#### **3. フロントエンドテストで依存関係エラーが発生する**
+
+**エラーメッセージ**:
+```
+Cannot find module 'vitest' or its corresponding type declarations
+```
+
+**原因**: 依存関係が正しくインストールされていない
+
+**解決方法**:
+```bash
+# 1. node_modulesを削除
+cd frontend
+rm -rf node_modules package-lock.json
+
+# 2. 依存関係を再インストール
+npm install
+
+# 3. テストを実行
+npm run test:run
+```
+
+#### **4. Playwrightブラウザがインストールされていない**
+
+**エラーメッセージ**:
+```
+Error: Browser executable not found
+```
+
+**原因**: Playwrightブラウザがインストールされていない
+
+**解決方法**:
+```bash
+# 1. プロジェクトルートで実行
+npm install
+
+# 2. ブラウザがインストールされているか確認
+npx playwright --version
+npx playwright install --dry-run
+
+# 3. 手動でブラウザをインストール（必要に応じて）
+npx playwright install
+```
+
+#### **5. データベース接続エラーが発生する**
+
+**エラーメッセージ**:
+```
+sqlalchemy.exc.OperationalError: (psycopg2.OperationalError) could not connect to server
+```
+
+**原因**: PostgreSQLコンテナが起動していない、または環境変数が設定されていない
+
+**解決方法**:
+```bash
+# 1. コンテナの状態を確認
+cd backend
+docker compose ps
+
+# 2. コンテナが起動していない場合は起動
+docker compose up -d
+
+# 3. データベースの接続を確認
+docker exec teamb_db pg_isready -U postgres
+
+# 4. 環境変数ファイルの存在を確認
+ls -la .env
+
+# 5. テストを再実行
+docker exec teamb_backend pytest tests/test_example.py -v
+```
+
+#### **6. Firebaseサービスアカウントファイルの権限エラーが発生する**
+
+**エラーメッセージ**:
+```
+Permission denied: firebase-service-account.json
+```
+
+**原因**: Firebaseサービスアカウントファイルの読み取り権限がない（稀に発生）
+
+**解決方法**:
+```bash
+# 1. ファイルの現在の権限を確認
+ls -la backend/firebase-service-account.json
+
+# 2. 読み取り権限を付与（必要に応じて）
+chmod 644 backend/firebase-service-account.json
+
+# 3. 権限が正しく設定されたか確認
+ls -la backend/firebase-service-account.json
+# 期待される出力: -rw-r--r-- (644)
+
+# 4. コンテナを再起動して権限を反映
+cd backend
+docker compose restart backend
+
+# 5. テストを再実行
+docker exec teamb_backend pytest tests/test_example.py -v
+```
+
+**注意**: 通常は権限エラーは発生しません。この問題が発生した場合のみ上記手順を実行してください。
+
+### **🔍 問題の診断手順**
+
+#### **ステップ1: 環境の確認**
+```bash
+# 1. 必要なツールがインストールされているか確認
+node --version
+npm --version
+docker --version
+docker compose --version
+
+# 2. プロジェクトの状態を確認
+cd /path/to/TeamB_FinalPJ
+ls -la
+```
+
+#### **ステップ2: プロセスの確認**
+```bash
+# 1. ポート使用状況を確認
+lsof -ti:3000  # フロントエンド
+lsof -ti:8000  # バックエンド
+lsof -ti:5432  # データベース
+
+# 2. 実行中のプロセスを確認
+ps aux | grep -E "(next|node|npm|docker)" | grep -v grep
+```
+
+#### **ステップ3: ログの確認**
+```bash
+# 1. Dockerコンテナのログを確認
+cd backend
+docker compose logs backend
+docker compose logs db
+
+# 2. フロントエンドのログを確認
+cd frontend
+npm run dev  # 別ターミナルで実行してログを確認
+```
+
+### **🛠️ 緊急時の復旧手順**
+
+#### **完全リセット（全ての環境を初期化）**
+```bash
+# 1. 全てのプロセスを停止
+pkill -f "next dev"
+pkill -f "npm run dev"
+lsof -ti:3000 | xargs kill -9
+lsof -ti:8000 | xargs kill -9
+
+# 2. Dockerコンテナを完全に停止・削除
+cd backend
+docker compose down -v  # ボリュームも削除
+
+# 3. 依存関係を再インストール
+cd ../frontend
+rm -rf node_modules package-lock.json
+npm install
+
+# 4. 環境を再構築
+cd ../backend
+docker compose up --build -d
+
+# 5. 動作確認
+cd ../frontend && npm run test:run
+cd ../backend && docker exec teamb_backend pytest tests/test_example.py -v
+cd .. && npm run test:e2e
+```
+
+[↑ 目次に戻る](#目次)
+
+## メンテナンス方針
+> テスト環境の継続的な品質向上とメンテナンス戦略
 
 ### **定期レビュー**
 - **月次レビュー**: テストカバレッジ、実行時間の確認

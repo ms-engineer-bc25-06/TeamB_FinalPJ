@@ -131,10 +131,18 @@ export default function DailyReport({ onClose }: DailyReportProps) {
             const jstDate = new Date(utcDate.getTime() + jstOffset * 60 * 1000);
             const jstDateStr = jstDate.toISOString().split('T')[0];
 
+            // プレースホルダーテキストをチェック
+            const isPlaceholderText =
+              log.voice_note === '出力形式' ||
+              log.voice_note?.includes('出力形式') ||
+              !log.voice_note?.trim();
+
             return {
               id: log.id,
               date: jstDateStr,
-              content: log.voice_note || '音声メモがありません',
+              content: isPlaceholderText
+                ? '音声メモがありません'
+                : log.voice_note,
               mood: getEmotionMood(log.emotion_card?.label),
               audio_file_path: log.audio_file_path,
               emotion_card: log.emotion_card,
