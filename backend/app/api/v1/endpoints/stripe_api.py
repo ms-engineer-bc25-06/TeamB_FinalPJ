@@ -10,7 +10,7 @@ import uuid
 
 from app import crud, schemas
 from app.models import User
-from app.database import get_db
+from app.config.database import get_db
 
 # Stripe関連のAPIルーター設定
 router = APIRouter(

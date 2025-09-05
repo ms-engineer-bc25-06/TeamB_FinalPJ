@@ -6,7 +6,7 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.ext.asyncio import AsyncSession
 from firebase_admin import auth
 
-from app.database import get_db
+from app.config.database import get_db
 from app.models import User
 import app.crud as crud
 import app.schemas as schemas
