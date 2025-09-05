@@ -225,7 +225,7 @@ export const useEmotionConfirmation = () => {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          user_id: user?.uid || '00000000-0000-0000-0000-000000000000',
+          // user_idは送信しない（バックエンドで認証されたユーザーから取得）
           child_id: selectedChild?.id || '00000000-0000-0000-0000-000000000000',
           emotion_card_id: selectedEmotion?.id,
           intensity_id: selectedIntensity?.id,

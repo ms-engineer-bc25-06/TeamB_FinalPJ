@@ -32,7 +32,7 @@ router = APIRouter(prefix="/emotion", tags=["emotion"])
 
 # 感情記録作成用リクエストモデル（段階的保存対応）
 class CreateEmotionLogRequest(BaseModel):
-    user_id: str = Field(..., description="Firebase UID")
+    # user_idは削除（認証されたユーザーから取得）
     child_id: str = Field(..., description="子供のID（文字列）")
     emotion_card_id: str = Field(..., description="感情カードID（文字列）")
     intensity_id: int = Field(..., description="強度ID (1/2/3 等)")
@@ -152,7 +152,6 @@ async def get_intensities(db: AsyncSession = Depends(get_db)):
     ## リクエスト例（JSON）
     ```json
     {
-      "user_id": "user123",
       "child_id": "child456",
       "emotion_card_id": "ureshii",
       "intensity_id": 2
@@ -169,10 +168,12 @@ async def get_intensities(db: AsyncSession = Depends(get_db)):
     ```
 
     ## 必須項目
-    - `user_id`: ユーザーID
     - `child_id`: 子供のID
     - `emotion_card_id`: 感情カードID
     - `intensity_id`: 強度ID (1/2/3)
+    
+    ## 認証
+    - ユーザーIDは認証トークンから自動取得
 
     ## オプショナル項目
     - `voice_note`: 音声メモ（後で音声入力画面で更新）
@@ -186,19 +187,17 @@ async def get_intensities(db: AsyncSession = Depends(get_db)):
     response_description="感情記録保存結果を返します",
 )
 async def create_emotion_log(
-    request: CreateEmotionLogRequest, db: AsyncSession = Depends(get_db)
+    request: CreateEmotionLogRequest, 
+    current_user: User = Depends(get_current_user),  # 認証必須
+    db: AsyncSession = Depends(get_db)
 ):
     try:
-        # Firebase UIDからユーザーIDを検索
-        from app.crud import get_user_by_uid
-
-        user = await get_user_by_uid(db, request.user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        # 認証されたユーザーのIDを使用（request.user_idは無視）
+        user_id = current_user.id
 
         # 感情記録を作成（音声・テキスト関連は後で更新）
         emotion_log = EmotionLog(
-            user_id=user.id,  # 検索したユーザーのUUIDを使用
+            user_id=user_id,  # 認証されたユーザーのIDを使用
             child_id=uuid.UUID(request.child_id),  # 文字列をUUIDに変換
             emotion_card_id=uuid.UUID(request.emotion_card_id),  # 文字列をUUIDに変換
             intensity_id=request.intensity_id,
