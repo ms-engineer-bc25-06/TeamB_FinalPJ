@@ -8,6 +8,8 @@ from typing import Optional, List
 from pydantic import BaseModel, Field
 from uuid import UUID
 from datetime import datetime
+from functools import lru_cache
+import logging
 
 import os
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -29,10 +31,13 @@ async def get_db():
 
 router = APIRouter(prefix="/emotion", tags=["emotion"])
 
+# ログ設定
+logger = logging.getLogger(__name__)
+
 
 # 感情記録作成用リクエストモデル（段階的保存対応）
 class CreateEmotionLogRequest(BaseModel):
-    user_id: str = Field(..., description="Firebase UID")
+    # user_idは削除（認証されたユーザーから取得）
     child_id: str = Field(..., description="子供のID（文字列）")
     emotion_card_id: str = Field(..., description="感情カードID（文字列）")
     intensity_id: int = Field(..., description="強度ID (1/2/3 等)")
@@ -152,7 +157,6 @@ async def get_intensities(db: AsyncSession = Depends(get_db)):
     ## リクエスト例（JSON）
     ```json
     {
-      "user_id": "user123",
       "child_id": "child456",
       "emotion_card_id": "ureshii",
       "intensity_id": 2
@@ -169,10 +173,12 @@ async def get_intensities(db: AsyncSession = Depends(get_db)):
     ```
 
     ## 必須項目
-    - `user_id`: ユーザーID
     - `child_id`: 子供のID
     - `emotion_card_id`: 感情カードID
     - `intensity_id`: 強度ID (1/2/3)
+    
+    ## 認証
+    - ユーザーIDは認証トークンから自動取得
 
     ## オプショナル項目
     - `voice_note`: 音声メモ（後で音声入力画面で更新）
@@ -186,30 +192,43 @@ async def get_intensities(db: AsyncSession = Depends(get_db)):
     response_description="感情記録保存結果を返します",
 )
 async def create_emotion_log(
-    request: CreateEmotionLogRequest, db: AsyncSession = Depends(get_db)
+    request: CreateEmotionLogRequest, 
+    current_user: User = Depends(get_current_user),  # 認証必須
+    db: AsyncSession = Depends(get_db)
 ):
     try:
-        # Firebase UIDからユーザーIDを検索
-        from app.crud import get_user_by_uid
+        # LOG: 感情記録作成開始
+        logger.info(f"感情記録作成開始 - ユーザーID: {current_user.id}, 子供ID: {request.child_id}, 感情ID: {request.emotion_card_id}")
+        
+        # SECURITY: 認証されたユーザーのIDを使用（request.user_idは無視してセキュリティを確保）
+        user_id = current_user.id
 
-        user = await get_user_by_uid(db, request.user_id)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
+        # SECURITY: 選択された子供が自分の子供かチェック（他のユーザーの子供への感情記録作成を防止）
+        child = await db.get(Child, uuid.UUID(request.child_id))
+        if not child or child.user_id != user_id:
+            logger.warning(f"権限なしアクセス試行 - ユーザーID: {user_id}, 子供ID: {request.child_id}")
+            raise HTTPException(
+                status_code=403, 
+                detail="この子供の感情記録を作成する権限がありません"
+            )
 
         # 感情記録を作成（音声・テキスト関連は後で更新）
         emotion_log = EmotionLog(
-            user_id=user.id,  # 検索したユーザーのUUIDを使用
-            child_id=uuid.UUID(request.child_id),  # 文字列をUUIDに変換
-            emotion_card_id=uuid.UUID(request.emotion_card_id),  # 文字列をUUIDに変換
+            user_id=user_id,
+            child_id=uuid.UUID(request.child_id),
+            emotion_card_id=uuid.UUID(request.emotion_card_id),
             intensity_id=request.intensity_id,
-            voice_note=request.voice_note,  # nullのまま（後で更新）
-            text_file_path=request.text_file_path,  # nullのまま（後で更新）
-            audio_file_path=request.audio_file_path,  # nullのまま
+            voice_note=request.voice_note,
+            text_file_path=request.text_file_path,
+            audio_file_path=request.audio_file_path,
         )
 
         db.add(emotion_log)
         await db.commit()
         await db.refresh(emotion_log)
+
+        # LOG: 感情記録作成成功
+        logger.info(f"感情記録作成成功 - 記録ID: {emotion_log.id}, ユーザーID: {user_id}")
 
         return {
             "success": True,
@@ -217,7 +236,12 @@ async def create_emotion_log(
             "message": "Emotion log created successfully",
         }
 
+    except HTTPException:
+        # HTTPExceptionは再発生（ログは既に記録済み）
+        raise
     except Exception as e:
+        # LOG: 予期しないエラー
+        logger.error(f"感情記録作成エラー - ユーザーID: {current_user.id}, エラー: {str(e)}", exc_info=True)
         await db.rollback()
         raise HTTPException(status_code=500, detail=str(e))
 
@@ -232,11 +256,11 @@ async def get_emotion_logs(
     db: AsyncSession = Depends(get_db),
     current_user: User = Depends(get_current_user),
     child_id: Optional[str] = None,
-    limit: int = 100,
+    limit: int = 50,  # PERFORMANCE: デフォルト値を50に削減（メモリ使用量削減）
     offset: int = 0,
 ):
     try:
-        # クエリの構築（リレーションシップデータも含める）
+        # PERFORMANCE: クエリの構築（selectinloadでN+1問題を回避）
         query = (
             select(EmotionLog)
             .options(
@@ -275,10 +299,10 @@ async def get_emotion_logs_by_date(
     child_id: Optional[str] = None,
 ):
     try:
-        # 日付文字列をパース
+        # NOTE: 日付文字列をパース（YYYY-MM-DD形式）
         target_date = datetime.strptime(date, "%Y-%m-%d").date()
 
-        # クエリの構築（リレーションシップデータも含める）
+        # クエリの構築
         query = (
             select(EmotionLog)
             .options(
@@ -330,14 +354,14 @@ async def get_emotion_logs_by_month(
     child_id: Optional[str] = None,
 ):
     try:
-        # 月の開始日と終了日を計算
+        # NOTE: 月の開始日と終了日を計算（12月の場合は翌年1月を考慮）
         start_date = datetime(year, month, 1)
         if month == 12:
             end_date = datetime(year + 1, 1, 1)
         else:
             end_date = datetime(year, month + 1, 1)
 
-        # クエリの構築（リレーションシップデータも含める）
+        # クエリの構築
         query = (
             select(EmotionLog)
             .options(
@@ -399,9 +423,10 @@ async def get_emotion_logs_by_month(
     """,
     response_description="ユーザーの子供一覧を返します",
 )
+# WARNING: このAPIは認証チェックなしでユーザーIDを推測可能（セキュリティリスク）
 async def get_user_children(user_uid: str, db: AsyncSession = Depends(get_db)):
     try:
-        # Firebase UIDからユーザーIDを検索
+        # NOTE: Firebase UIDからユーザーIDを検索（認証チェックなしの古いAPI）
         from app.crud import get_user_by_uid
 
         user = await get_user_by_uid(db, user_uid)
