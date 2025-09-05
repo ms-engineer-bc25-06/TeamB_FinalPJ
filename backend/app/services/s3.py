@@ -6,14 +6,9 @@ import logging
 
 
 # カスタム例外
-class S3UploadError(Exception):
-    def __init__(self, message: str, error_code: str = "S3_UPLOAD_ERROR"):
-        self.message = message
-        self.error_code = error_code
-        super().__init__(self.message)
-
-
 class S3DownloadError(Exception):
+    """S3ダウンロード関連のエラー"""
+
     def __init__(self, message: str, error_code: str = "S3_DOWNLOAD_ERROR"):
         self.message = message
         self.error_code = error_code
@@ -21,7 +16,18 @@ class S3DownloadError(Exception):
 
 
 class S3PresignedUrlError(Exception):
+    """S3 Presigned URL生成関連のエラー"""
+
     def __init__(self, message: str, error_code: str = "S3_PRESIGNED_URL_ERROR"):
+        self.message = message
+        self.error_code = error_code
+        super().__init__(self.message)
+
+
+class S3DeleteError(Exception):
+    """S3オブジェクト削除関連のエラー"""
+
+    def __init__(self, message: str, error_code: str = "S3_DELETE_ERROR"):
         self.message = message
         self.error_code = error_code
         super().__init__(self.message)
@@ -31,7 +37,16 @@ logger = logging.getLogger(__name__)
 
 
 class S3Service:
+    """
+    AWS S3操作サービス
+
+    S3への基本的な操作（URL生成、Presigned URL生成、削除）を提供する。
+    Presigned URL方式を採用し、クライアントがS3と直接通信できるようにする。
+    """
+
     def __init__(self):
+        # AWS認証情報を環境変数から取得
+        # デフォルトリージョンはap-northeast-1（東京）
         self.s3_client = boto3.client(
             "s3",
             aws_access_key_id=os.getenv("AWS_ACCESS_KEY_ID"),
@@ -40,27 +55,19 @@ class S3Service:
         )
         self.bucket_name = os.getenv("S3_BUCKET_NAME")
 
-    def upload_file(
-        self,
-        file_content: bytes,
-        file_path: str,
-        content_type: str = "application/octet-stream",
-    ) -> bool:
-        """ファイルをS3にアップロード（メモリ上のbytesをそのままPUT）"""
-        try:
-            self.s3_client.put_object(
-                Bucket=self.bucket_name,
-                Key=file_path,
-                Body=file_content,
-                ContentType=content_type,
-            )
-            return True
-        except ClientError as e:
-            logger.error(f"S3 upload error: {e}")
-            raise S3UploadError(f"ファイルのアップロードに失敗しました: {e}")
-
     def get_file_url(self, file_path: str) -> str:
-        """S3ファイルのHTTPS URLを取得"""
+        """
+        S3ファイルのHTTPS URLを取得
+
+        パブリックアクセス可能なHTTPS URLを生成する。
+        Presigned URLとは異なり、有効期限の制限はない。
+
+        Args:
+            file_path: S3キー
+
+        Returns:
+            str: HTTPS URL
+        """
         return f"https://{self.bucket_name}.s3.amazonaws.com/{file_path}"
 
     def generate_presigned_upload_url(
@@ -69,7 +76,23 @@ class S3Service:
         content_type: str = "application/octet-stream",
         expiration: int = 3600,
     ) -> Optional[str]:
-        """署名付きアップロードURL（PUT）を生成"""
+        """
+        署名付きアップロードURL（PUT）を生成
+
+        クライアントがS3に直接アップロードするための署名付きURLを生成する。
+        サーバーを経由せずにファイルをアップロードできるため、パフォーマンスが向上する。
+
+        Args:
+            file_path: S3キー
+            content_type: コンテンツタイプ
+            expiration: 有効期限（秒）
+
+        Returns:
+            Optional[str]: Presigned URL、またはNone
+
+        Raises:
+            S3PresignedUrlError: URL生成に失敗した場合
+        """
         try:
             return self.s3_client.generate_presigned_url(
                 "put_object",
@@ -89,7 +112,22 @@ class S3Service:
     def generate_presigned_download_url(
         self, file_path: str, expiration: int = 3600
     ) -> Optional[str]:
-        """署名付きダウンロードURL（GET）を生成"""
+        """
+        署名付きダウンロードURL（GET）を生成
+
+        クライアントがS3から直接ダウンロードするための署名付きURLを生成する。
+        一時的なアクセス権限により、セキュリティを保ちながらファイル共有を実現する。
+
+        Args:
+            file_path: S3キー
+            expiration: 有効期限（秒）
+
+        Returns:
+            Optional[str]: Presigned URL、またはNone
+
+        Raises:
+            S3PresignedUrlError: URL生成に失敗した場合
+        """
         try:
             return self.s3_client.generate_presigned_url(
                 "get_object",
@@ -102,57 +140,32 @@ class S3Service:
                 f"署名付きダウンロードURLの生成に失敗しました: {e}"
             )
 
-    def download_file(
-        self,
-        s3_key: Optional[str] = None,
-        local_file_path: Optional[str] = None,
-        *,
-        file_path: Optional[str] = None,
-        bucket_name: Optional[str] = None,
-    ) -> str:
+    def delete_object(self, s3_key: str, bucket_name: Optional[str] = None) -> bool:
         """
-        S3のオブジェクトをローカルファイルに保存する。
-        - voice.py の呼び出しに合わせて `s3_key`, `local_file_path`, `bucket_name` を受け付けます。
-        - `file_path` は `s3_key` の別名（どちらか一方を指定）。
-        戻り値: 保存先ローカルパス
-        """
-        key = s3_key or file_path
-        bucket = bucket_name or self.bucket_name
+        S3オブジェクトを削除
 
-        if not key:
-            raise S3DownloadError("S3 key が指定されていません")
-        if not bucket:
-            raise S3DownloadError("S3 バケット名が設定されていません")
-        if not local_file_path:
-            raise S3DownloadError("保存先 local_file_path が指定されていません")
+        指定されたS3キーのオブジェクトを削除する。
+        バケット名が指定されていない場合は、デフォルトバケットを使用する。
 
-        # 保存先ディレクトリを作成
-        directory = os.path.dirname(local_file_path)
-        if directory:
-            os.makedirs(directory, exist_ok=True)
+        Args:
+            s3_key: S3キー
+            bucket_name: バケット名（オプション）
 
-        try:
-            self.s3_client.download_file(bucket, key, local_file_path)
-            return local_file_path
-        except ClientError as e:
-            logger.error(f"S3 download error (key={key}): {e}")
-            raise S3DownloadError(f"ファイルのダウンロードに失敗しました: {e}")
+        Returns:
+            bool: 削除結果（True: 成功、False: 失敗）
 
-    def download_bytes(
-        self,
-        s3_key: str,
-        bucket_name: Optional[str] = None,
-    ) -> bytes:
-        """
-        S3のオブジェクトを bytes で取得（メモリ上に展開）
-        - 一時ファイルを作りたくない簡易確認/テスト向け
+        Raises:
+            S3DownloadError: バケット名が設定されていない場合
+            S3DeleteError: 削除に失敗した場合
         """
         bucket = bucket_name or self.bucket_name
         if not bucket:
             raise S3DownloadError("S3 バケット名が設定されていません")
+
         try:
-            res = self.s3_client.get_object(Bucket=bucket, Key=s3_key)
-            return res["Body"].read()
+            self.s3_client.delete_object(Bucket=bucket, Key=s3_key)
+            logger.info(f"S3オブジェクト削除完了: {s3_key}")
+            return True
         except ClientError as e:
-            logger.error(f"S3 get_object error (key={s3_key}): {e}")
-            raise S3DownloadError(f"オブジェクト取得に失敗しました: {e}")
+            logger.error(f"S3 delete_object error (key={s3_key}): {e}")
+            raise S3DeleteError(f"オブジェクト削除に失敗しました: {e}")
