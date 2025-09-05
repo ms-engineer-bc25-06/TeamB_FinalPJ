@@ -1,10 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
-import { colors, spacing, borderRadius, fontSize } from '@/styles/theme';
 import { useAuth } from '@/contexts/AuthContext';
 import { useTodayEntry } from '@/hooks/useTodayEntry';
-import { getEmotionLogsByMonth, getEmotionCards, getIntensities } from '@/lib/api';
+import {
+  getEmotionCards,
+  getEmotionLogsByMonth,
+  getIntensities,
+} from '@/lib/api';
+import { borderRadius, colors, fontSize, spacing } from '@/styles/theme';
+import { useEffect, useState } from 'react';
 
 interface DailyReportProps {
   onClose: () => void;
@@ -39,23 +43,23 @@ interface Intensity {
 export default function DailyReport({ onClose }: DailyReportProps) {
   const { user, firebaseUser } = useAuth();
   const { todayEntry, isLoading: isTodayEntryLoading } = useTodayEntry();
-  
+
   // JST時刻で初期化
   const [selectedDate, setSelectedDate] = useState<string>(() => {
     const now = new Date();
     const jstOffset = 9 * 60; // JSTはUTC+9
-    const jstTime = new Date(now.getTime() + (jstOffset * 60 * 1000));
+    const jstTime = new Date(now.getTime() + jstOffset * 60 * 1000);
     return jstTime.toISOString().split('T')[0];
   });
-  
+
   // JST時刻で初期化
   const [currentMonth, setCurrentMonth] = useState(() => {
     const now = new Date();
     const jstOffset = 9 * 60;
-    const jstTime = new Date(now.getTime() + (jstOffset * 60 * 1000));
+    const jstTime = new Date(now.getTime() + jstOffset * 60 * 1000);
     return jstTime;
   });
-  
+
   const [emotionLogs, setEmotionLogs] = useState<EmotionLogData[]>([]);
   const [emotionCards, setEmotionCards] = useState<EmotionCard[]>([]);
   const [intensities, setIntensities] = useState<Intensity[]>([]);
@@ -63,32 +67,15 @@ export default function DailyReport({ onClose }: DailyReportProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [audio, setAudio] = useState<HTMLAudioElement | null>(null);
 
-  // ファイル名マッピング
-  const EMOTION_NAME_TO_FILENAME: { [key: string]: string } = {
-    'うれしい': 'ureshii',
-    'かなしい': 'kanashii',
-    'こわい': 'kowai',
-    'おこり': 'ikari',
-    'びっくり': 'bikkuri',
-    'しんぱい': 'kinchou',
-    'はずかしい': 'hazukashii',
-    'こまった': 'komatta',
-    'わからない': 'wakaranai',
-    'あんしん': 'anshin',
-    'きんちょう': 'kinchou',
-    'ふゆかい': 'fuyukai',
-    'ゆかい': 'yukai'
-  };
-
   // 今日の記録の自動選択
   useEffect(() => {
     if (todayEntry) {
       // 今日の日付をJSTで取得
       const now = new Date();
       const jstOffset = 9 * 60;
-      const jstTime = new Date(now.getTime() + (jstOffset * 60 * 1000));
+      const jstTime = new Date(now.getTime() + jstOffset * 60 * 1000);
       const today = jstTime.toISOString().split('T')[0];
-      
+
       setSelectedDate(today);
       setCurrentMonth(jstTime);
       console.log('[DailyReport] 今日の記録を自動選択:', today, todayEntry);
@@ -101,7 +88,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
       todayEntry,
       selectedDate,
       currentMonth: currentMonth.toISOString().split('T')[0],
-      emotionLogsCount: emotionLogs.length
+      emotionLogsCount: emotionLogs.length,
     });
   }, [todayEntry, selectedDate, currentMonth, emotionLogs]);
 
@@ -109,51 +96,53 @@ export default function DailyReport({ onClose }: DailyReportProps) {
   useEffect(() => {
     const fetchData = async () => {
       if (!firebaseUser) return;
-      
+
       try {
         setIsLoading(true);
         const year = currentMonth.getFullYear();
         const month = currentMonth.getMonth() + 1;
-        
+
         const [logs, cardsData, intensitiesData] = await Promise.all([
           getEmotionLogsByMonth(firebaseUser, year, month),
           getEmotionCards(firebaseUser),
-          getIntensities(firebaseUser)
+          getIntensities(firebaseUser),
         ]);
-        
+
         setEmotionCards(cardsData.cards || []);
         setIntensities(intensitiesData.intensities || []);
-        
+
         // 感情ログデータを変換
-        const transformedLogs: EmotionLogData[] = logs.map((log: {
-          id: string;
-          created_at: string;
-          voice_note?: string;
-          audio_file_path?: string;
-          emotion_card?: {
-            label: string;
-            color: string;
-            image_url: string;
-          };
-          intensity_id?: number;
-        }) => {
-          // JST変換を適用
-          const utcDate = new Date(log.created_at);
-          const jstOffset = 9 * 60; // JSTはUTC+9
-          const jstDate = new Date(utcDate.getTime() + (jstOffset * 60 * 1000));
-          const jstDateStr = jstDate.toISOString().split('T')[0];
-          
-          return {
-            id: log.id,
-            date: jstDateStr,
-            content: log.voice_note || '音声メモがありません',
-            mood: getEmotionMood(log.emotion_card?.label),
-            audio_file_path: log.audio_file_path,
-            emotion_card: log.emotion_card,
-            intensity_id: log.intensity_id
-          };
-        });
-        
+        const transformedLogs: EmotionLogData[] = logs.map(
+          (log: {
+            id: string;
+            created_at: string;
+            voice_note?: string;
+            audio_file_path?: string;
+            emotion_card?: {
+              label: string;
+              color: string;
+              image_url: string;
+            };
+            intensity_id?: number;
+          }) => {
+            // JST変換を適用
+            const utcDate = new Date(log.created_at);
+            const jstOffset = 9 * 60; // JSTはUTC+9
+            const jstDate = new Date(utcDate.getTime() + jstOffset * 60 * 1000);
+            const jstDateStr = jstDate.toISOString().split('T')[0];
+
+            return {
+              id: log.id,
+              date: jstDateStr,
+              content: log.voice_note || '音声メモがありません',
+              mood: getEmotionMood(log.emotion_card?.label),
+              audio_file_path: log.audio_file_path,
+              emotion_card: log.emotion_card,
+              intensity_id: log.intensity_id,
+            };
+          },
+        );
+
         setEmotionLogs(transformedLogs);
       } catch (error) {
         console.error('Failed to fetch data:', error);
@@ -174,30 +163,20 @@ export default function DailyReport({ onClose }: DailyReportProps) {
     return emotionCard.image_url;
   };
 
-  // 強度に応じた感情画像URLを生成
-  const getIntensityBasedImageUrl = (emotionCard?: { label: string }, intensityId?: number): string => {
-    if (!emotionCard?.label) return '';
-    
-    const baseName = EMOTION_NAME_TO_FILENAME[emotionCard.label] || 'ureshii';
-    let fileName = baseName;
-    
-    // 強度に応じてファイル名を変更
-    if (intensityId === 1) {
-      fileName = `${baseName}1`; 
-    } else if (intensityId === 3) {
-      fileName = `${baseName}3`; 
-    }
-    
-    return `/images/emotions/${fileName}.webp`;
-  };
-
-  // 感情と強度を組み合わせた画像表示
-  const renderEmotionWithIntensity = (emotionCard?: { image_url: string; label: string }, intensityId?: number) => {
+  // 感情カード画像表示（WeeklyReportと同様に元のimage_urlを使用）
+  const renderEmotionCard = (
+    emotionCard?: { image_url: string; label: string },
+    intensityId?: number,
+  ) => {
     if (!emotionCard?.label) return null;
-    
-    // 強度に応じた画像URLを生成
-    const intensityImageUrl = getIntensityBasedImageUrl(emotionCard, intensityId);
-    
+
+    // デバッグログ
+    console.log('[DailyReport] 感情カード情報:', {
+      label: emotionCard.label,
+      intensityId,
+      originalImageUrl: emotionCard.image_url,
+    });
+
     return (
       <div
         style={{
@@ -210,22 +189,14 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         }}
       >
         <img
-          src={intensityImageUrl}
-          alt={`${emotionCard.label}の感情カード（強度${intensityId}）`}
+          src={emotionCard.image_url}
+          alt={`${emotionCard.label}の感情カード`}
           style={{
             width: '100%',
             height: '100%',
             objectFit: 'cover',
             borderRadius: borderRadius.small,
             backgroundColor: colors.background.white,
-          }}
-          onError={(e) => {
-            try {
-              // エラー時は元の画像URLを使用
-              (e.currentTarget as HTMLImageElement).src = emotionCard.image_url;
-            } catch (_) {
-              // no-op
-            }
           }}
         />
       </div>
@@ -235,23 +206,23 @@ export default function DailyReport({ onClose }: DailyReportProps) {
   // 感情ラベルから絵文字を取得（フォールバック用）
   const getEmotionMood = (label?: string): string => {
     if (!label) return '😐';
-    
+
     const moodMap: { [key: string]: string } = {
-      'うれしい': '😊',
-      'かなしい': '😭',
-      'こわい': '😨',
-      'おこり': '😡',
-      'びっくり': '😲',
-      'しんぱい': '😰',
-      'はずかしい': '😳',
-      'こまった': '😅',
-      'わからない': '🤔',
-      'あんしん': '😌',
-      'きんちょう': '😰',
-      'ふゆかい': '😞',
-      'ゆかい': '😄'
+      うれしい: '😊',
+      かなしい: '😭',
+      こわい: '😨',
+      おこり: '😡',
+      びっくり: '😲',
+      しんぱい: '😰',
+      はずかしい: '😳',
+      こまった: '😅',
+      わからない: '🤔',
+      あんしん: '😌',
+      きんちょう: '😰',
+      ふゆかい: '😞',
+      ゆかい: '😄',
     };
-    
+
     return moodMap[label] || '😐';
   };
 
@@ -315,23 +286,28 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         console.error('user.idが存在しません');
         return null;
       }
-      
-      console.log('[DEBUG] API呼び出し:', `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/voice/records/${user.id}`);
-      
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/voice/records/${user.id}`);
-      
+
+      console.log(
+        '[DEBUG] API呼び出し:',
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/voice/records/${user.id}`,
+      );
+
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/voice/records/${user.id}`,
+      );
+
       if (!response.ok) {
         console.error('API呼び出し失敗:', response.status, response.statusText);
         return null;
       }
-      
+
       const data = await response.json();
       console.log('[DEBUG] API応答:', data);
-      
+
       // 該当する音声ファイルのダウンロードURLを探す
       const record = data.records.find((r: any) => r.audio_path === audioPath);
       console.log('[DEBUG] 該当レコード:', record);
-      
+
       return record?.audio_download_url || null;
     } catch (error) {
       console.error('音声ファイルURLの取得に失敗:', error);
@@ -351,14 +327,14 @@ export default function DailyReport({ onClose }: DailyReportProps) {
       try {
         // ダウンロードURLを取得
         const downloadUrl = await getAudioDownloadUrl(audioPath);
-        
+
         if (!downloadUrl) {
           console.error('音声ファイルのダウンロードURLが取得できません');
           return;
         }
-        
+
         console.log('[AUDIO] 再生開始:', downloadUrl);
-        
+
         const newAudio = new Audio(downloadUrl);
         newAudio.addEventListener('ended', () => {
           setIsPlaying(false);
@@ -371,7 +347,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
           setIsPlaying(false);
           setAudio(null);
         });
-        
+
         await newAudio.play();
         setIsPlaying(true);
         setAudio(newAudio);
@@ -380,17 +356,20 @@ export default function DailyReport({ onClose }: DailyReportProps) {
         setIsPlaying(false);
         setAudio(null);
       }
-   }
+    }
   };
 
   // 選択された日付の枠線色を生成
-  const getEmotionBorderColor = (emotionCard?: { label: string; color: string }, intensityId?: number): string => {
+  const getEmotionBorderColor = (
+    emotionCard?: { label: string; color: string },
+    intensityId?: number,
+  ): string => {
     if (!emotionCard?.color) return '#cccccc';
-    
+
     // 強度IDからcolor_modifierを取得
-    const intensity = intensities.find(i => i.id === intensityId);
+    const intensity = intensities.find((i) => i.id === intensityId);
     const colorModifier = intensity?.color_modifier || 1.0;
-    
+
     // HEXカラーをRGBAに変換（colorModifierを透明度として使用）
     const hexToRgba = (hex: string, alpha: number): string => {
       const r = parseInt(hex.slice(1, 3), 16);
@@ -398,7 +377,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
       const b = parseInt(hex.slice(5, 7), 16);
       return `rgba(${r}, ${g}, ${b}, ${alpha})`;
     };
-    
+
     return hexToRgba(emotionCard.color, colorModifier);
   };
 
@@ -458,7 +437,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
           position: 'relative',
           border: `3px solid #cccccc`,
           width: '500px',
-          height: '800px', 
+          height: '800px',
         }}
       >
         {/* 閉じるボタン */}
@@ -629,9 +608,9 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                   }}
                   style={{
                     width: '40px',
-                    height: '60px', 
+                    height: '60px',
                     borderRadius: borderRadius.small,
-                    backgroundColor: colors.background.white, 
+                    backgroundColor: colors.background.white,
                     color: isCurrentMonth
                       ? colors.text.primary
                       : colors.text.secondary,
@@ -640,10 +619,12 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
-                    justifyContent: 'space-between', 
+                    justifyContent: 'space-between',
                     position: 'relative',
-                    border: isSelected ? `2px solid ${getEmotionBorderColor(report?.emotion_card, report?.intensity_id)}` : 'none',
-                    padding: '4px 0', 
+                    border: isSelected
+                      ? `2px solid ${getEmotionBorderColor(report?.emotion_card, report?.intensity_id)}`
+                      : 'none',
+                    padding: '4px 0',
                   }}
                 >
                   <span style={{ marginTop: '2px' }}>{date.getDate()}</span>
@@ -652,10 +633,13 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                       style={{
                         width: '20px',
                         height: '20px',
-                        marginBottom: '2px', 
+                        marginBottom: '2px',
                       }}
                     >
-                      {renderEmotionWithIntensity(report.emotion_card, report.intensity_id)}
+                      {renderEmotionCard(
+                        report.emotion_card,
+                        report.intensity_id,
+                      )}
                     </div>
                   )}
                 </button>
@@ -670,14 +654,14 @@ export default function DailyReport({ onClose }: DailyReportProps) {
             border: `3px solid #cccccc`,
             borderRadius: borderRadius.medium,
             padding: spacing.md,
-            backgroundColor: colors.background.white, 
-            height: '180px', 
+            backgroundColor: colors.background.white,
+            height: '180px',
             overflow: 'auto',
             position: 'relative',
           }}
         >
           {selectedReport ? (
-            <div>              
+            <div>
               <div
                 style={{
                   fontSize: fontSize.large,
@@ -689,7 +673,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
               >
                 {selectedReport.content}
               </div>
-              
+
               {/* 音声再生ボタン */}
               {selectedReport.audio_file_path && (
                 <div
@@ -703,7 +687,9 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                   }}
                 >
                   <button
-                    onClick={() => handleAudioPlay(selectedReport.audio_file_path!)}
+                    onClick={() =>
+                      handleAudioPlay(selectedReport.audio_file_path!)
+                    }
                     style={{
                       background: isPlaying ? '#e74c3c' : colors.primary,
                       color: colors.background.white,
@@ -721,7 +707,7 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                   </button>
                 </div>
               )}
-              
+
               {/* 感情カード画像を右下に表示 */}
               {selectedReport.emotion_card?.image_url && (
                 <div
@@ -737,7 +723,10 @@ export default function DailyReport({ onClose }: DailyReportProps) {
                     backgroundColor: colors.background.white,
                   }}
                 >
-                  {renderEmotionWithIntensity(selectedReport.emotion_card, selectedReport.intensity_id)}
+                  {renderEmotionCard(
+                    selectedReport.emotion_card,
+                    selectedReport.intensity_id,
+                  )}
                 </div>
               )}
             </div>
