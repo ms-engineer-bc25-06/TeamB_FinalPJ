@@ -15,7 +15,6 @@ import whisper
 import boto3
 from app.utils.child_vocabulary import (
     generate_whisper_prompt,
-    generate_situation_prompt,
 )
 from app.utils.constants import SUPPORTED_LANGUAGES
 
