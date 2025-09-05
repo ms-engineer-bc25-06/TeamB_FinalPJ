@@ -332,6 +332,33 @@ jobs:
         run: npx playwright install --with-deps
         if: steps.playwright-cache.outputs.cache-hit != 'true'
 
+      - name: Install Firebase CLI
+        run: npm install -g firebase-tools
+
+      - name: Start Firebase Auth Emulator
+        run: |
+          # 利用可能なポートを動的に取得
+          FIREBASE_PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
+          echo "FIREBASE_PORT=$FIREBASE_PORT" >> $GITHUB_ENV
+
+          # Firebase Emulatorを起動
+          firebase emulators:start --only auth --project demo-test --port $FIREBASE_PORT &
+          echo $! > firebase.pid
+
+          # エミュレーターの起動を待つ
+          for i in {1..30}; do
+            if curl -f http://localhost:$FIREBASE_PORT; then
+              echo "✅ Firebase Auth Emulator is ready on port $FIREBASE_PORT"
+              break
+            fi
+            echo "⏳ Waiting for Firebase Auth Emulator... ($i/30)"
+            sleep 2
+            if [ $i -eq 30 ]; then
+              echo "❌ Firebase Auth Emulator failed to start"
+              exit 1
+            fi
+          done
+
       - name: Clean up existing processes
         run: |
           echo "🧹 既存プロセスを停止中..."
@@ -347,6 +374,7 @@ jobs:
           PLAYWRIGHT_BASE_URL: http://localhost:3000
           PLAYWRIGHT_WEB_PORT: 3000
           NEXT_PUBLIC_API_BASE_URL: http://localhost:8000
+          FIREBASE_AUTH_EMULATOR_HOST: localhost:${{ env.FIREBASE_PORT }}
           E2E_TEST_USER_EMAIL: ${{ secrets.E2E_TEST_USER_EMAIL }}
           E2E_TEST_USER_PASSWORD: ${{ secrets.E2E_TEST_USER_PASSWORD }}
         run: |
@@ -378,9 +406,13 @@ jobs:
           if [ -f frontend/frontend.pid ]; then
             kill $(cat frontend/frontend.pid) 2>/dev/null || echo "Frontend process already stopped"
           fi
+          if [ -f firebase.pid ]; then
+            kill $(cat firebase.pid) 2>/dev/null || echo "Firebase Emulator process already stopped"
+          fi
           # 追加の確実な停止
           pkill -f "uvicorn app.main:app" 2>/dev/null || true
           pkill -f "next start" 2>/dev/null || true
+          pkill -f "firebase emulators" 2>/dev/null || true
           echo "✅ Cleanup completed"
 
       - name: Upload E2E failure logs
