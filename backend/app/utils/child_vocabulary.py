@@ -11,7 +11,7 @@
 - 子どもの発音特徴への対応
 """
 
-from typing import List, Dict, Optional
+from typing import List
 from dataclasses import dataclass
 from enum import Enum
 
@@ -72,6 +72,9 @@ HIGH_PRIORITY_VOCABULARY = VocabularyCategory(
         "ありがとう",
         "ごめん",
         "ダメ",
+        "プールに行く",
+        "プールに行くよ",
+        "プールに行きたい",
     ],
     priority=PromptPriority.HIGH,
     description="日常的な活動と基本的なコミュニケーション",
@@ -93,6 +96,10 @@ MEDIUM_PRIORITY_VOCABULARY = VocabularyCategory(
         "怖い",
         "痛い",
         "大丈夫",
+        "プール",
+        "水泳",
+        "泳ぐ",
+        "水",
     ],
     priority=PromptPriority.MEDIUM,
     description="遊びや状況に応じた語彙",
@@ -152,6 +159,7 @@ def generate_whisper_prompt(optimization_level: str = "balanced") -> str:
 
     return (
         f"{prompt_emphasis} 子どもの音声認識最適化プロンプト\n\n"
+        "【文脈】今日は楽しい一日でした。ママと一緒に過ごして、プールに行って遊びました。\n\n"
         "【最重要】感情表現の正確な認識\n"
         "・「楽しい」「悲しい」「怒る」「嬉しい」を確実に区別\n"
         "・「ママ」「パパ」の呼び方を正確に認識\n"
@@ -161,12 +169,15 @@ def generate_whisper_prompt(optimization_level: str = "balanced") -> str:
         "・「食べる」「飲む」「寝る」などの基本動作\n"
         "・「一緒に」「一人で」などの状況表現\n"
         "・「ありがとう」「ごめん」などの挨拶\n"
+        "・「プールに行く」「プールに行くよ」などの活動表現\n"
         f"\n【優先語彙】{vocabulary_text}\n\n"
         "【処理指示】\n"
         "・感情表現を最優先で認識\n"
-        "・子どもの発音の特徴を考慮\n"
+        "・子どもの発音の特徴を考慮（「プール」は「プール」と認識）\n"
         "・文脈から意味を推測\n"
-        "【出力形式】\n"
+        "・活動表現（「〜に行く」「〜に行くよ」）を正確に認識\n"
+        "\n【出力形式】\n"
         "・自然な日本語として出力\n"
-        "・感情のニュアンスを保持"
+        "・感情のニュアンスを保持\n"
+        "・子どもの話し方の特徴を反映"
     )
