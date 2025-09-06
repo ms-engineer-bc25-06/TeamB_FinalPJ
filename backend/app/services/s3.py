@@ -104,10 +104,10 @@ class S3Service:
                 ExpiresIn=expiration,
             )
         except ClientError as e:
-            logger.error(f"Presigned upload URL error: {e}")
+            logger.error("Presigned upload URL error: %s", e)
             raise S3PresignedUrlError(
                 f"署名付きアップロードURLの生成に失敗しました: {e}"
-            )
+            ) from e
 
     def generate_presigned_download_url(
         self, file_path: str, expiration: int = 3600
@@ -135,10 +135,10 @@ class S3Service:
                 ExpiresIn=expiration,
             )
         except ClientError as e:
-            logger.error(f"Presigned download URL error: {e}")
+            logger.error("Presigned download URL error: %s", e)
             raise S3PresignedUrlError(
                 f"署名付きダウンロードURLの生成に失敗しました: {e}"
-            )
+            ) from e
 
     def delete_object(self, s3_key: str, bucket_name: Optional[str] = None) -> bool:
         """
@@ -164,8 +164,8 @@ class S3Service:
 
         try:
             self.s3_client.delete_object(Bucket=bucket, Key=s3_key)
-            logger.info(f"S3オブジェクト削除完了: {s3_key}")
+            logger.info("S3オブジェクト削除完了: %s", s3_key)
             return True
         except ClientError as e:
-            logger.error(f"S3 delete_object error (key={s3_key}): {e}")
-            raise S3DeleteError(f"オブジェクト削除に失敗しました: {e}")
+            logger.error("S3 delete_object error (key=%s): %s", s3_key, e)
+            raise S3DeleteError(f"オブジェクト削除に失敗しました: {e}") from e
