@@ -12,7 +12,8 @@ dotenv.config({ path: "frontend/.env.e2e.local" });
 test.describe("Firebase Auth Emulator連携テスト", () => {
   let googleAuth: GoogleAuthHelper;
   let authHelper: AuthTestHelper;
-  const baseUrl = "http://localhost:9099";
+  const baseUrl =
+    process.env.FIREBASE_AUTH_EMULATOR_HOST || "http://localhost:9099";
   const apiKey = "fake-api-key";
 
   test.beforeEach(async ({ page }) => {

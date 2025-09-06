@@ -652,6 +652,36 @@ docker exec teamb_backend pytest tests/test_example.py
 npm run test:e2e
 ```
 
+上記に加えて、E2Eテストを実行する際は、Firebase Auth Emulatorを起動する必要があります。
+
+### Firebase Auth Emulator の起動について
+
+#### **1. Firebase CLI のインストール**
+```bash
+npm install -g firebase-tools
+```
+
+#### **2. Firebase プロジェクトの初期化**
+```bash
+# プロジェクトルートで実行
+npx firebase-tools init
+```
+
+#### **3. Firebase Auth Emulator の起動**
+```bash
+# プロジェクトルートで実行
+npx firebase-tools emulators:start --only auth
+```
+
+#### **4. E2Eテストの実行**
+```bash
+# フロントエンドディレクトリで実行
+cd frontend
+npm run test:e2e:auth
+```
+
+**注意**: テスト実行前に必ずFirebase Auth Emulatorを起動してください。
+
 ## テスト実行環境
 
 ### **⚠️ Docker環境ならではの注意事項と対策**
