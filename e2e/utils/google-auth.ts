@@ -145,6 +145,17 @@ export class GoogleAuthHelper {
 
         // グローバルにFirebase認証状態を設定
         (window as any).__MOCK_FIREBASE_USER__ = mockUser;
+
+        // バックエンドユーザーのモック（AuthContextのuser状態）
+        (window as any).__MOCK_BACKEND_USER__ = {
+          id: 1,
+          uid: "mock-user-123",
+          email: "test@example.com",
+          nickname: "Test User",
+          email_verified: true,
+          created_at: new Date().toISOString(),
+          updated_at: new Date().toISOString()
+        };
       }
     });
   }
@@ -156,11 +167,19 @@ export class GoogleAuthHelper {
     await this.page.evaluate(() => {
       // Firebase Authの状態をMock
       if (typeof window !== "undefined" && (window as any).firebase) {
-        (window as any).firebase.auth().onAuthStateChanged = (
-          callback: any
-        ) => {
+        const auth = (window as any).firebase.auth();
+        
+        // currentUserをnullに設定
+        auth.currentUser = null;
+        
+        // onAuthStateChangedのコールバックをnullに設定
+        auth.onAuthStateChanged = (callback: any) => {
           callback(null);
         };
+        
+        // グローバルなFirebase認証状態をクリア
+        (window as any).__MOCK_FIREBASE_USER__ = null;
+        (window as any).__MOCK_BACKEND_USER__ = null;
       }
     });
   }
