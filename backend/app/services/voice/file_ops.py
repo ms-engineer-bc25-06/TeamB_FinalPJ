@@ -6,7 +6,7 @@ S3パス構築、ファイルアップロード、メタデータ管理を行う
 import logging
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any
+from typing import Optional
 
 from app.services.s3 import S3Service, S3DeleteError, S3PresignedUrlError
 from app.utils.constants import (
@@ -41,7 +41,9 @@ class VoiceFileService:
             raise_voice_error("S3_CONFIG_ERROR")
 
         logger.info(
-            f"VoiceFileService初期化完了: bucket={self.bucket_name}, folder={self.upload_folder}"
+            "VoiceFileService初期化完了: bucket=%s, folder=%s",
+            self.bucket_name,
+            self.upload_folder,
         )
 
     def _calculate_expiry(self, s3_key: str) -> int:
@@ -85,11 +87,11 @@ class VoiceFileService:
             current_date = datetime.now().strftime("%Y/%m/%d")
             s3_key = f"{self.upload_folder}/{file_type}/{user_id}/{current_date}/{unique_id}_{file_name}"
 
-            logger.info(f"S3キー生成完了: {s3_key}")
+            logger.info("S3キー生成完了: %s", s3_key)
             return s3_key
 
-        except Exception as e:
-            logger.error(f"S3キー生成エラー: {e}")
+        except (ValueError, RuntimeError, OSError) as e:
+            logger.error("S3キー生成エラー: %s", e)
             raise_voice_error("S3_KEY_GENERATION_ERROR")
 
     def generate_download_url(self, s3_key: str, expiry: Optional[int] = None) -> str:
@@ -107,7 +109,7 @@ class VoiceFileService:
             str: Presigned URL（一時的なダウンロード用URL）
         """
         try:
-            logger.info(f"ダウンロードURL生成開始: {s3_key}")
+            logger.info("ダウンロードURL生成開始: %s", s3_key)
 
             if expiry is None:
                 expiry = self._calculate_expiry(s3_key)
@@ -116,15 +118,71 @@ class VoiceFileService:
                 file_path=s3_key, expiration=expiry
             )
 
-            logger.info(f"ダウンロードURL生成完了: {s3_key}, expiry={expiry}s")
+            logger.info("ダウンロードURL生成完了: %s, expiry=%ss", s3_key, expiry)
             return download_url
 
         except S3PresignedUrlError as e:
-            logger.error(f"Presigned URL生成エラー: {e}")
+            logger.error("Presigned URL生成エラー: %s", e)
             raise_voice_error("DOWNLOAD_URL_GENERATION_ERROR")
-        except Exception as e:
-            logger.error(f"予期しないエラー: {e}")
+        except (ValueError, RuntimeError, OSError) as e:
+            logger.error("予期しないエラー: %s", e)
             raise_voice_error("UNEXPECTED_ERROR")
+
+    def generate_presigned_upload_url(self, s3_key: str, content_type: str) -> str:
+        """
+        アップロード用のPresigned URLを生成
+
+        S3Serviceのgenerate_presigned_upload_urlをラップし、
+        エラーハンドリングを提供する。
+
+        Args:
+            s3_key: S3キー
+            content_type: コンテンツタイプ
+
+        Returns:
+            str: Presigned URL（一時的なアップロード用URL）
+        """
+        try:
+            logger.info("アップロードURL生成開始: %s", s3_key)
+
+            upload_url = self.s3_service.generate_presigned_upload_url(
+                file_path=s3_key, content_type=content_type
+            )
+
+            logger.info("アップロードURL生成完了: %s", s3_key)
+            return upload_url
+
+        except S3PresignedUrlError as e:
+            logger.error("Presigned URL生成エラー: %s", e)
+            raise_voice_error("UPLOAD_URL_GENERATION_FAILED")
+        except (ValueError, RuntimeError, OSError) as e:
+            logger.error("予期しないエラー: %s", e)
+            raise_voice_error("UNEXPECTED_ERROR")
+
+    def get_file_url(self, s3_key: str) -> str:
+        """
+        S3ファイルのHTTPS URLを取得
+
+        S3Serviceのget_file_urlをラップし、
+        エラーハンドリングを提供する。
+
+        Args:
+            s3_key: S3キー
+
+        Returns:
+            str: HTTPS URL
+        """
+        try:
+            logger.info("ファイルURL生成開始: %s", s3_key)
+
+            file_url = self.s3_service.get_file_url(s3_key)
+
+            logger.info("ファイルURL生成完了: %s", s3_key)
+            return file_url
+
+        except (ValueError, RuntimeError, OSError) as e:
+            logger.error("ファイルURL生成エラー: %s", e)
+            raise_voice_error("FILE_URL_GENERATION_ERROR")
 
     def delete_object(self, s3_key: str) -> bool:
         """
@@ -140,18 +198,18 @@ class VoiceFileService:
             bool: 削除結果（True: 成功、False: 失敗）
         """
         try:
-            logger.info(f"S3オブジェクト削除開始: {s3_key}")
+            logger.info("S3オブジェクト削除開始: %s", s3_key)
 
             self.s3_service.delete_object(s3_key)
 
-            logger.info(f"S3オブジェクト削除完了: {s3_key}")
+            logger.info("S3オブジェクト削除完了: %s", s3_key)
             return True
 
         except S3DeleteError as e:
-            logger.warning(f"S3オブジェクト削除失敗: key={s3_key}, エラー: {e}")
+            logger.warning("S3オブジェクト削除失敗: key=%s, エラー: %s", s3_key, e)
             return False
-        except Exception as e:
-            logger.error(f"予期しないエラー: key={s3_key}, エラー: {e}")
+        except (ValueError, RuntimeError, OSError) as e:
+            logger.error("予期しないエラー: key=%s, エラー: %s", s3_key, e)
             raise_voice_error("UNEXPECTED_ERROR")
 
     def _extract_file_type(self, s3_key: str) -> str:
@@ -173,5 +231,6 @@ class VoiceFileService:
             if len(parts) >= 3:
                 return parts[1]  # file_type部分
             return "unknown"
-        except Exception:
+        except (ValueError, IndexError) as e:
+            logger.warning("ファイルタイプ抽出エラー: %s", e)
             return "unknown"
