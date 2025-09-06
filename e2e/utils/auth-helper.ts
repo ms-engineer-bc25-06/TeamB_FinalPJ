@@ -1,5 +1,5 @@
-import { Page, expect } from '@playwright/test';
-import { GoogleAuthHelper } from './google-auth';
+import { Page, expect } from "@playwright/test";
+import { GoogleAuthHelper } from "./google-auth";
 
 export class AuthTestHelper {
   /**

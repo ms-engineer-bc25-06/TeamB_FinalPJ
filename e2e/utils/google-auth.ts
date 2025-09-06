@@ -154,7 +154,7 @@ export class GoogleAuthHelper {
           nickname: "Test User",
           email_verified: true,
           created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          updated_at: new Date().toISOString(),
         };
       }
     });
@@ -168,15 +168,15 @@ export class GoogleAuthHelper {
       // Firebase Authの状態をMock
       if (typeof window !== "undefined" && (window as any).firebase) {
         const auth = (window as any).firebase.auth();
-        
+
         // currentUserをnullに設定
         auth.currentUser = null;
-        
+
         // onAuthStateChangedのコールバックをnullに設定
         auth.onAuthStateChanged = (callback: any) => {
           callback(null);
         };
-        
+
         // グローバルなFirebase認証状態をクリア
         (window as any).__MOCK_FIREBASE_USER__ = null;
         (window as any).__MOCK_BACKEND_USER__ = null;
@@ -216,15 +216,17 @@ export class GoogleAuthHelper {
 
     if (response.status() !== 200) {
       const errorText = await response.text();
-      console.log(`User creation failed with status ${response.status()}: ${errorText}`);
+      console.log(
+        `User creation failed with status ${response.status()}: ${errorText}`
+      );
       // ユーザーが既に存在する場合は続行
-      if (response.status() === 400 && errorText.includes('EMAIL_EXISTS')) {
+      if (response.status() === 400 && errorText.includes("EMAIL_EXISTS")) {
         console.log(`User ${email} already exists, continuing...`);
         return { success: true, email };
       }
       throw new Error(`User creation failed: ${response.status()}`);
     }
-    
+
     const result = await response.json();
     return { success: true, ...result };
   }
@@ -246,10 +248,12 @@ export class GoogleAuthHelper {
 
     if (response.status() !== 200) {
       const errorText = await response.text();
-      console.log(`Login failed with status ${response.status()}: ${errorText}`);
+      console.log(
+        `Login failed with status ${response.status()}: ${errorText}`
+      );
       throw new Error(`Login failed: ${response.status()}`);
     }
-    
+
     const result = await response.json();
     return { success: true, ...result };
   }
