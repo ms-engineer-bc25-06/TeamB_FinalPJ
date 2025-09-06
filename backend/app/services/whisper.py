@@ -8,7 +8,10 @@ OpenAIのWhisperモデルを使用して音声を文字起こしするサービ�
 
 import os
 import logging
+import subprocess
 import tempfile
+import asyncio
+import concurrent.futures
 from typing import Dict, Any, Optional, List
 
 import whisper
@@ -17,6 +20,7 @@ from app.utils.child_vocabulary import (
     generate_whisper_prompt,
 )
 from app.utils.constants import SUPPORTED_LANGUAGES
+from app.utils.audio import normalize_to_wav16k_mono
 
 logger = logging.getLogger(__name__)
 
@@ -58,16 +62,21 @@ class WhisperService:
     OpenAIのWhisperモデルを使用して音声を文字起こしするサービス。
     モデルキャッシュ機能により、初回読み込み後の処理を高速化する。
     子ども向け語彙の初期プロンプトを自動適用し、認識精度を向上させる。
+    非同期処理により、音声認識の応答時間を大幅に短縮する。
     """
 
     def __init__(self) -> None:
-        if os.getenv("DEV_MODE", "false").lower() == "true":
-            self.model_name = "base"
-        else:
-            self.model_name = os.getenv("WHISPER_MODEL_SIZE", "base")
+        # .envファイルのWHISPER_MODEL_SIZEを優先的に使用
+        self.model_name = os.getenv("WHISPER_MODEL_SIZE", "base")
+
+        # デバッグ用ログ
+        logger.info("環境変数WHISPER_MODEL_SIZE: %s", os.getenv("WHISPER_MODEL_SIZE"))
+        logger.info("選択されたモデル: %s", self.model_name)
 
         self._model_cache = None
         self._model_loaded = False
+        # 非同期処理用のスレッドプール
+        self._executor = concurrent.futures.ThreadPoolExecutor(max_workers=2)
         # S3アクセス用のクライアントを初期化
         self.s3_client = boto3.client("s3")
         # 既存のS3設定と一致させる
@@ -77,8 +86,30 @@ class WhisperService:
         if not self.bucket_name:
             raise ValueError("S3_BUCKET_NAME環境変数が設定されていません")
         logger.info(
-            f"WhisperService初期化: {self.model_name}, S3バケット: {self.bucket_name}"
+            "WhisperService初期化: %s, S3バケット: %s",
+            self.model_name,
+            self.bucket_name,
         )
+
+    async def warm_up(self) -> None:
+        """
+        モデルを事前読み込み（アプリ起動時に実行）
+
+        アプリケーション起動時にWhisperモデルを事前読み込みすることで、
+        初回の音声認識処理を高速化する。
+        """
+        logger.info("Whisperモデル事前読み込み開始: %s", self.model_name)
+        try:
+            # 非同期でモデルを読み込み
+            loop = asyncio.get_event_loop()
+            self._model_cache = await loop.run_in_executor(
+                self._executor, whisper.load_model, self.model_name
+            )
+            self._model_loaded = True
+            logger.info("Whisperモデル事前読み込み完了: %s", self.model_name)
+        except Exception as e:
+            logger.error("Whisperモデル事前読み込みエラー: %s", e)
+            raise
 
     def _get_cached_model(self):
         """
@@ -91,31 +122,28 @@ class WhisperService:
             whisper.Model: 読み込み済みのWhisperモデル
 
         Raises:
-            WhisperError: モデル読み込みに失敗した場合
+            WhisperModelLoadError: モデル読み込みに失敗した場合
         """
         if not self._model_loaded:
-            logger.info(f"Whisperモデル読み込み開始: {self.model_name}")
+            logger.info("Whisperモデル読み込み開始: %s", self.model_name)
             try:
                 self._model_cache = whisper.load_model(self.model_name)
                 self._model_loaded = True
                 logger.info(
-                    f"Whisperモデル読み込み完了: {self.model_name}（キャッシュ済み）"
+                    "Whisperモデル読み込み完了: %s（キャッシュ済み）", self.model_name
                 )
-            except Exception as e:
-                logger.error(f"Whisperモデル読み込みエラー: {e}")
+            except (OSError, IOError, RuntimeError) as e:
+                logger.error("Whisperモデル読み込みエラー: %s", e)
                 raise WhisperModelLoadError(
-                    f"Whisperモデルの読み込みに失敗しました: {e}"
-                )
+                    "Whisperモデルの読み込みに失敗しました: %s" % e
+                ) from e
         else:
             logger.debug("キャッシュされたWhisperモデルを使用: 高速！")
         return self._model_cache
 
     def _preprocess_audio(self, src_path: str) -> str:
         """
-        音声前処理（最適化済みファイルを受け取る）
-
-        音声最適化は呼び出し元（voice.py）で実行済みのため、
-        ここではファイルパスの検証のみを行う。
+        音声前処理（FFmpegによる最適化）
 
         Args:
             src_path: 音声ファイルパス
@@ -123,18 +151,20 @@ class WhisperService:
         Returns:
             str: 処理済み音声ファイルパス
         """
-        # FFmpeg最適化が有効な場合のみ前処理を実行
-        if os.getenv("ENABLE_AUDIO_OPTIMIZATION", "false").lower() == "true":
-            from app.services.audio_optimizer import AudioOptimizer
+        # 一時ファイルを作成
+        temp_file = tempfile.NamedTemporaryFile(delete=False, suffix=".wav")
+        temp_path = temp_file.name
+        temp_file.close()
 
-            optimizer = AudioOptimizer()
-            optimized_path = optimizer.optimize_for_whisper(src_path)
-            if optimized_path:
-                logger.info("FFmpeg最適化を適用")
-                return optimized_path
-
-        logger.info("前処理をスキップ")
-        return src_path
+        try:
+            # FFmpegで音声を正規化
+            normalize_to_wav16k_mono(src_path, temp_path)
+            logger.info("音声前処理完了: %s -> %s", src_path, temp_path)
+            return temp_path
+        except (OSError, IOError, RuntimeError, subprocess.CalledProcessError) as e:
+            logger.error("音声前処理エラー: %s", e)
+            # 前処理に失敗した場合は元ファイルを使用
+            return src_path
 
     def _compute_avg_logprob(self, result: Dict[str, Any]) -> Optional[float]:
         """
@@ -179,14 +209,70 @@ class WhisperService:
 
             return result
 
-        except Exception as e:
-            logger.error(f"音声認識エラー: {e}")
+        except (OSError, IOError, RuntimeError) as e:
+            logger.error("音声認識エラー: %s", e)
             raise
 
-    def transcribe(
+    async def transcribe_async(
         self,
         audio_file_path: str,
         *,
+        initial_prompt: Optional[str] = None,
+        language: str = _DEFAULTS["language"],
+    ) -> Dict[str, Any]:
+        """
+        音声認識の非同期メイン処理
+
+        S3に保存された音声ファイルをWhisper AIで文字起こしする。
+        非同期処理により、応答時間を大幅に短縮する。
+        日本語の場合は子ども向け語彙の初期プロンプトを自動適用し、
+        認識精度を向上させる。
+
+        Args:
+            audio_file_path: 音声ファイルパス（S3キー）
+            initial_prompt: 初期プロンプト（未指定時は自動生成）
+            language: 認識言語（デフォルト: 日本語）
+
+        Returns:
+            Dict[str, Any]: 音声認識結果
+                - success: 処理成功フラグ
+                - text: 認識されたテキスト
+                - language: 認識された言語
+                - file_path: 処理したファイルパス
+                - segments: セグメント情報
+                - duration: 音声長さ
+                - avg_logprob: 平均ログ確率（信頼度）
+
+        Raises:
+            WhisperTranscriptionError: 音声認識に失敗した場合
+        """
+        # S3からダウンロードしてから音声認識を実行
+        temp_file_path = None
+        try:
+            # S3から一時ファイルにダウンロード
+            temp_file_path = self._download_from_s3(audio_file_path)
+
+            # 非同期で音声認識を実行
+            loop = asyncio.get_event_loop()
+            return await loop.run_in_executor(
+                self._executor,
+                self._transcribe_sync,
+                temp_file_path,
+                initial_prompt,
+                language,
+            )
+        finally:
+            # 一時ファイルを削除
+            if temp_file_path and os.path.exists(temp_file_path):
+                try:
+                    os.remove(temp_file_path)
+                    logger.debug("一時ファイルを削除しました: %s", temp_file_path)
+                except OSError as e:
+                    logger.warning("一時ファイル削除に失敗: %s", e)
+
+    def _transcribe_sync(
+        self,
+        audio_file_path: str,
         initial_prompt: Optional[str] = None,
         language: str = _DEFAULTS["language"],
     ) -> Dict[str, Any]:
@@ -213,7 +299,7 @@ class WhisperService:
                 - avg_logprob: 平均ログ確率（信頼度）
 
         Raises:
-            WhisperError: 音声認識に失敗した場合
+            WhisperTranscriptionError: 音声認識に失敗した場合
         """
         if language not in self.get_supported_languages():
             raise WhisperLanguageError(
@@ -226,20 +312,18 @@ class WhisperService:
         # 初期プロンプト（未指定なら子ども向け語彙を適用）
         # 日本語音声の認識精度向上のため、子ども向け語彙の初期プロンプトを自動適用
         if language == "ja" and not initial_prompt:
-            # 音声ファイル名から状況を推測して適切なプロンプトを選択
-            if "audio" in audio_file_path:
-                # 音声ファイルの場合は状況別プロンプト（おもちゃ喧嘩など）
-                initial_prompt = generate_situation_prompt("おもちゃ 喧嘩")
-            else:
-                # その他の場合は一般的な子ども向け語彙プロンプト
-                initial_prompt = generate_whisper_prompt()
+            # 音声ファイルの場合は一般的な子ども向け語彙プロンプトを適用
+            initial_prompt = generate_whisper_prompt()
 
         preprocessed = self._preprocess_audio(audio_file_path)
         remove_tmp = preprocessed != audio_file_path
 
         try:
             logger.info(
-                f"音声認識開始: {audio_file_path} (lang={language}, fp16={DEFAULT_FP16})"
+                "音声認識開始: %s (lang=%s, fp16=%s)",
+                audio_file_path,
+                language,
+                DEFAULT_FP16,
             )
 
             # 最速設定で実行
@@ -252,12 +336,12 @@ class WhisperService:
                     temperature=DEFAULT_TEMPERATURE,  # 0.0=最も一貫した結果
                     fp16=DEFAULT_FP16,  # False=32bit精度で高品質
                 )
-            except Exception as e:
-                logger.error(f"音声認識エラー: {e}")
-                raise WhisperTranscriptionError(f"音声認識に失敗しました: {e}")
+            except (OSError, IOError, RuntimeError) as e:
+                logger.error("音声認識エラー: %s", e)
+                raise WhisperTranscriptionError("音声認識に失敗しました: %s" % e) from e
 
             avg_lp = self._compute_avg_logprob(result)
-            logger.info(f"avg_logprob={avg_lp}")
+            logger.info("avg_logprob=%s", avg_lp)
 
             # duration が None の場合はセグメント情報から計算
             # Whisperが音声長さを正確に取得できない場合のフォールバック処理
@@ -278,16 +362,16 @@ class WhisperService:
                 "duration": duration,
                 "avg_logprob": avg_lp,
             }
-        except Exception as e:
-            logger.error(f"音声認識エラー: {e}")
-            raise WhisperTranscriptionError(f"音声認識に失敗しました: {e}")
+        except (OSError, IOError, RuntimeError) as e:
+            logger.error("音声認識エラー: %s", e)
+            raise WhisperTranscriptionError("音声認識に失敗しました: %s" % e) from e
         finally:
             # 一時ファイルのクリーンアップ
             # 前処理で一時ファイルが作成された場合のみ削除
             if remove_tmp and os.path.exists(preprocessed):
                 try:
                     os.remove(preprocessed)
-                except Exception:
+                except OSError:
                     # 削除に失敗しても処理は継続（ログは出力しない）
                     pass
 
@@ -315,7 +399,7 @@ class WhisperService:
             temp_file_path = await self._download_from_s3(s3_key)
 
             # 音声認識を実行
-            result = self.transcribe(
+            result = self._transcribe_sync(
                 audio_file_path=temp_file_path,
                 initial_prompt=initial_prompt,
                 language=language,
@@ -328,21 +412,23 @@ class WhisperService:
             if temp_file_path and os.path.exists(temp_file_path):
                 try:
                     os.remove(temp_file_path)
-                    logger.debug(f"一時ファイルを削除しました: {temp_file_path}")
-                except Exception as e:
-                    logger.warning(f"一時ファイル削除に失敗: {e}")
+                    logger.debug("一時ファイルを削除しました: %s", temp_file_path)
+                except OSError as e:
+                    logger.warning("一時ファイル削除に失敗: %s", e)
 
-    async def _download_from_s3(self, s3_key: str) -> str:
+    def _download_from_s3(self, s3_key: str) -> str:
         """S3からファイルをダウンロードして一時ファイルに保存"""
         temp_file_path = None
         try:
             # まずファイルの存在確認
-            logger.info(f"S3ファイル存在確認: bucket={self.bucket_name}, key={s3_key}")
+            logger.info(
+                "S3ファイル存在確認: bucket=%s, key=%s", self.bucket_name, s3_key
+            )
             try:
                 self.s3_client.head_object(Bucket=self.bucket_name, Key=s3_key)
-                logger.info(f"S3ファイル存在確認OK: {s3_key}")
+                logger.info("S3ファイル存在確認OK: %s", s3_key)
             except Exception as head_error:
-                logger.error(f"S3ファイル存在確認失敗: {head_error}")
+                logger.error("S3ファイル存在確認失敗: %s", head_error)
                 raise head_error
 
             # 一時ファイルを作成
@@ -351,7 +437,10 @@ class WhisperService:
             temp_file.close()
 
             logger.info(
-                f"S3からダウンロード開始: bucket={self.bucket_name}, key={s3_key} -> {temp_file_path}"
+                "S3からダウンロード開始: bucket=%s, key=%s -> %s",
+                self.bucket_name,
+                s3_key,
+                temp_file_path,
             )
 
             # S3からダウンロード
@@ -359,7 +448,7 @@ class WhisperService:
                 Bucket=self.bucket_name, Key=s3_key, Filename=temp_file_path
             )
 
-            logger.info(f"S3ダウンロード完了: {temp_file_path}")
+            logger.info("S3ダウンロード完了: %s", temp_file_path)
             return temp_file_path
 
         except Exception as e:
@@ -367,10 +456,13 @@ class WhisperService:
             if temp_file_path and os.path.exists(temp_file_path):
                 try:
                     os.remove(temp_file_path)
-                except Exception:
+                except OSError:
                     pass
             logger.error(
-                f"S3ダウンロードエラー: bucket={self.bucket_name}, key={s3_key}, error={e}"
+                "S3ダウンロードエラー: bucket=%s, key=%s, error=%s",
+                self.bucket_name,
+                s3_key,
+                e,
             )
             raise e
 
@@ -389,15 +481,17 @@ class WhisperService:
     def _get_model(self, model_name: str):
         if not model_name or model_name == self.model_name:
             return self._get_cached_model()
-        logger.info(f"別モデル読み込み: {model_name}")
+        logger.info("別モデル読み込み: %s", model_name)
         try:
             return whisper.load_model(model_name)
-        except Exception as e:
-            logger.error(f"別モデル読み込み失敗: {e}（fallback: {self.model_name}）")
+        except (OSError, IOError, RuntimeError) as e:
+            logger.error("別モデル読み込み失敗: %s（fallback: %s）", e, self.model_name)
             return self._get_cached_model()
 
 
 class WhisperTranscriptionError(Exception):
+    """音声認識エラー"""
+
     def __init__(self, message: str, error_code: str = "WHISPER_TRANSCRIPTION_ERROR"):
         self.message = message
         self.error_code = error_code
@@ -405,6 +499,8 @@ class WhisperTranscriptionError(Exception):
 
 
 class WhisperModelLoadError(Exception):
+    """Whisperモデル読み込みエラー"""
+
     def __init__(self, message: str, error_code: str = "WHISPER_MODEL_LOAD_ERROR"):
         self.message = message
         self.error_code = error_code
@@ -412,6 +508,8 @@ class WhisperModelLoadError(Exception):
 
 
 class WhisperLanguageError(Exception):
+    """サポート外言語エラー"""
+
     def __init__(self, message: str, error_code: str = "WHISPER_LANGUAGE_ERROR"):
         self.message = message
         self.error_code = error_code
