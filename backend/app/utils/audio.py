@@ -41,5 +41,5 @@ def ffprobe_duration_seconds(path: str) -> float:
             ]
         ).strip()
         return float(out) if out else 0.0
-    except Exception:
+    except (subprocess.CalledProcessError, ValueError, FileNotFoundError):
         return 0.0
