@@ -3,7 +3,7 @@ from datetime import datetime, timezone, timedelta
 from typing import Optional
 import uuid
 from uuid import UUID
-import os
+
 import time
 import logging
 import hashlib
@@ -43,7 +43,6 @@ logger = logging.getLogger(__name__)
 JST = timezone(timedelta(hours=9))
 
 
-# TODO: 単体テストと統合テストの追加
 def _to_uuid(v) -> UUID:
     """
     文字列をID（UUID）に変換する関数
@@ -66,8 +65,10 @@ def _to_uuid(v) -> UUID:
         return v
     try:
         return UUID(str(v))
-    except Exception:
-        raise HTTPException(status_code=400, detail=ERROR_MESSAGES["INVALID_UUID"])
+    except Exception as exc:
+        raise HTTPException(
+            status_code=400, detail=ERROR_MESSAGES["INVALID_UUID"]
+        ) from exc
 
 
 def _to_intensity_id(v) -> int:
@@ -132,38 +133,38 @@ def _stable_lock_key(user_id: UUID, child_id: UUID, jst_date) -> int:
 
 
 # -------------------------------------------------
-# Helper functions
-# -------------------------------------------------
-
-
-# -------------------------------------------------
 # Service dependencies
 # -------------------------------------------------
 
-# 音声認識サービス（Whisper）を1回だけ読み込んで使い回す
-# 説明：毎回読み込むと時間がかかるので、1回だけ読み込んで保存しておく
-# TODO: シングルトンパターンの改善 - スレッドセーフな実装を検討
-_whisper_service_instance: Optional[WhisperService] = None
+
+class WhisperServiceManager:
+    """WhisperServiceのシングルトン管理クラス"""
+
+    _instance: Optional[WhisperService] = None
+
+    @classmethod
+    def get_service(cls) -> WhisperService:
+        """
+        音声認識サービスを取得する関数
+
+        説明：
+        - 初回だけ音声認識の準備をする（時間がかかる）
+        - 2回目以降は準備済みのものを使い回す（早い）
+        - これで音声認識が速くなる
+
+        Returns:
+            WhisperService: 音声認識サービス
+        """
+        if cls._instance is None:
+            logger.info("WhisperServiceの初期化開始（初回のみ）")
+            cls._instance = WhisperService()
+            logger.info("WhisperServiceの初期化完了（シングルトン）")
+        return cls._instance
 
 
 def get_whisper_service() -> WhisperService:
-    """
-    音声認識サービスを取得する関数
-
-    説明：
-    - 初回だけ音声認識の準備をする（時間がかかる）
-    - 2回目以降は準備済みのものを使い回す（早い）
-    - これで音声認識が速くなる
-
-    Returns:
-        WhisperService: 音声認識サービス
-    """
-    global _whisper_service_instance
-    if _whisper_service_instance is None:
-        logger.info("WhisperServiceの初期化開始（初回のみ）")
-        _whisper_service_instance = WhisperService()
-        logger.info("WhisperServiceの初期化完了（シングルトン）")
-    return _whisper_service_instance
+    """WhisperServiceを取得する関数（後方互換性のため）"""
+    return WhisperServiceManager.get_service()
 
 
 def get_file_service() -> VoiceFileService:
@@ -192,7 +193,7 @@ async def health_check():
 
     s3_status = "configured" if S3_BUCKET_NAME else "not_configured"
 
-    logger.info(f"Health check completed - S3: {s3_status}")
+    logger.info("Health check completed - S3: %s", s3_status)
     return {
         "status": "healthy",
         "service": "voice-api",
@@ -204,7 +205,6 @@ async def health_check():
 # -------------------------------------------------
 # Transcribe
 # -------------------------------------------------
-# TODO: レート制限とリクエスト検証の追加
 @router.post(
     "/transcribe",
     response_model=VoiceTranscribeResponse,
@@ -237,9 +237,8 @@ async def transcribe_voice(
     Raises:
         HTTPException: 変換に失敗した場合
     """
-    # TODO: 構造化ログとメトリクス収集の実装
     logger.info(
-        f"音声認識開始: ファイル={request.audio_file_path}, 言語={request.language}"
+        "音声認識開始: ファイル=%s, 言語=%s", request.audio_file_path, request.language
     )
 
     try:
@@ -248,10 +247,10 @@ async def transcribe_voice(
                 status_code=400, detail=ERROR_MESSAGES["HTTP_URL_NOT_SUPPORTED"]
             )
 
-        # S3から音声ファイルをダウンロードして音声認識を実行
+        # S3から音声ファイルをダウンロードして音声認識を実行（非同期処理）
         # 説明：S3に保存された音声ファイルを一時的にダウンロードして、AIが音声を聞いて文字に変換する
-        result = await whisper_service.transcribe_from_s3(
-            s3_key=request.audio_file_path, language=request.language or "ja"
+        result = await whisper_service.transcribe_async(
+            audio_file_path=request.audio_file_path, language=request.language or "ja"
         )
 
         # 結果を整理して返す
@@ -268,18 +267,16 @@ async def transcribe_voice(
             processed_at=datetime.now(timezone.utc),  # 処理した時刻
         )
 
-        logger.info(f"音声認識完了")
+        logger.info("音声認識完了")
         return resp
 
-    except HTTPException:
-        raise
-    except Exception as e:
-        # TODO: より詳細なエラーログとメトリクス収集
+    except (ValueError, RuntimeError, ConnectionError, OSError) as e:
+        # ログ記録とエラーメッセージ変換を行ってから再発生
         logger.exception("Transcription failed")
         raise HTTPException(
             status_code=500,
             detail=f"{ERROR_MESSAGES['TRANSCRIPTION_FAILED']}: {type(e).__name__}: {e}",
-        )
+        ) from e
 
 
 # -------------------------------------------------
@@ -396,8 +393,8 @@ def _cleanup_old_s3_objects(
         try:
             if key:
                 file_service.delete_object(key)
-        except Exception as e:
-            logger.warning(f"[S3] old object delete failed: key={key} err={e}")
+        except (ValueError, RuntimeError, ConnectionError) as e:
+            logger.warning("[S3] old object delete failed: key=%s err=%s", key, e)
 
 
 # -------------------------------------------------
@@ -415,7 +412,6 @@ def _cleanup_old_s3_objects(
 )
 async def get_upload_url(
     request: VoiceUploadRequest,
-    db: AsyncSession = Depends(get_db),
     file_service: VoiceFileService = Depends(get_file_service),
 ):
     """
@@ -427,7 +423,6 @@ async def get_upload_url(
 
     Args:
         request: アップロードリクエスト
-        db: データベースセッション
         file_service: ファイルサービス
 
     Returns:
@@ -437,14 +432,15 @@ async def get_upload_url(
         HTTPException: URL生成に失敗した場合
     """
     logger.info(
-        f"アップロードURL生成開始: file_type={request.file_type}, file_format={request.file_format}"
+        "アップロードURL生成開始: file_type=%s, file_format=%s",
+        request.file_type,
+        request.file_format,
     )
 
     try:
         # ファイル名を生成（タイムスタンプ付きでユニーク性を保証）
         timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
 
-        # TODO: 設定値の外部化（Content-Type、ファイル形式など）
         # ファイルタイプ別の拡張子とContent-Typeを設定
         if request.file_type == "audio":
             if request.file_format == "webm":
@@ -472,7 +468,7 @@ async def get_upload_url(
 
         presigned_url = file_service.generate_presigned_upload_url(s3_key, content_type)
 
-        logger.info(f"アップロードURL生成完了: key={s3_key}, type={content_type}")
+        logger.info("アップロードURL生成完了: key=%s, type=%s", s3_key, content_type)
         return {
             "success": True,
             "upload_url": presigned_url,
@@ -480,11 +476,12 @@ async def get_upload_url(
             "s3_url": file_service.get_file_url(s3_key),
             "content_type": content_type,
         }
-    except HTTPException:
-        raise
-    except Exception as e:
+    except (ValueError, RuntimeError, ConnectionError, OSError) as e:
+        # ログ記録とエラーメッセージ変換を行ってから再発生
         logger.exception("Upload URL generation failed")
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500, detail=f"Upload URL generation failed: {str(e)}"
+        ) from e
 
 
 # -------------------------------------------------
@@ -519,7 +516,10 @@ async def save_record(
         HTTPException: 保存に失敗した場合
     """
     logger.debug(
-        f"Save record request: user_id={request.user_id}, child_id={request.child_id}, emotion_card_id={request.emotion_card_id}"
+        "Save record request: user_id=%s, child_id=%s, emotion_card_id=%s",
+        request.user_id,
+        request.child_id,
+        request.emotion_card_id,
     )
 
     t0 = time.monotonic()
@@ -577,7 +577,10 @@ async def save_record(
 
         processing_time = round(time.monotonic() - t0, 2)
         logger.info(
-            f"Record saved successfully (locked): record_id={record_id}, jst_date={jst_date}, processing={processing_time}s"
+            "Record saved successfully (locked): record_id=%s, jst_date=%s, processing=%ss",
+            record_id,
+            jst_date,
+            processing_time,
         )
         return {
             "success": True,
@@ -585,13 +588,12 @@ async def save_record(
             "message": "Record saved (replaced) successfully",
         }
 
-    except HTTPException:
-        raise
-    except Exception as e:
+    except (ValueError, RuntimeError, ConnectionError, OSError) as e:
+        # ログ記録とエラーメッセージ変換を行ってから再発生
         logger.exception("Save record failed")
         raise HTTPException(
             status_code=500, detail=f"{ERROR_MESSAGES['SAVE_RECORD_FAILED']}: {str(e)}"
-        )
+        ) from e
 
 
 # -------------------------------------------------
@@ -625,10 +627,9 @@ async def get_records(
     Raises:
         HTTPException: 取得に失敗した場合
     """
-    logger.info(f"記録一覧取得開始: user_id={user_id}")
+    logger.info("記録一覧取得開始: user_id=%s", user_id)
 
     try:
-        # TODO: インデックス最適化とクエリパフォーマンス改善
         # データベースから記録を取得
         query = (
             select(EmotionLog)
@@ -638,7 +639,7 @@ async def get_records(
         result = await db.execute(query)
         records = result.scalars().all()
         record_count = len(records)
-        logger.info(f"記録取得完了: {record_count}件")
+        logger.info("記録取得完了: %s件", record_count)
 
         def to_key(p: Optional[str]) -> Optional[str]:
             """
@@ -680,9 +681,9 @@ async def get_records(
                     record_data["audio_download_url"] = (
                         file_service.generate_download_url(audio_key)
                     )
-                except Exception as e:
+                except (ValueError, RuntimeError, ConnectionError) as e:
                     logger.warning(
-                        f"音声ダウンロードURL生成失敗: {audio_key}, エラー: {e}"
+                        "音声ダウンロードURL生成失敗: %s, エラー: %s", audio_key, e
                     )
                     record_data["audio_download_url"] = None
 
@@ -691,9 +692,9 @@ async def get_records(
                     record_data["text_download_url"] = (
                         file_service.generate_download_url(text_key)
                     )
-                except Exception as e:
+                except (ValueError, RuntimeError, ConnectionError) as e:
                     logger.warning(
-                        f"テキストダウンロードURL生成失敗: {text_key}, エラー: {e}"
+                        "テキストダウンロードURL生成失敗: %s, エラー: %s", text_key, e
                     )
                     record_data["text_download_url"] = None
 
@@ -705,12 +706,12 @@ async def get_records(
             "total_count": record_count,
         }
 
-        logger.info(f"記録一覧取得完了: {record_count}件")
+        logger.info("記録一覧取得完了: %s件", record_count)
         return payload
 
-    except Exception as e:
+    except (ValueError, RuntimeError, ConnectionError, OSError) as e:
         logger.exception("Records fetch failed")
         raise HTTPException(
             status_code=500,
             detail=f"{ERROR_MESSAGES['RECORDS_FETCH_FAILED']}: {str(e)}",
-        )
+        ) from e
