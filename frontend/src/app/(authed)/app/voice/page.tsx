@@ -5,7 +5,7 @@ import { useAuth } from '@/contexts/AuthContext';
 import { borderRadius, colors, spacing } from '@/styles/theme';
 import { getAudioConstraints, getErrorMessage, selectRecorderConfig } from '@/utils/audio';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
 type GetUploadUrlResponse = {
   success: boolean;
@@ -27,7 +27,17 @@ type TranscriptionResult = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
+// メインコンポーネント（Suspenseでラップ）
 export default function VoiceEntryPage() {
+  return (
+    <Suspense fallback={<div>読み込み中...</div>}>
+      <VoicePageContent />
+    </Suspense>
+  );
+}
+
+// 既存のコンポーネントをVoicePageContentにリネーム
+function VoicePageContent() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
