@@ -147,4 +147,35 @@ describe('RoleplayPage', () => {
     // 一覧に戻る
     expect(screen.getByText('シナリオをえらんでね')).toBeInTheDocument();
   });
-});
+
+it('異常系: 2つ目以降のシナリオはクリックしても遷移しない', () => {
+    render(<RoleplayPage />)
+
+    const secondScenario = screen.getByRole('button', { name: /おともだちとけんか/ })
+    expect(secondScenario).toBeDisabled()
+
+    // 念のため click しても変化がないことを確認
+    fireEvent.click(secondScenario)
+    expect(screen.getByText('シナリオをえらんでね')).toBeInTheDocument()
+  })
+
+  it('異常系: isLoading=true のときローディング表示', () => {
+    authState = {
+      ...authState,
+      isLoading: true,
+      user: null,
+    }
+    render(<RoleplayPage />)
+    expect(screen.getByText('読み込み中...')).toBeInTheDocument()
+  })
+
+  it('異常系: 未認証時はトップへリダイレクト', () => {
+    authState = {
+      ...authState,
+      isLoading: false,
+      user: null,
+    }
+    render(<RoleplayPage />)
+    expect(pushMock).toHaveBeenCalledWith('/')
+  })
+})
