@@ -1,52 +1,25 @@
 'use client';
 
+import { ErrorDisplay } from '@/components/emotion/ErrorDisplay';
+import {
+  AudioPlayer,
+  BackButton,
+  KokoronDefault,
+  Spinner,
+} from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import Image from 'next/image';
-import { KokoronDefault, SpeechBubble, Spinner, HamburgerMenu, AudioPlayer} from '@/components/ui';
+import { useEmotionSelection } from '@/hooks/useEmotionSelection';
 import { commonStyles } from '@/styles/theme';
-import { useState, useEffect } from 'react';
-
-
-// 感情データの型定義（APIレスポンスに合わせて修正）
-interface Emotion {
-  id: string;
-  label: string;
-  color: string;
-  image_url: string;
-}
-
-// デフォルトの感情データ（API呼び出しに失敗した場合のフォールバック）
-const DEFAULT_EMOTIONS: Emotion[] = [
-  // 黄色の感情
-  { id: 'ureshii', label: 'うれしい', color: '#FFD700', image_url: '/images/emotions/ureshii.webp' },
-  { id: 'yukai', label: 'ゆかい', color: '#FFD700', image_url: '/images/emotions/yukai.webp' },
-  
-  // 緑色の感情
-  { id: 'anshin', label: 'あんしん', color: '#00D4AA', image_url: '/images/emotions/anshin.webp' },
-  { id: 'bikkuri', label: 'びっくり', color: '#00D4AA', image_url: '/images/emotions/bikkuri.webp' },
-  
-  // 青色の感情
-  { id: 'kowai', label: 'こわい', color: '#0066FF', image_url: '/images/emotions/kowai.webp' },
-  { id: 'kanashii', label: 'かなしい', color: '#0066FF', image_url: '/images/emotions/kanashii.webp' },
-  { id: 'komatta', label: 'こまった', color: '#0066FF', image_url: '/images/emotions/komatta.webp' },
-  
-  // 赤色の感情
-  { id: 'fuyukai', label: 'ふゆかい', color: '#FF1744', image_url: '/images/emotions/fuyukai.webp' },
-  { id: 'ikari', label: 'いかり', color: '#FF1744', image_url: '/images/emotions/ikari.webp' },
-  { id: 'hazukashii', label: 'はずかしい', color: '#FF1744', image_url: '/images/emotions/hazukashii.webp' },
-  { id: 'kinchou', label: 'きんちょう', color: '#FF1744', image_url: '/images/emotions/kinchou.webp' },
-  
-  // 灰色の感情
-  { id: 'wakaranai', label: 'わからない', color: '#424242', image_url: '/images/emotions/wakaranai.webp' },
-];
+import Image from 'next/image';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function EmotionSelectionPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
-  const [emotions, setEmotions] = useState<Emotion[]>(DEFAULT_EMOTIONS);
-  const [isLoadingEmotions, setIsLoadingEmotions] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+
+  // カスタムフックを使用
+  const { emotions, isLoadingEmotions, error } = useEmotionSelection();
 
   // ユーザー認証チェック
   useEffect(() => {
@@ -55,59 +28,27 @@ export default function EmotionSelectionPage() {
     }
   }, [user, isLoading, router]);
 
-  // 感情データをDBから取得
-  useEffect(() => {
-    const fetchEmotions = async () => {
-      setIsLoadingEmotions(true);
-      setError(null);
-      
-      try {
-        // バックエンドAPIから感情データを取得
-        const response = await fetch('http://localhost:8000/emotion/cards');
-        if (!response.ok) {
-          throw new Error('感情データの取得に失敗しました');
-        }
-        const data = await response.json();
-        
-        if (data.success && data.cards) {
-          console.log('取得された感情データ:', data.cards);
-          console.log('「わからない」の感情データ:', data.cards.find((e: Emotion) => e.label === 'わからない'));
-          setEmotions(data.cards);
-        } else {
-          throw new Error('感情データの形式が正しくありません');
-        }
-      } catch (err) {
-        console.error('感情データの取得エラー:', err);
-        setError('感情データの読み込みに失敗しました');
-        // エラー時はデフォルトデータを使用
-        setEmotions(DEFAULT_EMOTIONS);
-      } finally {
-        setIsLoadingEmotions(false);
-      }
-    };
-
-    fetchEmotions();
-  }, []);
-
   // 感情カードをクリックした時の処理
   const handleEmotionSelect = (emotionId: string) => {
     console.log('🎯 感情選択: emotionId =', emotionId);
-    
-    // 選択された感情のラベルを取得
-    const selectedEmotion = emotions.find(e => e.id === emotionId);
+
+    const selectedEmotion = emotions.find((e) => e.id === emotionId);
     console.log('🎯 選択された感情:', selectedEmotion);
-    
-    // 「わからない」が選択された場合は強度選択画面を飛ばして直接感情確認画面に遷移
+
+    // NOTE: 「わからない」が選択された場合は強度選択画面を飛ばして直接感情確認画面に遷移
     if (selectedEmotion && selectedEmotion.label === 'わからない') {
       console.log('🎯 「わからない」が選択されました。感情確認画面に直接遷移');
-      router.push(`/app/emotion-confirmation?emotion=${emotionId}&intensity=medium`);
+      router.push(
+        `/app/emotion-confirmation?emotion=${emotionId}&intensity=medium`,
+      );
     } else {
-      // その他の感情は強度選択画面に遷移
-      console.log('🎯 強度選択画面に遷移:', `/app/emotion-intensity?emotion=${emotionId}`);
+      console.log(
+        '🎯 強度選択画面に遷移:',
+        `/app/emotion-intensity?emotion=${emotionId}`,
+      );
       router.push(`/app/emotion-intensity?emotion=${emotionId}`);
     }
   };
-
   // 戻るボタンの処理
   const handleBack = () => {
     router.push('/app');
@@ -128,7 +69,16 @@ export default function EmotionSelectionPage() {
     return null;
   }
 
-  // 感情データ読み込み中
+  // エラー表示
+  if (error) {
+    return (
+      <ErrorDisplay
+        error={error}
+        onBack={() => router.push('/app')}
+        title="感情選択"
+      />
+    );
+  }
   if (isLoadingEmotions) {
     return (
       <div style={commonStyles.loading.container}>
@@ -140,8 +90,7 @@ export default function EmotionSelectionPage() {
 
   return (
     <div style={commonStyles.page.container}>
-      {/* こころんによる問いかけ音声再生 */}
-      <AudioPlayer 
+      <AudioPlayer
         src="/sounds/characterAskFeeling01.mp3"
         autoPlay={true}
         volume={0.8}
@@ -149,117 +98,88 @@ export default function EmotionSelectionPage() {
         onError={(error) => console.log('音声エラー:', error)}
       />
 
-      {/* 左上の戻るボタン */}
-      <button onClick={handleBack} style={{
-        position: 'fixed',
-        top: '20px',
-        left: '20px',
-        background: 'none',
-        border: 'none',
-        fontSize: '16px',
-        cursor: 'pointer',
-        padding: '6px',
-        borderRadius: '6px',
-        color: '#000000',
-        zIndex: 200,
-        fontWeight: 'bold',
-      }}>
-        ← もどる
-      </button>
-
-
-      {/* デフォルトのこころん（右側に配置） */}
-      <div style={{
-        position: 'fixed',
-        top: '110px',
-        right: '20px',
-        zIndex: 250,
-      }}>
+      <BackButton onClick={handleBack} />
+      <div
+        style={{
+          position: 'fixed',
+          top: '110px',
+          right: '20px',
+          zIndex: 250,
+        }}
+      >
         <KokoronDefault size={100} />
       </div>
-      
-      {/* エラーメッセージ */}
-      {error && (
-        <div style={{
+
+      <div
+        style={{
           position: 'fixed',
-          top: '80px',
+          top: '0',
           left: '50%',
           transform: 'translateX(-50%)',
-          background: 'rgba(255, 0, 0, 0.1)',
-          color: '#d32f2f',
-          padding: '8px 16px',
-          borderRadius: '8px',
-          fontSize: '14px',
-          zIndex: 150,
-        }}>
-          {error}
-        </div>
-      )}
-
-      {/* メインコンテンツ */}
-      <div style={{
-        position: 'fixed',
-        top: '0',
-        left: '50%',
-        transform: 'translateX(-50%)',
-        bottom: 0,
-        padding: '10px 0 0 0',
-        zIndex: 50,
-        boxSizing: 'border-box',
-        width: '100%',
-        maxWidth: '600px',
-        overflowX: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'center',
-        alignItems: 'center',
-        backdropFilter: 'blur(10px)',
-        background: 'transparent',
-        gap: '8px',
-      }}>
-        {/* 感情カードの一番上に配置する白い四角 */}
-        <div style={{
-          background: '#ffffff',
-          borderRadius: '16px',
-          padding: '12px 16px',
-          boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
-          width: '80%',
-          maxWidth: '288px',
+          bottom: 0,
+          padding: '10px 0 0 0',
+          zIndex: 50,
           boxSizing: 'border-box',
-          textAlign: 'center',
-          alignSelf: 'flex-start',
-          marginLeft: '20px',
-        }}>
-          <span style={{
-        fontWeight: 'bold',
-        fontSize: '16px',
-        lineHeight: 1.4,
-        margin: 0,
-        whiteSpace: 'pre-line',
-        wordBreak: 'keep-all',
-        overflowWrap: 'break-word',
-      }}>
+          width: '100%',
+          maxWidth: '600px',
+          overflowX: 'hidden',
+          display: 'flex',
+          flexDirection: 'column',
+          justifyContent: 'center',
+          alignItems: 'center',
+          backdropFilter: 'blur(10px)',
+          background: 'transparent',
+          gap: '8px',
+        }}
+      >
+        <div
+          style={{
+            background: '#ffffff',
+            borderRadius: '16px',
+            padding: '12px 16px',
+            boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
+            width: '80%',
+            maxWidth: '288px',
+            boxSizing: 'border-box',
+            textAlign: 'center',
+            alignSelf: 'flex-start',
+            marginLeft: '20px',
+          }}
+        >
+          <span
+            style={{
+              fontWeight: 'bold',
+              fontSize: '16px',
+              lineHeight: 1.4,
+              margin: 0,
+              whiteSpace: 'pre-line',
+              wordBreak: 'keep-all',
+              overflowWrap: 'break-word',
+            }}
+          >
             きょうは　どんな　きもちかな？
           </span>
         </div>
-        
-        <div style={{
-          display: 'grid',
-          gridTemplateColumns: 'repeat(3, 1fr)',
-          gap: '8px',
-          width: '100%',
-          maxWidth: '360px',
-          boxSizing: 'border-box',
-          justifyContent: 'center',
-          alignItems: 'center',
-        }}>
+
+        <div
+          style={{
+            display: 'grid',
+            gridTemplateColumns: 'repeat(3, 1fr)',
+            gap: '8px',
+            width: '100%',
+            maxWidth: '360px',
+            boxSizing: 'border-box',
+            justifyContent: 'center',
+            alignItems: 'center',
+          }}
+        >
           {emotions.map((emotion) => (
             <button
               key={emotion.id}
               onClick={() => handleEmotionSelect(emotion.id)}
               style={{
-                background: '#ffffff', // カード自体は白
-                border: `4px solid ${emotion.color}`, 
+                background: '#ffffff',
+                border: `4px solid ${emotion.color}`,
                 borderRadius: '16px',
                 padding: '12px 8px',
                 cursor: 'pointer',
@@ -270,7 +190,7 @@ export default function EmotionSelectionPage() {
                 transition: 'all 0.3s ease',
                 fontSize: '24px',
                 fontWeight: 'bold',
-                color: '#000000', 
+                color: '#000000',
                 boxShadow: '0 6px 16px rgba(0, 0, 0, 0.15)',
                 minHeight: '120px',
                 justifyContent: 'space-between',
@@ -284,16 +204,18 @@ export default function EmotionSelectionPage() {
                 position: 'relative',
               }}
             >
-              <div style={{
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                justifyContent: 'flex-start',
-                width: '100%',
-                padding: '8px 8px 8px 8px',
-                gap: '8px',
-                marginTop: '-10px',
-              }}>
+              <div
+                style={{
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                  width: '100%',
+                  padding: '8px 8px 8px 8px',
+                  gap: '8px',
+                  marginTop: '-10px',
+                }}
+              >
                 <Image
                   src={emotion.image_url}
                   alt={`こころん - ${emotion.label}`}
@@ -307,29 +229,34 @@ export default function EmotionSelectionPage() {
                     maxHeight: '80px',
                   }}
                   onError={(e) => {
-                    // 画像の読み込みに失敗した場合はデフォルト画像にフォールバック
-                    console.log(`画像読み込みエラー: ${emotion.image_url} -> デフォルト画像にフォールバック`);
+                    // NOTE: 画像の読み込みに失敗した場合はデフォルト画像にフォールバック
+                    console.log(
+                      `画像読み込みエラー: ${emotion.image_url} -> デフォルト画像にフォールバック`,
+                    );
                     try {
-                      (e.currentTarget as HTMLImageElement).src = '/images/kokoron/kokoron_greeting.webp';
+                      (e.currentTarget as HTMLImageElement).src =
+                        '/images/kokoron/kokoron_greeting.webp';
                     } catch (_) {
                       // no-op
                     }
                   }}
                 />
-                <span style={{
-                  fontSize: '14px',
-                  lineHeight: '1.2',
-                  fontWeight: '600',
-                  color: '#000000',
-                  textAlign: 'center',
-                  padding: '4px 8px',
-                  borderRadius: '8px',
-                  background: 'rgba(255, 255, 255, 0.9)',
-                  minHeight: '24px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}>
+                <span
+                  style={{
+                    fontSize: '14px',
+                    lineHeight: '1.2',
+                    fontWeight: '600',
+                    color: '#000000',
+                    textAlign: 'center',
+                    padding: '4px 8px',
+                    borderRadius: '8px',
+                    background: 'rgba(255, 255, 255, 0.9)',
+                    minHeight: '24px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                  }}
+                >
                   {emotion.label}
                 </span>
               </div>
@@ -339,4 +266,4 @@ export default function EmotionSelectionPage() {
       </div>
     </div>
   );
-} 
+}
