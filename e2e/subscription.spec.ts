@@ -1,3 +1,4 @@
+// サブスクリプションテスト: サブスクリプションページのUI表示とStripe連携をテスト
 import { expect, test } from "@playwright/test";
 import { loginAsTestUser } from "./utils/auth";
 
