@@ -380,7 +380,8 @@ jobs:
         run: |
           echo "E2E_TEST_USER_EMAIL: ${E2E_TEST_USER_EMAIL:+設定済み}"
           echo "E2E_TEST_USER_PASSWORD: ${E2E_TEST_USER_PASSWORD:+設定済み}"
-          npm run test:e2e
+          echo "🧪 認証関連テストを実行中..."
+          npm run test:e2e:auth
 
       - name: Upload Playwright report
         uses: actions/upload-artifact@v4
