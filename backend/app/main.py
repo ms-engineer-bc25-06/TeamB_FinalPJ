@@ -2,14 +2,12 @@ import os
 import logging
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
-from fastapi import FastAPI, Depends, HTTPException
+from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from sqlalchemy.ext.asyncio import AsyncSession
 import firebase_admin
-from firebase_admin import credentials, auth
+from firebase_admin import credentials
 import stripe
 
-from app.config.database import engine, async_session_local
 
 from app.api.v1.endpoints.voice import router as new_voice_router
 from app.api.v1.endpoints.children import router as children_router
@@ -20,7 +18,7 @@ from app.api.v1.endpoints.emotion_api import router as emotion_router
 from app.api.v1.endpoints.stripe_api import router as stripe_router
 
 logging.basicConfig(level=logging.INFO, force=True)
-logging.getLogger().setLevel(logging.INFO)
+logger = logging.getLogger(__name__)
 
 
 load_dotenv()
@@ -40,12 +38,19 @@ stripe.api_key = os.getenv("STRIPE_SECRET_KEY")
 
 # --- Lifespan Manager ---
 @asynccontextmanager
-async def lifespan(app: FastAPI):
-    # TODO:本番は Alembic マイグレーションでDBを用意する
-    # 開発用にどうしても必要なら、環境変数で切り替え
-    # if os.getenv("DEV_CREATE_ALL") == "1":
-    #     async with engine.begin() as conn:
-    #         await conn.run_sync(Base.metadata.create_all)
+async def lifespan(_: FastAPI):
+    # データベース初期化は本番環境ではAlembicマイグレーションで実行
+    # Whisperモデルの事前読み込み（高速化）
+    try:
+        from app.services.whisper import WhisperService
+
+        whisper_service = WhisperService()
+        await whisper_service.warm_up()
+        logger.info("Whisperモデル事前読み込み完了")
+    except (ImportError, ValueError, RuntimeError) as e:
+        logger.error("Whisperモデル事前読み込み失敗: %s", e)
+        # エラーが発生してもアプリは起動を継続
+
     yield
 
 
@@ -62,7 +67,7 @@ register_error_handlers(app)
 # CORSミドルウェア設定
 origins = [
     "http://localhost:3000",
-    # TODO:本番用ドメインを後で追加,
+    # 本番用ドメインは後で追加予定
 ]
 app.add_middleware(
     CORSMiddleware,
@@ -79,5 +84,3 @@ app.include_router(children_router, prefix="/api/v1/children")
 app.include_router(emotion_router)
 app.include_router(emotion_color_router)
 app.include_router(stripe_router)
-
-
