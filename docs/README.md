@@ -22,7 +22,7 @@
 - **[securityDesign.md](securityDesign.md)** - セキュリティ設計書
 - **[performanceDesign.md](performanceDesign.md)** - 性能設計書
 - **[operationsPlan.md](operationsPlan.md)** - 運用設計書
-- **[testPlan.md](testPlan.md)** - テスト設計書
+- **[testDesign.md](testDesign.md)** - テスト設計書
 
 ### 📝 開発・運用
 - **[devGuideline.md](devGuideline.md)** - 開発ガイドライン
