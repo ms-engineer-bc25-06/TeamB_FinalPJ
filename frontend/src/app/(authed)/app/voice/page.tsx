@@ -2,14 +2,10 @@
 
 import { AudioPlayer } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
-import { borderRadius, colors, commonStyles, spacing } from '@/styles/theme';
-import {
-  getAudioConstraints,
-  getErrorMessage,
-  selectRecorderConfig,
-} from '@/utils/audio';
+import { borderRadius, colors, spacing } from '@/styles/theme';
+import { getAudioConstraints, getErrorMessage, selectRecorderConfig } from '@/utils/audio';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 type GetUploadUrlResponse = {
   success: boolean;
@@ -31,16 +27,7 @@ type TranscriptionResult = {
 
 const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
 
-// 待ち時間の応援メッセージ（ランダム切替）
-const WAIT_MESSAGES = [
-  'すごい！ いま ことばを ひろってるよ 🌰🌰🌰',
-  'もうちょっと… おんぷを あつめてるよ 🎵🎵🎵🎵🎵🎵',
-  'こころん かんがえちゅう… 3, 2, 1… ✍✍✍',
-  'ピカーン！ ひらめき まちだよ 💡',
-  'じょうずに はなせたね！ よみこみ中… ⏳💫',
-];
-
-function VoiceEntryContent() {
+export default function VoiceEntryPage() {
   const { user, isLoading } = useAuth();
   const router = useRouter();
 
@@ -55,19 +42,16 @@ function VoiceEntryContent() {
 
   const [checkingToday, setCheckingToday] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isBusy, setIsBusy] = useState(false);
 
   // 録音系
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [status, setStatus] = useState<string>('');
-  const [isBusy, setIsBusy] = useState(false);
-  const [transcription, setTranscription] =
-    useState<TranscriptionResult | null>(null);
+  const [transcription, setTranscription] = useState<TranscriptionResult | null>(null);
 
-  // �� 新機能: 完了ステップ管理（既存アニメーション活用）
-  const [completionStep, setCompletionStep] = useState<
-    'recording' | 'completed' | 'finished'
-  >('recording');
+  // 完了ステップ管理
+  const [completionStep, setCompletionStep] = useState<'recording' | 'completed' | 'finished'>('recording');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -78,14 +62,13 @@ function VoiceEntryContent() {
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const [isPlaying, setIsPlaying] = useState(false);
 
-  // 応援メッセージのインデックス
-  const [msgIndex, setMsgIndex] = useState(0);
-
   const handleBack = () => router.push('/app/emotion-confirmation');
 
-  // ====== レイアウト ======
+  // レイアウト
   const LAYOUT = { maxWidth: 430, cardMaxWidth: 360 };
-  const styles = {
+
+  // 1. レイアウト関連スタイル
+  const layoutStyles = {
     page: {
       background: 'url("/images/background.webp") no-repeat center center',
       backgroundSize: 'cover',
@@ -101,8 +84,7 @@ function VoiceEntryContent() {
       left: '50%',
       transform: 'translateX(-50%)',
       bottom: 0,
-      padding:
-        'max(10px, env(safe-area-inset-top)) 0 max(16px, env(safe-area-inset-bottom)) 0',
+      padding: 'max(10px, env(safe-area-inset-top)) 0 max(16px, env(safe-area-inset-bottom)) 0',
       zIndex: 50,
       boxSizing: 'border-box' as const,
       width: 'min(100vw, 430px)',
@@ -129,38 +111,10 @@ function VoiceEntryContent() {
       zIndex: 200,
       fontWeight: 'bold' as const,
     },
-    bubbleSmall: {
-      marginTop: 60,
-      background: '#fff',
-      borderRadius: 12,
-      padding: '8px 10px',
-      boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
-      width: '88%',
-      maxWidth: `${Math.min(320, LAYOUT.maxWidth)}px`,
-      textAlign: 'center' as const,
-    },
-    bubbleTextSmall: {
-      fontWeight: 700,
-      fontSize: 14,
-      lineHeight: 1.3,
-      color: '#333',
-    },
+  };
 
-    characterWrap: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      alignItems: 'center',
-      gap: 8,
-      marginTop: 10,
-      marginBottom: 10,
-    },
-    characterImg: {
-      width: 'min(70vw, 300px)',
-      height: 'min(70vw, 300px)',
-      objectFit: 'contain' as const,
-    },
-
-    // 録音セクション（白枠カード）
+  // 2. 録音関連スタイル
+  const recordingStyles = {
     recordCard: {
       marginTop: 8,
       padding: 12,
@@ -232,8 +186,10 @@ function VoiceEntryContent() {
       fontWeight: 700,
       color: '#111827',
     },
+  };
 
-    // 「きいてみる」
+  // 3. 確認関連スタイル
+  const confirmationStyles = {
     confirmCard: {
       marginTop: 16,
       padding: 12,
@@ -245,12 +201,7 @@ function VoiceEntryContent() {
       maxWidth: `${Math.min(LAYOUT.cardMaxWidth, LAYOUT.maxWidth)}px`,
       textAlign: 'center' as const,
     },
-    confirmTitle: {
-      fontWeight: 700,
-      marginBottom: 10,
-      color: '#111827',
-      fontSize: 18,
-    },
+    confirmTitle: { fontWeight: 700, marginBottom: 10, color: '#111827', fontSize: 18 },
     playButtonBase: {
       width: 200,
       height: 200,
@@ -277,7 +228,6 @@ function VoiceEntryContent() {
       borderColor: '#b91c1c',
       color: '#ffffff',
     },
-
     confirmButtons: {
       display: 'grid',
       gridTemplateColumns: '1fr 1fr',
@@ -304,21 +254,10 @@ function VoiceEntryContent() {
       border: '2px solid #ef4444',
       cursor: 'pointer',
     },
+  };
 
-    statusCard: (hasError: boolean) => ({
-      marginTop: 8,
-      padding: 10,
-      borderRadius: 10,
-      border: `1px solid ${hasError ? '#f5c2c7' : '#e5e7eb'}`,
-      background: hasError ? '#fdecee' : '#fafafa',
-      color: hasError ? '#842029' : '#111827',
-      width: '92%',
-      maxWidth: `${Math.min(LAYOUT.cardMaxWidth, LAYOUT.maxWidth)}px`,
-      textAlign: 'center' as const,
-      fontSize: 14,
-    }),
-
-    // === 待ち時間の演出（オーバーレイ） ===
+  // 4. 完了画面関連スタイル
+  const completionStyles = {
     overlay: {
       position: 'fixed' as const,
       inset: 0,
@@ -371,7 +310,47 @@ function VoiceEntryContent() {
       animation: 'indet 1.2s infinite',
     },
     waitHint: { fontSize: 12, color: '#6b7280', marginTop: 6 },
-  } as const;
+  };
+
+  // 5. 共通スタイル
+  const commonStyles = {
+    bubbleSmall: {
+      marginTop: 60,
+      background: '#fff',
+      borderRadius: 12,
+      padding: '8px 10px',
+      boxShadow: '0 4px 10px rgba(0,0,0,0.1)',
+      width: '88%',
+      maxWidth: `${Math.min(320, LAYOUT.maxWidth)}px`,
+      textAlign: 'center' as const,
+    },
+    bubbleTextSmall: { fontWeight: 700, fontSize: 14, lineHeight: 1.3, color: '#333' },
+    characterWrap: {
+      display: 'flex',
+      flexDirection: 'column' as const,
+      alignItems: 'center',
+      gap: 8,
+      marginTop: 10,
+      marginBottom: 10,
+    },
+    characterImg: {
+      width: 'min(70vw, 300px)',
+      height: 'min(70vw, 300px)',
+      objectFit: 'contain' as const,
+    },
+    statusCard: (hasError: boolean) => ({
+      marginTop: 8,
+      padding: 10,
+      borderRadius: 10,
+      border: `1px solid ${hasError ? '#f5c2c7' : '#e5e7eb'}`,
+      background: hasError ? '#fdecee' : '#fafafa',
+      color: hasError ? '#842029' : '#111827',
+      width: '92%',
+      maxWidth: `${Math.min(LAYOUT.cardMaxWidth, LAYOUT.maxWidth)}px`,
+      textAlign: 'center' as const,
+      fontSize: 14,
+    }),
+  };
 
   // 認証チェック
   useEffect(() => {
@@ -399,19 +378,14 @@ function VoiceEntryContent() {
         const ymd = `${y}${m}${d}`;
 
         const hasToday = (data?.records ?? []).some((r: any) => {
-          if (Array.isArray(r?.created_at) && r.created_at[0])
-            return r.created_at[0] === ymd;
+          if (Array.isArray(r?.created_at) && r.created_at[0]) return r.created_at[0] === ymd;
           const name = String(r?.audio_path || '');
           const m2 = name.match(/audio_(\d{8})_/);
           return m2?.[1] === ymd;
         });
 
         if (hasToday) {
-          // 既存記録がある場合は、そのまま録音UIを表示
-          // 録音完了時に上書き保存
-          console.log(
-            '[INFO] 今日の記録が既に存在します。上書きモードで録音可能です。',
-          );
+          console.log('[INFO] 今日の記録が既に存在します。上書きモードで録音可能です。');
         }
       } catch (e: any) {
         setError(e?.message || '今日の記録確認に失敗しました');
@@ -421,10 +395,10 @@ function VoiceEntryContent() {
     };
     if (user) {
       checkToday();
-    }
-  }, [user, router]);
+    } 
+  }, [user,router]);
 
-  // --- 録音開始 ---
+  // 録音開始
   const startRecording = async () => {
     try {
       setError(null);
@@ -432,28 +406,19 @@ function VoiceEntryContent() {
       setAudioBlob(null);
       setTranscription(null);
       setIsPlaying(false);
-      setCompletionStep('recording'); // ステップをリセット
+      setCompletionStep('recording');
 
-      const stream = await navigator.mediaDevices.getUserMedia(
-        getAudioConstraints(),
-      );
+      const stream = await navigator.mediaDevices.getUserMedia(getAudioConstraints());
       streamRef.current = stream;
 
-      const rec = new MediaRecorder(
-        stream,
-        recConfig.mimeType ? { mimeType: recConfig.mimeType } : undefined,
-      );
+      const rec = new MediaRecorder(stream, recConfig.mimeType ? { mimeType: recConfig.mimeType } : undefined);
       mediaRecorderRef.current = rec;
       chunksRef.current = [];
 
-      rec.ondataavailable = (e) =>
-        e?.data && e.data.size > 0 && chunksRef.current.push(e.data);
-      rec.onerror = (ev) =>
-        setError(`録音エラー: ${(ev as any).error?.message || 'unknown'}`);
+      rec.ondataavailable = (e) => e?.data && e.data.size > 0 && chunksRef.current.push(e.data);
+      rec.onerror = (ev) => setError(`録音エラー: ${(ev as any).error?.message || 'unknown'}`);
       rec.onstop = () => {
-        const blob = new Blob(chunksRef.current, {
-          type: recConfig.contentType,
-        });
+        const blob = new Blob(chunksRef.current, { type: recConfig.contentType });
         setAudioBlob(blob);
         stopStream();
         setStatus('');
@@ -470,7 +435,7 @@ function VoiceEntryContent() {
     }
   };
 
-  // --- 録音停止 ---
+  // 録音停止
   const stopRecording = () => {
     if (!isRecording) return;
     try {
@@ -487,7 +452,7 @@ function VoiceEntryContent() {
     streamRef.current = null;
   };
 
-  // 再生（▶/⏸切替）
+  // 再生
   const togglePlay = async () => {
     if (!audioRef.current) return;
     try {
@@ -511,29 +476,21 @@ function VoiceEntryContent() {
     return () => a.removeEventListener('ended', onEnded);
   }, [audioBlob]);
 
-  //  最適化: 即座の完了画面表示 + バックグラウンド処理
+  // 即座の完了画面表示 + バックグラウンド処理
   const uploadAndSave = async () => {
     if (!audioBlob || !user) return;
     if (!emotionId || !intensityLevel || !childId) {
-      setError(
-        '感情データが不足しています。感情選択画面から再度お試しください。',
-      );
+      setError('感情データが不足しています。感情選択画面から再度お試しください。');
       return;
     }
 
-    // 1. 即座に完了画面表示（最優先）
+    setIsBusy(true);
     setCompletionStep('completed');
     setStatus('できた！');
-    setIsBusy(false); // ローディングを即座に終了
 
-    // 2. バックグラウンドで処理継続
     try {
-      console.log('[UPLOAD] 開始 - パラメータ:', {
-        emotionId,
-        intensityLevel,
-        childId,
-      });
-
+      console.log('[UPLOAD] 開始 - パラメータ:', { emotionId, intensityLevel, childId });
+      
       const health = await fetch(`${API_BASE}/api/v1/voice/health`);
       if (!health.ok) throw new Error(`ヘルスチェック失敗: ${health.status}`);
 
@@ -548,12 +505,9 @@ function VoiceEntryContent() {
           file_format: recConfig.ext,
         }),
       });
-      if (!upRes.ok)
-        throw new Error(
-          `アップロードURL取得失敗: ${upRes.status} ${await upRes.text()}`,
-        );
+      if (!upRes.ok) throw new Error(`アップロードURL取得失敗: ${upRes.status} ${await upRes.text()}`);
       const upData: GetUploadUrlResponse = await upRes.json();
-
+      
       console.log('[UPLOAD] アップロードURL取得成功:', upData.file_path);
 
       const put = await fetch(upData.upload_url, {
@@ -561,14 +515,10 @@ function VoiceEntryContent() {
         headers: { 'Content-Type': upData.content_type },
         body: audioBlob,
       });
-      if (!put.ok)
-        throw new Error(
-          `S3アップロード失敗: ${put.status} ${await put.text()}`,
-        );
-
+      if (!put.ok) throw new Error(`S3アップロード失敗: ${put.status} ${await put.text()}`);
+      
       console.log('[UPLOAD] S3アップロード成功');
 
-      // 音声認識処理の前
       console.log('[TRANSCRIBE] 開始 - audio_file_path:', upData.file_path);
 
       const tr = await fetch(`${API_BASE}/api/v1/voice/transcribe`, {
@@ -581,10 +531,10 @@ function VoiceEntryContent() {
         }),
       });
 
-      // 音声認識処理の後
       if (!tr.ok) {
-        console.error('[TRANSCRIBE] エラー:', tr.status, await tr.text());
-        throw new Error(`音声認識失敗: ${tr.status} ${await tr.text()}`);
+        const errorText = await tr.text();
+        console.error('[TRANSCRIBE] エラー:', tr.status, errorText);
+        throw new Error(`音声認識失敗: ${tr.status} ${errorText}`);
       }
 
       const trData: TranscriptionResult = await tr.json();
@@ -593,11 +543,10 @@ function VoiceEntryContent() {
       console.log('[TRANSCRIBE] 信頼度:', trData.confidence);
 
       setTranscription(trData);
-
-      // 追加：音声→テキストのパス生成＆テキスト本文
+      
       const audioPath = upData.file_path;
       const textPath = audioPath.replace('.webm', '.txt');
-
+      
       console.log('[SAVE] 保存開始 - パス:', { audioPath, textPath });
       console.log('[SAVE] voice_note:', trData.text || '');
 
@@ -622,44 +571,31 @@ function VoiceEntryContent() {
       }
 
       console.log('[SAVE] 保存成功');
-
-      // 3. 処理完了後に画面遷移
+      
       setCompletionStep('finished');
       const redirectTo = searchParams.get('redirect') || '/app/voice/complete';
       console.log('[REDIRECT] 遷移先:', redirectTo);
       setTimeout(() => router.replace(redirectTo), 500);
+
     } catch (e: any) {
       console.error('[ERROR] upload/save', e);
       setError(e?.message || 'エラーが発生しました');
-      // エラー時も完了画面は維持
+    } finally {
+      setIsBusy(false);
     }
   };
 
   // ローディング系
   if (isLoading || !user) {
     return (
-      <main
-        style={{
-          display: 'grid',
-          placeItems: 'center',
-          minHeight: '60vh',
-          color: colors.text.secondary,
-        }}
-      >
+      <main style={{ display: 'grid', placeItems: 'center', minHeight: '60vh', color: colors.text.secondary }}>
         <p>読み込み中...</p>
       </main>
     );
   }
   if (checkingToday) {
     return (
-      <main
-        style={{
-          display: 'grid',
-          placeItems: 'center',
-          minHeight: '60vh',
-          color: colors.text.secondary,
-        }}
-      >
+      <main style={{ display: 'grid', placeItems: 'center', minHeight: '60vh', color: colors.text.secondary }}>
         <p>きょうの記録を確認中…</p>
       </main>
     );
@@ -667,24 +603,15 @@ function VoiceEntryContent() {
 
   if (!emotionId || !intensityLevel) {
     return (
-      <main
-        style={{
-          maxWidth: 720,
-          margin: '0 auto',
-          padding: spacing.xl,
-          background: 'url("/images/background.webp") no-repeat center center',
-          backgroundSize: 'cover',
-          minHeight: '100vh',
-        }}
-      >
-        <h1
-          style={{
-            fontSize: 22,
-            fontWeight: 700,
-            marginBottom: spacing.sm,
-            color: colors.text.primary,
-          }}
-        >
+      <main style={{
+        maxWidth: 720,
+        margin: '0 auto',
+        padding: spacing.xl,
+        background: 'url("/images/background.webp") no-repeat center center',
+        backgroundSize: 'cover',
+        minHeight: '100vh',
+      }}>
+        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: spacing.sm, color: colors.text.primary }}>
           感情データが不足しています
         </h1>
         <p style={{ marginBottom: spacing.md, color: colors.text.secondary }}>
@@ -693,7 +620,6 @@ function VoiceEntryContent() {
         <button
           onClick={() => router.push('/app/emotion-selection')}
           style={{
-            ...commonStyles.button.base,
             padding: `${spacing.md} ${spacing.lg}`,
             borderRadius: borderRadius.medium,
             backgroundColor: colors.primary,
@@ -708,11 +634,11 @@ function VoiceEntryContent() {
     );
   }
 
-  //  新機能: 完了画面の表示
+  // 完了画面の表示
   if (completionStep === 'completed' || completionStep === 'finished') {
     return (
-      <div style={styles.page}>
-        <AudioPlayer
+      <div style={layoutStyles.page}>
+        <AudioPlayer 
           src="/sounds/characterAskReason04.mp3"
           autoPlay={true}
           volume={0.8}
@@ -720,7 +646,6 @@ function VoiceEntryContent() {
           onError={(error) => console.log('[AUDIO] 音声エラー:', error)}
         />
 
-        {/* 既存のkeyframesを活用 */}
         <style>{`
           @keyframes bob {
             0%,100% { transform: translateY(0); }
@@ -732,41 +657,34 @@ function VoiceEntryContent() {
           }
         `}</style>
 
-        <main style={styles.panel}>
-          {/* 既存の待ち時間オーバーレイを完了画面として活用 */}
-          <div
-            style={styles.overlay}
-            role="dialog"
-            aria-live="polite"
-            aria-label="完了"
-          >
-            <div style={styles.waitCard}>
+        <main style={layoutStyles.panel}>
+          <div style={completionStyles.overlay} role="dialog" aria-live="polite" aria-label="完了">
+            <div style={completionStyles.waitCard}>
               <img
                 src="/images/kokoron/kokoron_mic.webp"
                 alt="うれしいこころん"
-                style={styles.waitKokoron}
+                style={completionStyles.waitKokoron}
               />
-              <div style={styles.waitBubble}>
-                {completionStep === 'completed'
+              <div style={completionStyles.waitBubble}>
+                {completionStep === 'completed' 
                   ? 'きもちを きかせてくれて ありがとう✨'
-                  : 'こころんが よろこんでるよ！つぎの がめんにすすむよ... 🎉'}
+                  : 'こころんが よろこんでるよ！つぎの がめんにすすむよ... 🎉'
+                }
               </div>
-              <div style={styles.progressWrap}>
-                <div
-                  style={{
-                    ...styles.progressBar,
-                    width: completionStep === 'completed' ? '60%' : '100%',
-                    background:
-                      completionStep === 'completed'
-                        ? 'linear-gradient(90deg,rgb(250, 250, 55),rgb(222, 242, 121),rgb(132, 250, 6))'
-                        : 'linear-gradient(90deg,rgb(248, 165, 239),rgb(105, 235, 244),rgb(244, 84, 10))',
-                  }}
-                />
+              <div style={completionStyles.progressWrap}>
+                <div style={{
+                  ...completionStyles.progressBar,
+                  width: completionStep === 'completed' ? '60%' : '100%',
+                  background: completionStep === 'completed' 
+                    ? 'linear-gradient(90deg,rgb(250, 250, 55),rgb(222, 242, 121),rgb(132, 250, 6))'
+                    : 'linear-gradient(90deg,rgb(248, 165, 239),rgb(105, 235, 244),rgb(244, 84, 10))',
+                }} />
               </div>
-              <div style={styles.waitHint}>
-                {completionStep === 'completed'
+              <div style={completionStyles.waitHint}>
+                {completionStep === 'completed' 
                   ? 'しばらくすると つぎのがめんに すすむよ...'
-                  : 'まもなく つぎのがめんに すすむよ！'}
+                  : 'まもなく つぎのがめんに すすむよ！'
+                }
               </div>
             </div>
           </div>
@@ -777,9 +695,8 @@ function VoiceEntryContent() {
 
   // UI本体
   return (
-    <div style={styles.page}>
-      {/* 音声自動再生 */}
-      <AudioPlayer
+    <div style={layoutStyles.page}>
+      <AudioPlayer 
         src="/sounds/characterAskReason04.mp3"
         autoPlay={true}
         volume={0.8}
@@ -787,7 +704,6 @@ function VoiceEntryContent() {
         onError={(error) => console.log('[AUDIO] 音声エラー:', error)}
       />
 
-      {/* keyframes（CSS）をこの画面だけに注入 */}
       <style>{`
         @keyframes bob {
           0%,100% { transform: translateY(0); }
@@ -799,72 +715,49 @@ function VoiceEntryContent() {
         }
       `}</style>
 
-      <main style={styles.panel} aria-busy={isBusy}>
-        <button onClick={handleBack} style={styles.backBtn} disabled={isBusy}>
-          ← もどる
-        </button>
+      <main style={layoutStyles.panel}>
+        <button onClick={handleBack} style={layoutStyles.backBtn}>← もどる</button>
 
-        {/* バブル */}
-        <div style={styles.bubbleSmall}>
-          <span style={styles.bubbleTextSmall}>
-            どうしてこのきもちになったのかな？
-          </span>
+        <div style={commonStyles.bubbleSmall}>
+          <span style={commonStyles.bubbleTextSmall}>どうしてこのきもちになったのかな？</span>
         </div>
 
-        {/* キャラクター */}
-        <div style={styles.characterWrap}>
-          <img
-            src="/images/kokoron/kokoron_mic.webp"
-            alt="マイクを持つこころん"
-            style={styles.characterImg}
-          />
+        <div style={commonStyles.characterWrap}>
+          <img src="/images/kokoron/kokoron_mic.webp" alt="マイクを持つこころん" style={commonStyles.characterImg} />
         </div>
 
-        {/* 録音（白枠カード＋1ボタン切替） */}
         {!audioBlob && (
-          <section style={styles.recordCard}>
-            <div style={styles.recordButtonWrap}>
+          <section style={recordingStyles.recordCard}>
+            <div style={recordingStyles.recordButtonWrap}>
               <button
                 onClick={isRecording ? stopRecording : startRecording}
                 aria-label={isRecording ? '録音をとめる' : '録音をはじめる'}
-                disabled={isBusy}
-                style={styles.recordOuter}
+                style={recordingStyles.recordOuter}
               >
-                <div
-                  style={
-                    isRecording
-                      ? styles.recordInnerActive
-                      : styles.recordInnerIdle
-                  }
-                />
+                <div style={isRecording ? recordingStyles.recordInnerActive : recordingStyles.recordInnerIdle} />
                 {isRecording && (
-                  <div style={styles.pauseIconWrap} aria-hidden="true">
-                    <div style={styles.pauseBars}>
-                      <div style={styles.pauseBar} />
-                      <div style={styles.pauseBar} />
+                  <div style={recordingStyles.pauseIconWrap} aria-hidden="true">
+                    <div style={recordingStyles.pauseBars}>
+                      <div style={recordingStyles.pauseBar} />
+                      <div style={recordingStyles.pauseBar} />
                     </div>
                   </div>
                 )}
               </button>
             </div>
-            <div style={styles.recordHelper}>
-              {isRecording ? 'とめる' : 'はなしてね'}
-            </div>
+            <div style={recordingStyles.recordHelper}>{isRecording ? 'とめる' : 'はなしてね'}</div>
           </section>
         )}
 
-        {/* 確認パネル（録音後） */}
         {audioBlob && !isRecording && (
-          <section style={styles.confirmCard} aria-live="polite">
-            <div style={styles.confirmTitle}>きいてみる</div>
+          <section style={confirmationStyles.confirmCard} aria-live="polite">
+            <div style={confirmationStyles.confirmTitle}>きいてみる</div>
 
             <button
               onClick={togglePlay}
               style={{
-                ...styles.playButtonBase,
-                ...(isPlaying
-                  ? styles.playButtonActive
-                  : styles.playButtonIdle),
+                ...confirmationStyles.playButtonBase,
+                ...(isPlaying ? confirmationStyles.playButtonActive : confirmationStyles.playButtonIdle),
               }}
               disabled={isBusy}
               aria-label={isPlaying ? 'とめる' : 'きく'}
@@ -872,25 +765,19 @@ function VoiceEntryContent() {
               <span>{isPlaying ? '⏸' : '▶'}</span>
             </button>
 
-            {/* 隠しaudio */}
             <audio
               ref={audioRef}
               src={audioBlob ? URL.createObjectURL(audioBlob) : undefined}
               style={{ display: 'none' }}
             />
 
-            <div style={styles.confirmButtons}>
-              <button
-                style={styles.btnPrimary}
-                onClick={uploadAndSave}
-                disabled={isBusy}
-              >
+            <div style={confirmationStyles.confirmButtons}>
+              <button style={confirmationStyles.btnPrimary} onClick={uploadAndSave} disabled={isBusy}>
                 ✅ いい
               </button>
               <button
-                style={styles.btnDanger}
+                style={confirmationStyles.btnDanger}
                 onClick={startRecording}
-                disabled={isBusy}
               >
                 🔴 もういっかい
               </button>
@@ -899,7 +786,7 @@ function VoiceEntryContent() {
         )}
 
         {(status || error) && (
-          <div style={styles.statusCard(!!error)}>
+          <div style={commonStyles.statusCard(!!error)}>
             <div style={{ fontWeight: 700 }}>{status}</div>
             {error && <div style={{ marginTop: 6 }}>{error}</div>}
           </div>
@@ -919,63 +806,21 @@ function VoiceEntryContent() {
               textAlign: 'center' as const,
             }}
           >
-            <div style={{ fontWeight: 700, marginBottom: 6, color: '#111827' }}>
-              文字起こし
-            </div>
-            <div
-              style={{
-                whiteSpace: 'pre-wrap',
-                lineHeight: 1.6,
-                color: '#111827',
-              }}
-            >
+            <div style={{ fontWeight: 700, marginBottom: 6, color: '#111827' }}>文字起こし</div>
+            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: '#111827' }}>
               {transcription.text || '—'}
             </div>
-            {/* 修正: 信頼度表示を調整 */}
             {typeof transcription.confidence === 'number' && (
               <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>
-                信頼度:{' '}
-                {transcription.confidence >= 0
+                信頼度: {transcription.confidence >= 0 
                   ? `${(transcription.confidence * 100).toFixed(1)}%`
-                  : `logprob: ${transcription.confidence.toFixed(3)}`}
+                  : `logprob: ${transcription.confidence.toFixed(3)}`
+                }
               </div>
             )}
           </div>
         )}
       </main>
-
-      {/* === 待ち時間の楽しいオーバーレイ（isBusy中だけ表示） === */}
-      {isBusy && (
-        <div
-          style={styles.overlay}
-          role="dialog"
-          aria-live="polite"
-          aria-label="よみこみ中"
-        >
-          <div style={styles.waitCard}>
-            <img
-              src="/images/kokoron/kokoron_mic.webp"
-              alt="こころん"
-              style={styles.waitKokoron}
-            />
-            <div style={styles.waitBubble}>{WAIT_MESSAGES[msgIndex]}</div>
-            <div style={styles.progressWrap}>
-              <div style={styles.progressBar} />
-            </div>
-            <div style={styles.waitHint}>
-              よみこみ中だよ… そのまま まっててね
-            </div>
-          </div>
-        </div>
-      )}
     </div>
-  );
-}
-
-export default function VoiceEntryPage() {
-  return (
-    <Suspense fallback={<div>Loading...</div>}>
-      <VoiceEntryContent />
-    </Suspense>
   );
 }
