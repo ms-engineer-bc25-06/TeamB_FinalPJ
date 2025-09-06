@@ -3,14 +3,12 @@
 S3パス構築、ファイルアップロード、メタデータ管理を行う
 """
 
-import os
 import logging
 import uuid
 from datetime import datetime
-from typing import Optional, Dict, Any, List
-from pathlib import Path
+from typing import Optional
 
-from app.services.s3 import S3Service
+from app.services.s3 import S3Service, S3DeleteError, S3PresignedUrlError
 from app.utils.constants import (
     S3_BUCKET_NAME,
     S3_UPLOAD_FOLDER,
@@ -18,7 +16,6 @@ from app.utils.constants import (
 )
 from app.utils.error_handlers import raise_voice_error
 
-# ロガーの設定
 logger = logging.getLogger(__name__)
 
 
@@ -29,10 +26,44 @@ class VoiceFileService:
         self.s3_service = S3Service()
         self.bucket_name = S3_BUCKET_NAME
         self.upload_folder = S3_UPLOAD_FOLDER
+        self.default_expiry = S3_PRESIGNED_URL_EXPIRY
 
+        self._validate_config()
+
+    def _validate_config(self):
+        """設定の検証"""
         if not self.bucket_name:
             logger.error("S3_BUCKET_NAMEが設定されていません")
             raise_voice_error("S3_CONFIG_ERROR")
+
+        if not self.upload_folder:
+            logger.error("S3_UPLOAD_FOLDERが設定されていません")
+            raise_voice_error("S3_CONFIG_ERROR")
+
+        logger.info(
+            "VoiceFileService初期化完了: bucket=%s, folder=%s",
+            self.bucket_name,
+            self.upload_folder,
+        )
+
+    def _calculate_expiry(self, s3_key: str) -> int:
+        """
+        ファイルタイプに基づいて有効期限を計算
+
+        ファイルタイプに応じて適切な有効期限を設定する。
+        テキストファイルは長期間保存される可能性が高いため、有効期限を2倍に設定する。
+        """
+        file_type = self._extract_file_type(s3_key)
+
+        # ファイルタイプ別の有効期限設定
+        # テキストファイルは長期間保存される可能性が高いため、有効期限を2倍に設定
+        expiry_mapping = {
+            "audio": self.default_expiry,
+            "text": self.default_expiry * 2,  # テキストファイルは長め
+            "unknown": self.default_expiry,
+        }
+
+        return expiry_mapping.get(file_type, self.default_expiry)
 
     def generate_s3_key(
         self, user_id: str, file_name: str, file_type: str = "audio"
@@ -40,303 +71,159 @@ class VoiceFileService:
         """
         S3キーを生成
 
+        ユーザー別、日付別、ファイルタイプ別に整理されたS3キーを生成する。
+        ファイルの重複を防ぐため、UUIDを付与してユニーク性を保証する。
+
         Args:
             user_id: ユーザーID
             file_name: ファイル名
             file_type: ファイルタイプ（audio, text等）
 
         Returns:
-            str: S3キー
+            str: S3キー（例: voice-uploads/audio/user123/2024/01/15/uuid_filename.webm）
         """
         try:
-            # ユニークなIDを生成
             unique_id = str(uuid.uuid4())
-
-            # 現在の日時を取得
             current_date = datetime.now().strftime("%Y/%m/%d")
-
-            # S3キーを構築
             s3_key = f"{self.upload_folder}/{file_type}/{user_id}/{current_date}/{unique_id}_{file_name}"
 
-            logger.info(f"S3キー生成完了: {s3_key}")
+            logger.info("S3キー生成完了: %s", s3_key)
             return s3_key
 
-        except Exception as e:
-            logger.error(f"S3キー生成エラー: {e}")
+        except (ValueError, RuntimeError, OSError) as e:
+            logger.error("S3キー生成エラー: %s", e)
             raise_voice_error("S3_KEY_GENERATION_ERROR")
 
-    def upload_audio_file(
-        self,
-        local_file_path: str,
-        user_id: str,
-        language: str = "ja",
-        metadata: Optional[Dict[str, Any]] = None,
-    ) -> Dict[str, Any]:
-        """
-        音声ファイルをS3にアップロード
-
-        Args:
-            local_file_path: ローカルファイルパス
-            user_id: ユーザーID
-            language: 言語コード
-            metadata: 追加メタデータ
-
-        Returns:
-            Dict[str, Any]: アップロード結果
-        """
-        try:
-            logger.info(f"音声ファイルアップロード開始: {local_file_path}")
-
-            # ファイル名を取得
-            file_name = Path(local_file_path).name
-
-            # S3キーを生成
-            s3_key = self.generate_s3_key(user_id, file_name, "audio")
-
-            # メタデータを構築
-            file_metadata = {
-                "user_id": user_id,
-                "language": language,
-                "file_type": "audio",
-                "upload_date": datetime.now().isoformat(),
-                "original_filename": file_name,
-                "file_size": os.path.getsize(local_file_path),
-                "file_extension": Path(local_file_path).suffix.lower().lstrip("."),
-            }
-
-            # 追加メタデータがあれば統合
-            if metadata:
-                file_metadata.update(metadata)
-
-            # S3にアップロード
-            upload_result = self.s3_service.upload_file(
-                local_file_path=local_file_path,
-                s3_key=s3_key,
-                bucket_name=self.bucket_name,
-                metadata=file_metadata,
-            )
-
-            logger.info(f"音声ファイルアップロード完了: {s3_key}")
-
-            return {
-                "success": True,
-                "s3_key": s3_key,
-                "s3_url": f"https://{self.bucket_name}.s3.amazonaws.com/{s3_key}",
-                "metadata": file_metadata,
-                "upload_result": upload_result,
-            }
-
-        except Exception as e:
-            logger.error(f"音声ファイルアップロードエラー: {e}")
-            raise_voice_error("UPLOAD_FAILED")
-
-    def upload_text_file(
-        self,
-        text_content: str,
-        user_id: str,
-        original_audio_key: str,
-        language: str = "ja",
-    ) -> Dict[str, Any]:
-        """
-        音声認識結果のテキストファイルをS3にアップロード
-
-        Args:
-            text_content: テキスト内容
-            user_id: ユーザーID
-            original_audio_key: 元の音声ファイルのS3キー
-            language: 言語コード
-
-        Returns:
-            Dict[str, Any]: アップロード結果
-        """
-        try:
-            logger.info(f"テキストファイルアップロード開始: {original_audio_key}")
-
-            # テキストファイル名を生成
-            text_file_name = f"transcription_{Path(original_audio_key).stem}.txt"
-
-            # S3キーを生成
-            s3_key = self.generate_s3_key(user_id, text_file_name, "text")
-
-            # メタデータを構築
-            file_metadata = {
-                "user_id": user_id,
-                "language": language,
-                "file_type": "text",
-                "upload_date": datetime.now().isoformat(),
-                "original_audio_key": original_audio_key,
-                "content_type": "text/plain",
-                "character_count": len(text_content),
-            }
-
-            # 一時的なテキストファイルを作成
-            temp_file_path = f"/tmp/{text_file_name}"
-            with open(temp_file_path, "w", encoding="utf-8") as f:
-                f.write(text_content)
-
-            try:
-                # S3にアップロード
-                upload_result = self.s3_service.upload_file(
-                    local_file_path=temp_file_path,
-                    s3_key=s3_key,
-                    bucket_name=self.bucket_name,
-                    metadata=file_metadata,
-                )
-
-                logger.info(f"テキストファイルアップロード完了: {s3_key}")
-
-                return {
-                    "success": True,
-                    "s3_key": s3_key,
-                    "s3_url": f"https://{self.bucket_name}.s3.amazonaws.com/{s3_key}",
-                    "metadata": file_metadata,
-                    "upload_result": upload_result,
-                }
-
-            finally:
-                # 一時ファイルを削除
-                if os.path.exists(temp_file_path):
-                    os.remove(temp_file_path)
-
-        except Exception as e:
-            logger.error(f"テキストファイルアップロードエラー: {e}")
-            raise_voice_error("UPLOAD_FAILED")
-
-    def get_file_metadata(self, s3_key: str) -> Dict[str, Any]:
-        """
-        ファイルのメタデータを取得
-
-        Args:
-            s3_key: S3キー
-
-        Returns:
-            Dict[str, Any]: メタデータ
-        """
-        try:
-            logger.info(f"ファイルメタデータ取得開始: {s3_key}")
-
-            # S3からメタデータを取得
-            metadata = self.s3_service.get_file_metadata(
-                s3_key=s3_key, bucket_name=self.bucket_name
-            )
-
-            logger.info(f"ファイルメタデータ取得完了: {s3_key}")
-            return metadata
-
-        except Exception as e:
-            logger.error(f"ファイルメタデータ取得エラー: {e}")
-            raise_voice_error("METADATA_RETRIEVAL_ERROR")
-
-    def list_user_files(
-        self, user_id: str, file_type: Optional[str] = None
-    ) -> List[Dict[str, Any]]:
-        """
-        ユーザーのファイル一覧を取得
-
-        Args:
-            user_id: ユーザーID
-            file_type: ファイルタイプ（オプション）
-
-        Returns:
-            List[Dict[str, Any]]: ファイル一覧
-        """
-        try:
-            logger.info(f"ユーザーファイル一覧取得開始: {user_id}")
-
-            # プレフィックスを構築
-            prefix = f"{self.upload_folder}/"
-            if file_type:
-                prefix += f"{file_type}/{user_id}/"
-            else:
-                prefix += f"*/{user_id}/"
-
-            # S3からファイル一覧を取得
-            files = self.s3_service.list_files(
-                bucket_name=self.bucket_name, prefix=prefix
-            )
-
-            # ファイル情報を整形
-            file_list = []
-            for file_info in files:
-                file_list.append(
-                    {
-                        "s3_key": file_info.get("Key"),
-                        "file_name": Path(file_info.get("Key", "")).name,
-                        "file_size": file_info.get("Size", 0),
-                        "last_modified": file_info.get("LastModified"),
-                        "file_type": self._extract_file_type(file_info.get("Key", "")),
-                    }
-                )
-
-            logger.info(f"ユーザーファイル一覧取得完了: {len(file_list)}件")
-            return file_list
-
-        except Exception as e:
-            logger.error(f"ユーザーファイル一覧取得エラー: {e}")
-            raise_voice_error("FILE_LIST_RETRIEVAL_ERROR")
-
-    def generate_download_url(
-        self, s3_key: str, expiry: int = S3_PRESIGNED_URL_EXPIRY
-    ) -> str:
+    def generate_download_url(self, s3_key: str, expiry: Optional[int] = None) -> str:
         """
         ダウンロード用のPresigned URLを生成
 
+        ファイルタイプに応じて適切な有効期限を自動設定し、
+        セキュアな一時アクセスURLを生成する。
+
         Args:
             s3_key: S3キー
-            expiry: 有効期限（秒）
+            expiry: 有効期限（秒、Noneの場合は自動計算）
 
         Returns:
-            str: Presigned URL
+            str: Presigned URL（一時的なダウンロード用URL）
         """
         try:
-            logger.info(f"ダウンロードURL生成開始: {s3_key}")
+            logger.info("ダウンロードURL生成開始: %s", s3_key)
 
-            # Presigned URLを生成
+            if expiry is None:
+                expiry = self._calculate_expiry(s3_key)
+
             download_url = self.s3_service.generate_presigned_download_url(
-                s3_key=s3_key, bucket_name=self.bucket_name, expiry=expiry
+                file_path=s3_key, expiration=expiry
             )
 
-            logger.info(f"ダウンロードURL生成完了: {s3_key}")
+            logger.info("ダウンロードURL生成完了: %s, expiry=%ss", s3_key, expiry)
             return download_url
 
-        except Exception as e:
-            logger.error(f"ダウンロードURL生成エラー: {e}")
+        except S3PresignedUrlError as e:
+            logger.error("Presigned URL生成エラー: %s", e)
             raise_voice_error("DOWNLOAD_URL_GENERATION_ERROR")
+        except (ValueError, RuntimeError, OSError) as e:
+            logger.error("予期しないエラー: %s", e)
+            raise_voice_error("UNEXPECTED_ERROR")
 
-    def delete_file(self, s3_key: str) -> bool:
+    def generate_presigned_upload_url(self, s3_key: str, content_type: str) -> str:
         """
-        ファイルを削除
+        アップロード用のPresigned URLを生成
+
+        S3Serviceのgenerate_presigned_upload_urlをラップし、
+        エラーハンドリングを提供する。
+
+        Args:
+            s3_key: S3キー
+            content_type: コンテンツタイプ
+
+        Returns:
+            str: Presigned URL（一時的なアップロード用URL）
+        """
+        try:
+            logger.info("アップロードURL生成開始: %s", s3_key)
+
+            upload_url = self.s3_service.generate_presigned_upload_url(
+                file_path=s3_key, content_type=content_type
+            )
+
+            logger.info("アップロードURL生成完了: %s", s3_key)
+            return upload_url
+
+        except S3PresignedUrlError as e:
+            logger.error("Presigned URL生成エラー: %s", e)
+            raise_voice_error("UPLOAD_URL_GENERATION_FAILED")
+        except (ValueError, RuntimeError, OSError) as e:
+            logger.error("予期しないエラー: %s", e)
+            raise_voice_error("UNEXPECTED_ERROR")
+
+    def get_file_url(self, s3_key: str) -> str:
+        """
+        S3ファイルのHTTPS URLを取得
+
+        S3Serviceのget_file_urlをラップし、
+        エラーハンドリングを提供する。
 
         Args:
             s3_key: S3キー
 
         Returns:
-            bool: 削除結果
+            str: HTTPS URL
         """
         try:
-            logger.info(f"ファイル削除開始: {s3_key}")
+            logger.info("ファイルURL生成開始: %s", s3_key)
 
-            # S3からファイルを削除
-            delete_result = self.s3_service.delete_file(
-                s3_key=s3_key, bucket_name=self.bucket_name
-            )
+            file_url = self.s3_service.get_file_url(s3_key)
 
-            logger.info(f"ファイル削除完了: {s3_key}")
-            return delete_result
+            logger.info("ファイルURL生成完了: %s", s3_key)
+            return file_url
 
-        except Exception as e:
-            logger.error(f"ファイル削除エラー: {e}")
-            raise_voice_error("FILE_DELETION_ERROR")
+        except (ValueError, RuntimeError, OSError) as e:
+            logger.error("ファイルURL生成エラー: %s", e)
+            raise_voice_error("FILE_URL_GENERATION_ERROR")
+
+    def delete_object(self, s3_key: str) -> bool:
+        """
+        S3オブジェクトを削除
+
+        S3Serviceのdelete_objectをラップし、エラーハンドリングを提供する。
+        削除に失敗した場合は警告ログを出力し、Falseを返す。
+
+        Args:
+            s3_key: S3キー
+
+        Returns:
+            bool: 削除結果（True: 成功、False: 失敗）
+        """
+        try:
+            logger.info("S3オブジェクト削除開始: %s", s3_key)
+
+            self.s3_service.delete_object(s3_key)
+
+            logger.info("S3オブジェクト削除完了: %s", s3_key)
+            return True
+
+        except S3DeleteError as e:
+            logger.warning("S3オブジェクト削除失敗: key=%s, エラー: %s", s3_key, e)
+            return False
+        except (ValueError, RuntimeError, OSError) as e:
+            logger.error("予期しないエラー: key=%s, エラー: %s", s3_key, e)
+            raise_voice_error("UNEXPECTED_ERROR")
 
     def _extract_file_type(self, s3_key: str) -> str:
         """
         S3キーからファイルタイプを抽出
 
+        S3キーの構造からファイルタイプ（audio, text等）を抽出する。
+        キーの形式: upload_folder/file_type/user_id/date/filename
+
         Args:
             s3_key: S3キー
 
         Returns:
-            str: ファイルタイプ
+            str: ファイルタイプ（audio, text, unknown）
         """
         try:
             # S3キーの構造: upload_folder/file_type/user_id/date/filename
@@ -344,29 +231,6 @@ class VoiceFileService:
             if len(parts) >= 3:
                 return parts[1]  # file_type部分
             return "unknown"
-        except Exception:
+        except (ValueError, IndexError) as e:
+            logger.warning("ファイルタイプ抽出エラー: %s", e)
             return "unknown"
-
-
-# 便利な関数
-def get_file_size_human_readable(file_size_bytes: int) -> str:
-    """ファイルサイズを人間が読みやすい形式に変換"""
-    for unit in ["B", "KB", "MB", "GB"]:
-        if file_size_bytes < 1024.0:
-            return f"{file_size_bytes:.1f} {unit}"
-        file_size_bytes /= 1024.0
-    return f"{file_size_bytes:.1f} TB"
-
-
-def is_valid_s3_key(s3_key: str) -> bool:
-    """S3キーが有効かどうかを判定"""
-    if not s3_key or not isinstance(s3_key, str):
-        return False
-
-    # S3キーの基本的な形式チェック
-    if s3_key.startswith("/") or s3_key.endswith("/"):
-        return False
-
-    # 禁止文字のチェック
-    forbidden_chars = ["\\", ":", "|", "*", "?", '"', "<", ">"]
-    return not any(char in s3_key for char in forbidden_chars)
