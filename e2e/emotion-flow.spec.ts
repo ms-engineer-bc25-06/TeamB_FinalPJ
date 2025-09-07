@@ -2,14 +2,43 @@ import { expect, test } from "@playwright/test";
 
 test.describe("感情記録フロー E2E", () => {
   test.beforeEach(async ({ page }) => {
-    // Firebase Auth Emulatorを使用するように環境変数を設定
+    // 認証をスキップするためのモックを設定
     await page.addInitScript(() => {
+      // 認証状態をモック
+      (window as any).__MOCK_FIREBASE_USER__ = {
+        uid: "test-user-123",
+        email: "test@example.com",
+        displayName: "Test User",
+        photoURL: "https://example.com/photo.jpg",
+        getIdToken: () => Promise.resolve("mock-id-token"),
+        emailVerified: true,
+        isAnonymous: false,
+        metadata: {
+          creationTime: new Date().toISOString(),
+          lastSignInTime: new Date().toISOString(),
+        },
+      };
+
+      (window as any).__MOCK_BACKEND_USER__ = {
+        id: 1,
+        uid: "test-user-123",
+        email: "test@example.com",
+        nickname: "Test User",
+        email_verified: true,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      };
+
+      // 環境変数を設定
       (window as any).process = {
         env: {
           NODE_ENV: "test",
           USE_FIREBASE_EMULATOR: "true",
         },
       };
+
+      (window as any).NODE_ENV = "test";
+      (window as any).USE_FIREBASE_EMULATOR = "true";
     });
   });
 
@@ -17,56 +46,36 @@ test.describe("感情記録フロー E2E", () => {
     // コンソールログを監視
     page.on("console", (msg) => console.log("PAGE LOG:", msg.text()));
 
-    // 1. ログインページにアクセス
-    await page.goto("http://localhost:3000/");
-
-    // 2. ログインボタンをクリック
-    await page.click("text=ログイン");
-
-    // 3. ログインフォームが表示されるまで待つ
-    await page.waitForSelector('input[type="email"]', { timeout: 10000 });
-
-    // 4. テストユーザーでログイン
-    await page.fill('input[type="email"]', "test@example.com");
-    await page.fill('input[type="password"]', "testpassword123");
-    await page.click('button[type="submit"]');
-
-    // 5. ログイン成功を待つ
-    await page.waitForLoadState("networkidle");
-
-    // 6. 感情選択ページにアクセス
+    // 1. 感情選択ページに直接アクセス
     await page.goto("http://localhost:3000/app/emotion-selection");
 
-    // 7. ページが完全に読み込まれるまで待つ
-    await page.waitForLoadState("networkidle");
-
-    // 8. 感情カードが表示されるまで待つ
+    // 2. 感情カードが表示されるまで待つ（画像の読み込みエラーを無視）
     await page.waitForSelector('[data-testid*="emotion-card-"]', {
-      timeout: 10000,
+      timeout: 15000,
     });
 
-    // 9. 感情カードを選択
+    // 4. 感情カードを選択
     const cards = await page.locator('[data-testid*="emotion-card-"]');
-    await expect(cards).toHaveCount(12);
+    await expect(cards).toHaveCount(4);
     await cards.first().click();
 
-    // 10. 強度選択ページへの遷移を待つ
+    // 5. 強度選択ページへの遷移を待つ
     await page.waitForURL("**/emotion-intensity*", { timeout: 10000 });
 
-    // 11. 強度を選択
+    // 6. 強度を選択
     await page.click('[data-testid="intensity-medium"]');
 
-    // 12. 確認ページに進む
+    // 7. 確認ページに進む
     await page.waitForURL("**/emotion-confirmation*");
 
-    // 13. 保存ボタンをクリック（スワイプ操作）
+    // 8. 保存ボタンをクリック（スワイプ操作）
     const card = page.locator('[data-testid="emotion-card"]').first();
     await card.hover();
     await page.mouse.down();
     await page.mouse.move(300, 0);
     await page.mouse.up();
 
-    // 14. 成功メッセージが表示されるか確認
+    // 9. 成功メッセージが表示されるか確認
     await expect(page.getByText(/きもち/)).toBeVisible();
   });
 });

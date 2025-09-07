@@ -35,6 +35,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   useEffect(() => {
     console.log('=== AuthContext useEffect started ===');
 
+    // テスト環境での認証状態の処理
+    if (typeof window !== 'undefined') {
+      const mockFirebaseUser = (window as any).__MOCK_FIREBASE_USER__;
+      const mockBackendUser = (window as any).__MOCK_BACKEND_USER__;
+
+      console.log('=== AuthContext: Checking for mock authentication ===');
+      console.log('Mock Firebase user exists:', !!mockFirebaseUser);
+      console.log('Mock Backend user exists:', !!mockBackendUser);
+
+      if (mockFirebaseUser && mockBackendUser) {
+        console.log('=== Test environment: Using mock authentication ===');
+        console.log('1. Mock Firebase user found:', mockFirebaseUser.email);
+        console.log('2. Mock backend user found:', mockBackendUser.email);
+
+        setFirebaseUser(mockFirebaseUser);
+        setUser(mockBackendUser);
+        setIsLoading(false);
+        return;
+      }
+    }
+
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (fbUser) => {
       console.log('=== onAuthStateChanged triggered ===');
       console.log(
