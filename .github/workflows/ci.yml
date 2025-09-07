@@ -341,8 +341,23 @@ jobs:
           FIREBASE_PORT=$(python3 -c "import socket; s=socket.socket(); s.bind(('',0)); print(s.getsockname()[1]); s.close()")
           echo "FIREBASE_PORT=$FIREBASE_PORT" >> $GITHUB_ENV
 
+          # firebase.jsonを動的に生成（ポート指定）
+          cat > firebase.json << EOF
+          {
+            "emulators": {
+              "singleProjectMode": true,
+              "auth": {
+                "port": $FIREBASE_PORT
+              },
+              "ui": {
+                "enabled": false
+              }
+            }
+          }
+          EOF
+
           # Firebase Emulatorを起動
-          firebase emulators:start --only auth --project demo-test --port $FIREBASE_PORT &
+          firebase emulators:start --only auth --project demo-test &
           echo $! > firebase.pid
 
           # エミュレーターの起動を待つ
