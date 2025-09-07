@@ -40,6 +40,19 @@ test.describe("感情記録フロー E2E", () => {
       (window as any).NODE_ENV = "test";
       (window as any).USE_FIREBASE_EMULATOR = "true";
     });
+
+    // APIリクエストをインターセプトして認証ヘッダーを追加
+    await page.route("**/emotion/**", async (route) => {
+      const request = route.request();
+      const headers = {
+        ...request.headers(),
+        Authorization: "Bearer mock-id-token",
+      };
+
+      await route.continue({
+        headers,
+      });
+    });
   });
 
   test("感情を選択して保存できる", async ({ page }) => {
@@ -68,14 +81,19 @@ test.describe("感情記録フロー E2E", () => {
     // 7. 確認ページに進む
     await page.waitForURL("**/emotion-confirmation*");
 
-    // 8. 保存ボタンをクリック（スワイプ操作）
-    const card = page.locator('[data-testid="emotion-card"]').first();
+    // 8. 感情カードが表示されるまで待つ
+    await page.waitForSelector('[data-testid="emotion-card"]', {
+      timeout: 10000,
+    });
+
+    // 9. 保存ボタンをクリック（スワイプ操作）
+    const card = page.locator('[data-testid="emotion-card"]');
     await card.hover();
     await page.mouse.down();
     await page.mouse.move(300, 0);
     await page.mouse.up();
 
-    // 9. 成功メッセージが表示されるか確認
-    await expect(page.getByText(/きもち/)).toBeVisible();
+    // 10. 成功メッセージが表示されるか確認
+    await expect(page.getByText(/OK！つぎにすすむよ〜/)).toBeVisible();
   });
 });
