@@ -237,7 +237,7 @@
 | id               | UUID     | NOT NULL | 主キー                     |
 | user_id          | UUID     | NOT NULL | 保護者 ID                  |
 | child_id         | UUID     | NOT NULL | 子ども ID                  |
-| notification_day | String   | NOT NULL | 曜日文字列（例：'sunday'） |
+| notification_day | String   | NULL     | 曜日文字列（例：'sunday'） |
 | enabled          | Boolean  | NOT NULL | 通知有効フラグ             |
 | created_at       | DateTime | NOT NULL | 登録日時                   |
 | updated_at       | DateTime | NOT NULL | 更新日時                   |
