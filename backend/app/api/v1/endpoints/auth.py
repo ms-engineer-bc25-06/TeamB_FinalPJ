@@ -24,17 +24,18 @@ async def get_current_user(
     
     # テスト環境では認証をスキップ
     if os.getenv("SKIP_FIREBASE_AUTH", "false").lower() == "true":
-        # テスト用のユーザーを返す
+        # テスト用のユーザーを返す（固定のIDを使用）
         from app.models import User
-        from uuid import uuid4
+        from uuid import UUID
+        from datetime import datetime
         test_user = User(
-            id=1,
+            id=UUID("12345678-1234-1234-1234-123456789012"),  # 固定のUUID
             uid="test-user-123",
             email="test@example.com",
             nickname="Test User",
             email_verified=True,
-            created_at="2024-01-01T00:00:00Z",
-            updated_at="2024-01-01T00:00:00Z"
+            created_at=datetime.now(),
+            updated_at=datetime.now()
         )
         return test_user
     
