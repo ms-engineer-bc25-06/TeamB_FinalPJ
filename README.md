@@ -66,19 +66,18 @@ TeamB_FinalPJ/
 - [API Specification](docs/APISpecification.md) - API 仕様書
 - [Performance Design](docs/performanceDesign.md) - 性能設計
 - [Security Design](docs/securityDesign.md) - セキュリティ設計
-- [Logging Design](docs/loggingDesign.md) - ログ設計
 - [Operations Plan](docs/operationsPlan.md) - 運用計画
 
 ### 画面・UI 設計
 
 - [UI Design](docs/UIDesign.md) - 画面設計・UI 仕様
-- [Availability Design](docs/availabilityDesign.md) - 可用性設計
 
 ### データベース設計
 
 - [Database Design](docs/databaseDesign.md) - データベース設計
 
 ### 非機能要件設計
+
 - [Test Design](docs/testDesign.md) - テスト戦略・ガイド
 
 ### 開発・運用
