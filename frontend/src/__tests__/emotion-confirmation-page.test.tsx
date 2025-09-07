@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import EmotionConfirmationPage from '@/app/(authed)/app/emotion-confirmation/page';
+import EmotionConfirmationPage from '../app/(authed)/app/emotion-confirmation/page';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmotionConfirmation } from '@/hooks/useEmotionConfirmation';
 import { render, screen } from '@testing-library/react';

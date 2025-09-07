@@ -1,9 +1,9 @@
 /// <reference types="vitest/globals" />
-import EmotionEducationPage from '@/app/(authed)/app/emotion-education/page';
 import { useAuth } from '@/contexts/AuthContext';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
 import { vi } from 'vitest';
+import NonCognitivePage from '../app/(authed)/app/non-cognitive/page';
 
 // モック
 vi.mock('next/navigation', () => ({ useRouter: vi.fn() }));
@@ -15,7 +15,7 @@ vi.mock('@/components/ui', () => ({
   HamburgerMenu: () => <div>Menu</div>,
 }));
 
-describe('EmotionEducationPage', () => {
+describe('NonCognitivePage', () => {
   const mockPush = vi.fn();
   const mockRouter = { push: mockPush };
 
@@ -29,22 +29,22 @@ describe('EmotionEducationPage', () => {
     isLoading = false,
   }: { user?: { id: string } | null; isLoading?: boolean } = {}) => {
     (useAuth as any).mockReturnValue({ user, isLoading });
-    render(<EmotionEducationPage />);
+    render(<NonCognitivePage />);
   };
 
   it('正常にレンダリングされる', () => {
     setup();
-    expect(screen.getByText('感情教育について')).toBeInTheDocument();
+    expect(screen.getByText('非認知能力について')).toBeInTheDocument();
     expect(
-      screen.getByRole('heading', { name: '感情教育とは？' }),
+      screen.getByRole('heading', { name: '非認知能力とは？' }),
     ).toBeInTheDocument();
   });
 
   it('タブ切り替えが動作する', () => {
     setup();
-    fireEvent.click(screen.getByText('なぜ大切なのか？'));
+    fireEvent.click(screen.getByText('非認知能力の重要性'));
     expect(
-      screen.getByRole('heading', { name: 'なぜ大切なのか？' }),
+      screen.getByRole('heading', { name: '非認知能力の重要性' }),
     ).toBeInTheDocument();
   });
 

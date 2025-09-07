@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import TipsPage from '@/app/(authed)/app/tips/page';
+import PrivacyPage from '../app/(authed)/app/privacy/page';
 import { useAuth } from '@/contexts/AuthContext';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { useRouter } from 'next/navigation';
@@ -15,7 +15,7 @@ vi.mock('@/components/ui', () => ({
   HamburgerMenu: () => <div>Menu</div>,
 }));
 
-describe('TipsPage', () => {
+describe('PrivacyPage', () => {
   const mockPush = vi.fn();
   const mockRouter = { push: mockPush };
 
@@ -29,15 +29,13 @@ describe('TipsPage', () => {
     isLoading = false,
   }: { user?: { id: string } | null; isLoading?: boolean } = {}) => {
     (useAuth as any).mockReturnValue({ user, isLoading });
-    render(<TipsPage />);
+    render(<PrivacyPage />);
   };
 
   it('正常にレンダリングされる', () => {
     setup();
-    expect(screen.getByText('保護者向けTips')).toBeInTheDocument();
-    expect(
-      screen.getByText(/感情に名前をつけてみましょう/),
-    ).toBeInTheDocument();
+    expect(screen.getByText('プライバシーポリシー')).toBeInTheDocument();
+    expect(screen.getByText(/このプライバシーポリシー/)).toBeInTheDocument();
   });
 
   it('戻るボタンが動作する', () => {

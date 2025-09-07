@@ -1,5 +1,5 @@
 /// <reference types="vitest/globals" />
-import EmotionIntensityPage from '@/app/(authed)/app/emotion-intensity/page';
+import EmotionIntensityPage from '../app/(authed)/app/emotion-intensity/page';
 import { useAuth } from '@/contexts/AuthContext';
 import { useEmotionIntensity } from '@/hooks/useEmotionIntensity';
 import { fireEvent, render, screen } from '@testing-library/react';
