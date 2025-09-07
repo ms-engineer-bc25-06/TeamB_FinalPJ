@@ -20,6 +20,24 @@ async def get_current_user(
     db: AsyncSession = Depends(get_db),
 ) -> User:
     """認証トークンからユーザー情報を取得"""
+    import os
+    
+    # テスト環境では認証をスキップ
+    if os.getenv("SKIP_FIREBASE_AUTH", "false").lower() == "true":
+        # テスト用のユーザーを返す
+        from app.models import User
+        from uuid import uuid4
+        test_user = User(
+            id=1,
+            uid="test-user-123",
+            email="test@example.com",
+            nickname="Test User",
+            email_verified=True,
+            created_at="2024-01-01T00:00:00Z",
+            updated_at="2024-01-01T00:00:00Z"
+        )
+        return test_user
+    
     try:
         decoded_token = auth.verify_id_token(token.credentials)
         uid = decoded_token["uid"]

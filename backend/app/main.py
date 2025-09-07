@@ -51,6 +51,19 @@ async def lifespan(_: FastAPI):
         logger.error("Whisperモデル事前読み込み失敗: %s", e)
         # エラーが発生してもアプリは起動を継続
 
+    # テスト環境ではシードデータを実行
+    if os.getenv("SKIP_FIREBASE_AUTH", "false").lower() == "true":
+        try:
+            from app.config.database import get_db
+            from app.seed_data import run_seeds
+            
+            async for db in get_db():
+                await run_seeds(db)
+                break
+            logger.info("テスト用シードデータ作成完了")
+        except Exception as e:
+            logger.error("シードデータ作成失敗: %s", e)
+
     yield
 
 
