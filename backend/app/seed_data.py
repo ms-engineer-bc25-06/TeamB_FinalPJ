@@ -1,7 +1,7 @@
 import uuid
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
-from app.models import EmotionCard, Intensity
+from app.models import EmotionCard, Intensity, User, Child
 
 
 async def seed_emotion_cards(db: AsyncSession):
@@ -105,6 +105,55 @@ async def seed_intensities(db: AsyncSession):
     print(f"✅ {len(intensities)}個の強度をシードしました")
 
 
+async def seed_test_user_and_child(db: AsyncSession):
+    """テスト用のユーザーと子供のデータを作成"""
+    # テスト用ユーザーを作成
+    test_user = User(
+        id=uuid.uuid4(),
+        uid="test-user-123",
+        email="test@example.com",
+        nickname="Test User",
+        email_verified=True,
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
+    
+    # 既存のユーザーをチェック
+    from sqlalchemy import select
+    result = await db.execute(select(User).where(User.uid == "test-user-123"))
+    existing_user = result.scalar_one_or_none()
+    
+    if not existing_user:
+        db.add(test_user)
+        await db.commit()
+        print("✅ テスト用ユーザーを作成しました")
+    else:
+        print("⚠️ テスト用ユーザーは既に存在します")
+        test_user = existing_user
+    
+    # テスト用の子供を作成
+    test_child = Child(
+        id=uuid.uuid4(),
+        user_id=test_user.id,
+        nickname="テストくん",
+        birth_date=datetime(2018, 4, 15).date(),
+        gender="男の子",
+        created_at=datetime.now(),
+        updated_at=datetime.now(),
+    )
+    
+    # 既存の子供をチェック
+    result = await db.execute(select(Child).where(Child.user_id == test_user.id))
+    existing_children = result.scalars().all()
+    
+    if not existing_children:
+        db.add(test_child)
+        await db.commit()
+        print("✅ テスト用の子供を作成しました")
+    else:
+        print(f"⚠️ テスト用の子供は既に{len(existing_children)}人存在します")
+
+
 async def run_seeds(db: AsyncSession):
     """全てのシードを実行"""
     print("シードデータを作成中...")
@@ -127,5 +176,8 @@ async def run_seeds(db: AsyncSession):
         await seed_intensities(db)
     else:
         print(f"⚠️ 強度は既に{len(existing_intensities)}個存在します")
+
+    # テスト用ユーザーと子供のチェック
+    await seed_test_user_and_child(db)
 
     print("✅ シード完了！")
