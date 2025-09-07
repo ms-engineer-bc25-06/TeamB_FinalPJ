@@ -1,21 +1,21 @@
 'use client';
 
-import {
-  createContext,
-  useContext,
-  useState,
-  useEffect,
-  ReactNode,
-} from 'react';
-import {
-  onAuthStateChanged,
-  signOut,
-  GoogleAuthProvider,
-  signInWithPopup,
-  User as FirebaseUser,
-} from 'firebase/auth';
 import { auth as firebaseAuth } from '@/lib/firebase';
 import type { UserResponse } from '@/types/api';
+import {
+  User as FirebaseUser,
+  GoogleAuthProvider,
+  onAuthStateChanged,
+  signInWithPopup,
+  signOut,
+} from 'firebase/auth';
+import {
+  createContext,
+  ReactNode,
+  useContext,
+  useEffect,
+  useState,
+} from 'react';
 
 interface AuthContextType {
   user: UserResponse | null; // バックエンドユーザー
@@ -34,17 +34,20 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   useEffect(() => {
     console.log('=== AuthContext useEffect started ===');
-    
+
     const unsubscribe = onAuthStateChanged(firebaseAuth, async (fbUser) => {
       console.log('=== onAuthStateChanged triggered ===');
-      console.log('1. Firebase user state changed:', fbUser ? 'User found' : 'No user');
-      
+      console.log(
+        '1. Firebase user state changed:',
+        fbUser ? 'User found' : 'No user',
+      );
+
       setFirebaseUser(fbUser);
       if (fbUser) {
         console.log('2. Getting ID token');
         const idToken = await fbUser.getIdToken();
         console.log('3. ID token obtained, calling backend API');
-        
+
         try {
           const res = await fetch(
             `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/v1/login`,
@@ -79,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const login = async () => {
     console.log('=== AuthContext login() called ===');
     console.log('1. Creating GoogleAuthProvider');
-    
+
     const provider = new GoogleAuthProvider();
     try {
       console.log('2. Calling signInWithPopup');

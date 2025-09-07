@@ -79,7 +79,6 @@ TeamB_FinalPJ/
 - [Database Design](docs/databaseDesign.md) - データベース設計
 
 ### 非機能要件設計
-
 - [Test Design](docs/testDesign.md) - テスト戦略・ガイド
 
 ### 開発・運用

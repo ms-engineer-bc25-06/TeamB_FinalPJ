@@ -260,14 +260,43 @@ TODO: 新機能テスト追加テンプレート:
 ---
 
 - **Google認証によるログインフローの動作確認機能テスト**: 
-  - テスト対象: Firebase Auth Emulatorを使用した実際の認証フロー、認証失敗時のエラーハンドリング、ログアウト機能、認証状態の永続化
-  - テスト方針: E2E（Playwright）
+  - テスト対象: 
+    - Firebase Auth Emulatorを使用した実際の認証フロー
+    - 認証失敗時のエラーハンドリング
+    - 認証状態の永続化
+    - ネットワークエラー、タイムアウト等の異常系
+    - ※ログアウトテストは計画中
+  - テスト方針: 
+    - E2E（Playwright）: 認証フロー全体の統合テスト
+    - 単体テスト（Vitest）: 認証状態の永続化、Firebase SDK連携
   - 担当者: みお
   
   **テスト品質チェックリスト:**
-  - [ ] ユースケースやクリティカルパスを考慮したテストになっている
-  - [ ] 正常系/異常系の考慮がなされたテストケースがある
-  - [ ] Mockなどを使って依存度の低いテストコードが書かれている
+  - [x] ユースケースやクリティカルパスを考慮したテストになっている
+    - 認証フローの主要なユースケース（ログイン、キャンセル、エラー処理）を網羅
+    - 認証成功後のページ遷移、フロントエンド連携をE2Eにてテスト
+  - [x] 正常系/異常系の考慮がなされたテストケースがある
+  - [x] Mockなどを使って依存度の低いテストコードが書かれている
+    - E2Eテスト: Firebase SDK、ネットワーク、ポップアップを適切にモック化
+    - 単体テスト: Firebase SDK、localStorageを適切にモック化
+    - 外部依存を排除してテストの安定性を確保
+  
+  **テスト実装状況:**
+  - E2Eテスト: 20個（正常系8個、異常系10個、スキップ2個）
+  - 単体テスト: 複数（AuthContextの永続化テスト等）
+  - 成功率: 90%（E2Eテスト）
+
+  
+  **異常系テスト失敗の記録:**
+  - 2つの異常系テストがアプリケーションの認証ロジック問題により失敗
+  - AuthContextのisLoading状態管理が不適切で、認証状態チェックが永続的にローディング状態になる
+  - 該当テスト: `無効な認証状態でのページアクセス`, `認証状態の不整合時の処理`
+  - 対応: 一時的にスキップし、アプリケーション修正後に再有効化予定
+  
+  **今後の改善点:**
+  - アプリケーションの認証ロジック修正（AuthContextのisLoading状態管理）
+  - スキップしたテストの再有効化
+  - 認証状態の永続化テストの強化
 ---
 
 [↑ 目次に戻る](#目次)
@@ -298,14 +327,17 @@ TODO: 新機能テスト追加テンプレート:
 ```text
 プロジェクトルート/
 ├── e2e/                        # E2Eテストディレクトリ
+│   ├── auth-real-flow.spec.ts  # 実際の認証フローテスト（導入済み）
+│   ├── auth-emulator.spec.ts   # Firebase Auth Emulatorテスト（導入済み）
 │   ├── login.spec.ts           # ログインテスト（導入済み）
 │   ├── logout.spec.ts          # ログアウトテスト（計画中）
 │   ├── subscription.spec.ts    # サブスクリプション遷移テスト（導入済み）
 │   └── utils/
-│       └── auth.ts             # 認証ヘルパー関数（導入済み）
-├── playwright.config.ts        # Playwright設定ファイル（導入済み）
-└── frontend/
-    └── package.json            # E2Eテストスクリプト設定（導入済み）
+│       ├── auth.ts             # 認証ヘルパー関数（導入済み）
+│       ├── auth-helper.ts      # 認証テストヘルパー（導入済み）
+│       └── google-auth.ts      # Google認証ヘルパー（導入済み）
+└─── playwright.config.ts        # Playwright設定ファイル（導入済み）
+
 ```
 
 **📍 配置の理由**:
@@ -619,6 +651,36 @@ docker exec teamb_backend pytest tests/test_example.py
 # E2E：サンプルテストの実行（既存プロセス停止後）
 npm run test:e2e
 ```
+
+上記に加えて、E2Eテストを実行する際は、Firebase Auth Emulatorを起動する必要があります。
+
+### Firebase Auth Emulator の起動について
+
+#### **1. Firebase CLI のインストール**
+```bash
+npm install -g firebase-tools
+```
+
+#### **2. Firebase プロジェクトの初期化**
+```bash
+# プロジェクトルートで実行
+npx firebase-tools init
+```
+
+#### **3. Firebase Auth Emulator の起動**
+```bash
+# プロジェクトルートで実行
+npx firebase-tools emulators:start --only auth
+```
+
+#### **4. E2Eテストの実行**
+```bash
+# フロントエンドディレクトリで実行
+cd frontend
+npm run test:e2e:auth
+```
+
+**注意**: テスト実行前に必ずFirebase Auth Emulatorを起動してください。
 
 ## テスト実行環境
 

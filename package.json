@@ -7,6 +7,9 @@
     "test:e2e:ui": "dotenv -e frontend/.env.e2e.local -- playwright test --ui",
     "test:e2e:headed": "dotenv -e frontend/.env.e2e.local -- playwright test --headed",
     "test:e2e:debug": "dotenv -e frontend/.env.e2e.local -- playwright test --debug",
+    "test:e2e:auth": "dotenv -e frontend/.env.e2e.local -- playwright test e2e/auth*.spec.ts",
+    "test:e2e:auth-real": "dotenv -e frontend/.env.e2e.local -- playwright test e2e/auth-real-flow.spec.ts",
+    "test:e2e:auth-emulator": "dotenv -e frontend/.env.e2e.local -- playwright test e2e/auth-emulator.spec.ts",
     "playwright:install": "playwright install",
     "playwright:show-report": "playwright show-report",
     "postinstall": "if [ \"$SKIP_PLAYWRIGHT\" != \"true\" ]; then playwright install; fi"

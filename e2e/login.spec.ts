@@ -1,3 +1,6 @@
+/**
+ * ログインテスト: ログインページのUI表示とGoogleログインボタンの基本動作をテスト
+ */
 import { expect, test } from "@playwright/test";
 import { loginAsTestUser } from "./utils/auth";
 

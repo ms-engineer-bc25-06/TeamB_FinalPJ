@@ -2,6 +2,11 @@ import { Page, expect } from "@playwright/test";
 import * as dotenv from "dotenv";
 dotenv.config({ path: "frontend/.env.e2e.local" });
 
+/**
+ * ログインページUI専用（e2e/login.spec.ts）のテストヘルパー関数
+ * Firebase Auth Emulatorとの通信機能は含んでいません。単なるページ表示を確認するだけです。
+ */
+
 const EMAIL = process.env.E2E_TEST_USER_EMAIL ?? "test@example.com";
 const PASSWORD = process.env.E2E_TEST_USER_PASSWORD ?? "testpassword123";
 
@@ -16,12 +21,10 @@ export async function loginAsTestUser(page: Page) {
   await page.goto("/login");
 
   // Googleログインボタンを探す
-  const googleLoginBtn = page.locator('button:has-text("Googleでログイン")');
+  const googleLoginBtn = page.locator('button:has-text("🔐Googleでログイン")');
 
   await expect(googleLoginBtn).toBeVisible();
 
-  // 注意: 実際のGoogle OAuth認証は複雑なので、ここではボタンの存在確認のみ
-  // 実際の認証テストは手動で行うか、Firebase Auth Emulatorを使用する必要があります
   console.log(
     "Googleログインボタンが見つかりました。実際のOAuth認証はスキップします。"
   );

@@ -95,7 +95,7 @@ User → MediaRecorder API → Whisper API → Application → SpeechSynthesis A
 | ----------------------- | ---------------------------------------- |
 | Docker / Docker Compose | 開発環境を統一し、複数サービスを一括管理 |
 | GitHub + GitHub Flow    | PR ベース開発、`develop`ブランチ中心運用 |
-| GitHub Actions          | テスト・整形・ビルド等を自動実行         |
+| GitHub Actions          | テスト・ビルド等を自動実行         |
 
 このドキュメントは、技術やツールに変更があった際に都度更新してください。  
 常に最新の技術構成をチーム全員で把握・共有することがプロジェクトの成功につながります。
