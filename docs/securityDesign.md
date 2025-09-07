@@ -54,7 +54,7 @@ origins = [
 #### 2.2.2 入力値検証
 
 - **詳細**: Pydantic モデルによる型安全性確保
-- **実装箇所**: `backend/app/voice_api.py` の `UploadRequest`, `SaveRecordRequest`
+- **実装箇所**: `backend/app/schemas.py` の `VoiceUploadRequest`, `VoiceSaveRequest`
 
 #### 2.2.3 エラーハンドリング
 
@@ -82,7 +82,7 @@ origins = [
   - サーバーを経由せずに直接 S3 にアップロード
   - 一時的な権限により、権限の最小化を実現
   - サーバーの負荷軽減とセキュリティ向上
-- **実装箇所**: `backend/app/s3_service.py`
+- **実装箇所**: `backend/app/services/s3.py`
 
 #### 2.4.2 ファイルパス分離
 
@@ -90,19 +90,20 @@ origins = [
 - **セキュリティ効果**:
   - ユーザー間のファイルアクセス分離
   - パス推測攻撃の防止
-- **実装箇所**: `backend/app/voice_api.py`
+- **実装箇所**: `backend/app/services/voice/file_ops.py`
 
 ```python
-file_path = f"audio/{request.user_id}/audio_{timestamp}_{unique_id}.{file_extension}"
+# 実際の実装例
+s3_key = f"{self.upload_folder}/{file_type}/{user_id}/{current_date}/{unique_id}_{file_name}"
 ```
 
 #### 2.4.3 ファイル形式制限
 
-- **詳細**: 音声ファイル形式の制限（webm, wav, mp3）
+- **詳細**: 音声ファイル形式の制限（webm, wav, mp3, m4a）
 - **セキュリティ効果**:
   - 悪意のあるファイルのアップロード防止
   - システムの安定性確保
-- **実装箇所**: `backend/app/voice_api.py`
+- **実装箇所**: `backend/app/api/v1/endpoints/voice.py`
 
 #### 2.4.4 S3 バケットポリシー
 
@@ -130,7 +131,7 @@ backend/firebase-service-account.json
 #### 2.6.1 Stripe Webhook 署名検証
 
 - **詳細**: Webhook 通知の正当性を検証し、なりすまし攻撃を防止
-- **実装箇所**: `backend/app/stripe_api.py` の Webhook エンドポイント
+- **実装箇所**: `backend/app/api/v1/endpoints/stripe_api.py` の Webhook エンドポイント
 - **セキュリティ機能**: HMAC-SHA256 署名による検証
 
 #### 2.6.2 Stripe 環境変数の自動管理
@@ -171,14 +172,14 @@ backend/firebase-service-account.json
 
 #### 3.2.1 アップロードファイルサイズの制限
 
-- **実装状況**: ✅ 実装済み
+- **実装状況**: ❌ 未実装
 - **詳細**: 大きなファイルのアップロードを防ぐ
 - **実装方法**:
   - フロントエンドとバックエンドの両方でサイズチェック
   - 最大サイズ 10MB を設定
-- **実装箇所**: `backend/app/voice_api.py`, `frontend/src/`
+- **実装箇所**: `backend/app/api/v1/endpoints/voice.py`, `frontend/src/`
 
-**実装例**:
+**実装予定**:
 
 ```python
 # ファイルサイズ制限（10MB）
@@ -222,6 +223,7 @@ else:
   - ログイン試行の記録
   - エラーの記録
   - ファイルアップロードの記録
+  - 音声認識処理の記録
 - **実装箇所**: 各 API エンドポイントでログ出力を実装
 
 **実装例**:
@@ -229,13 +231,14 @@ else:
 ```python
 import logging
 
-# ログ設定
-logging.basicConfig(level=logging.INFO)
+# ログ設定（main.pyで設定済み）
+logging.basicConfig(level=logging.INFO, force=True)
 logger = logging.getLogger(__name__)
 
-# ログ出力例
+# ログ出力例（実際の実装）
 logger.info(f"User {user_id} uploaded file: {file_path}")
 logger.warning(f"Failed login attempt for user: {email}")
+logger.info("音声認識開始: ファイル=%s, 言語=%s", file_path, language)
 ```
 
 ## 4. S3 連携のセキュリティ詳細
@@ -251,11 +254,13 @@ logger.warning(f"Failed login attempt for user: {email}")
 
 ### 4.2 ファイルパス設計
 
-- **形式**: `{bucket}/{user_id}/{file_type}_{timestamp}_{unique_id}.{extension}`
+- **形式**: `{upload_folder}/{file_type}/{user_id}/{date}/{unique_id}_{filename}.{extension}`
+- **実装例**: `voice-uploads/audio/user123/2024/01/15/uuid_audio_20240115_123456.webm`
 - **セキュリティ効果**:
   - ユーザー間のファイルアクセス分離
   - タイムスタンプとユニーク ID による推測困難性
   - ファイル名からの情報漏洩防止
+  - 日付別整理による管理性向上
 
 ### 4.3 暗号化
 
@@ -270,12 +275,12 @@ logger.warning(f"Failed login attempt for user: {email}")
 ### 5.1 最優先
 
 - [x] **認可制御の実装** - ユーザー固有データの保護
-- [x] **ファイルサイズ制限** - 大きなファイルのアップロード防止
+- [ ] **ファイルサイズ制限** - 大きなファイルのアップロード防止
 - [ ] **本番環境用 CORS 設定** - 本番環境のドメイン制限
 
 ### 5.2 中優先度
 
-- [ ] **基本的なログ機能** - セキュリティイベントの記録
+- [x] **基本的なログ機能** - セキュリティイベントの記録
 
 ---
 
