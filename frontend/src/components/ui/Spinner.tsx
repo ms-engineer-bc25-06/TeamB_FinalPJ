@@ -43,6 +43,7 @@ export default function Spinner({
 
   return (
     <div 
+      data-testid="loading"
       className={className}
       style={spinnerStyle}
       role="status"

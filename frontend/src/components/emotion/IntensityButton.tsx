@@ -26,6 +26,7 @@ export const IntensityButton: React.FC<IntensityButtonProps> = ({
 
   return (
     <button
+      data-testid={`intensity-${intensity.level}`}
       onClick={() => onSelect(intensity)}
       style={{
         background: '#ffffff', // カード自体は白

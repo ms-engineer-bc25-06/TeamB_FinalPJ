@@ -35,6 +35,7 @@ export const EmotionCard: React.FC<EmotionCardProps> = ({
 
   return (
     <div
+      data-testid="emotion-card"
       ref={cardRef}
       style={{
         background: '#ffffff',

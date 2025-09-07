@@ -394,10 +394,10 @@ async def get_emotion_logs_by_month(
 
 
 @router.get(
-    "/children/{user_uid}",
-    summary="ユーザーの子供一覧取得",
+    "/children",
+    summary="認証されたユーザーの子供一覧取得",
     description="""
-    指定されたユーザーUIDに紐づく子供の一覧を取得します。
+    認証されたユーザーに紐づく子供の一覧を取得します。
 
     ## 使用タイミング
     - 感情記録作成時の子供選択
@@ -421,20 +421,15 @@ async def get_emotion_logs_by_month(
     }
     ```
     """,
-    response_description="ユーザーの子供一覧を返します",
+    response_description="認証されたユーザーの子供一覧を返します",
 )
-# WARNING: このAPIは認証チェックなしでユーザーIDを推測可能（セキュリティリスク）
-async def get_user_children(user_uid: str, db: AsyncSession = Depends(get_db)):
+async def get_user_children(
+    current_user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db)
+):
     try:
-        # NOTE: Firebase UIDからユーザーIDを検索（認証チェックなしの古いAPI）
-        from app.crud import get_user_by_uid
-
-        user = await get_user_by_uid(db, user_uid)
-        if not user:
-            raise HTTPException(status_code=404, detail="User not found")
-
-        # ユーザーに紐づく子供を取得
-        result = await db.execute(select(Child).where(Child.user_id == user.id))
+        # 認証されたユーザーに紐づく子供を取得
+        result = await db.execute(select(Child).where(Child.user_id == current_user.id))
         children = result.scalars().all()
 
         return {
