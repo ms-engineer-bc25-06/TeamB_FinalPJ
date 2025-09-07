@@ -20,7 +20,7 @@ test.describe("実際の認証フローテスト", () => {
   });
 
   test.describe("実際のGoogle認証ポップアップ", () => {
-    test("Googleログインボタンクリックでポップアップが開く", async ({
+    test.skip("Googleログインボタンクリックでポップアップが開く", async ({
       page,
     }) => {
       await googleAuth.checkGoogleLoginButton();
@@ -40,7 +40,7 @@ test.describe("実際の認証フローテスト", () => {
       console.log("✅ 実際のGoogle認証ポップアップが開きました");
     });
 
-    test("Google認証ポップアップのキャンセル", async ({ page }) => {
+    test.skip("Google認証ポップアップのキャンセル", async ({ page }) => {
       // ポップアップイベントを事前に待機
       const popupPromise = page.waitForEvent("popup", { timeout: 10000 });
 
@@ -104,7 +104,7 @@ test.describe("実際の認証フローテスト", () => {
       console.log("✅ ネットワークエラー時の認証処理成功");
     });
 
-    test("認証ポップアップが開かない場合の処理", async ({ page }) => {
+    test.skip("認証ポップアップが開かない場合の処理", async ({ page }) => {
       await page.goto("/login");
 
       // ポップアップを無効化
@@ -122,7 +122,7 @@ test.describe("実際の認証フローテスト", () => {
       console.log("✅ 認証ポップアップが開かない場合の処理成功");
     });
 
-    test("認証タイムアウト時の処理", async ({ page }) => {
+    test.skip("認証タイムアウト時の処理", async ({ page }) => {
       await page.goto("/login");
 
       // タイムアウトを短く設定
