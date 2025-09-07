@@ -176,6 +176,7 @@ export default function EmotionSelectionPage() {
           {emotions.map((emotion) => (
             <button
               key={emotion.id}
+              data-testid={`emotion-card-${emotion.label}`}
               onClick={() => handleEmotionSelect(emotion.id)}
               style={{
                 background: '#ffffff',
