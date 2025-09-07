@@ -106,10 +106,11 @@ async def seed_intensities(db: AsyncSession):
 
 
 async def seed_test_user_and_child(db: AsyncSession):
-    """テスト用のユーザーと子供のデータを作成"""
-    # テスト用ユーザーを作成
+    """テスト用のユーザーと子供のデータを作成"""    
+    # テスト用ユーザーを作成（固定のUUIDを使用）
+    from uuid import UUID
     test_user = User(
-        id=uuid.uuid4(),
+        id=UUID("12345678-1234-1234-1234-123456789012"),  # 固定のUUID
         uid="test-user-123",
         email="test@example.com",
         nickname="Test User",
@@ -137,7 +138,7 @@ async def seed_test_user_and_child(db: AsyncSession):
         user_id=test_user.id,
         nickname="テストくん",
         birth_date=datetime(2018, 4, 15).date(),
-        gender="男の子",
+        gender="おとこのこ",
         created_at=datetime.now(),
         updated_at=datetime.now(),
     )
