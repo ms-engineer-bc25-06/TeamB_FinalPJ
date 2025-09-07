@@ -58,7 +58,11 @@ export const useEmotionConfirmation = () => {
           await Promise.all([
             fetch(API_ENDPOINTS.EMOTION_CARDS),
             fetch(API_ENDPOINTS.EMOTION_INTENSITIES),
-            fetch(API_ENDPOINTS.EMOTION_CHILDREN(user?.uid || '')),
+            fetch(API_ENDPOINTS.EMOTION_CHILDREN, {
+              headers: {
+                Authorization: `Bearer ${await firebaseUser?.getIdToken()}`,
+              },
+            }),
           ]);
 
         if (
@@ -78,10 +82,6 @@ export const useEmotionConfirmation = () => {
           intensityData.success &&
           childrenData.success
         ) {
-          console.log('🎯 感情確認: 感情データ取得成功');
-          console.log('🎯 感情確認: 強度データ取得成功');
-          console.log('🎯 感情確認: 子供データ取得成功');
-
           setChildren(childrenData.children);
 
           // 子供が1人しかいない場合は自動選択
@@ -98,27 +98,17 @@ export const useEmotionConfirmation = () => {
           const emotion = emotionData.cards.find(
             (e: Emotion) => e.id === emotionId,
           );
+
           if (emotion) {
-            console.log('🎯 感情確認: 選択された感情:', emotion);
             setSelectedEmotion(emotion);
 
             const intensity = INTENSITY_LEVELS.find(
               (level) => level.level === intensityLevel,
             );
-            console.log(
-              '🎯 感情確認: 強度レベル検索結果:',
-              intensityLevel,
-              intensity,
-            );
 
             if (intensity) {
               const intensityDataItem = intensityData.intensities.find(
                 (i: any) => i.id === intensity.id,
-              );
-              console.log(
-                '🎯 感情確認: 強度データ検索結果:',
-                intensity.id,
-                intensityDataItem,
               );
 
               const selectedIntensityData = {
@@ -133,10 +123,6 @@ export const useEmotionConfirmation = () => {
                   : 1.0,
               };
 
-              console.log(
-                '🎯 感情確認: 設定する強度データ:',
-                selectedIntensityData,
-              );
               setSelectedIntensity(selectedIntensityData);
             }
           } else {
@@ -206,31 +192,14 @@ export const useEmotionConfirmation = () => {
 
   // 感情記録保存
   const saveEmotionLog = async () => {
-    console.log('🎯 感情確認: 感情ログ保存開始');
-    console.log('🎯 感情確認: 保存するデータ:', {
-      user_id: user?.uid || '00000000-0000-0000-0000-000000000000',
-      child_id: selectedChild?.id || '00000000-0000-0000-0000-000000000000',
-      emotion_card_id: selectedEmotion?.id,
-      intensity_id: selectedIntensity?.id,
-      voice_note: null,
-      text_file_path: null,
-      audio_file_path: null,
-    });
-
     try {
-      // LOG: APIリクエスト送信（本番環境では削除推奨）
-      if (process.env.NODE_ENV === 'development') {
-        console.log('🎯 感情確認: APIリクエスト送信中...');
-      }
       const response = await fetch(API_ENDPOINTS.EMOTION_LOGS, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          // NOTE: 認証トークンをヘッダーに含める必要がある
           Authorization: `Bearer ${await firebaseUser?.getIdToken()}`,
         },
         body: JSON.stringify({
-          // user_idは送信しない（バックエンドで認証されたユーザーから取得）
           child_id: selectedChild?.id || '00000000-0000-0000-0000-000000000000',
           emotion_card_id: selectedEmotion?.id,
           intensity_id: selectedIntensity?.id,
@@ -240,25 +209,16 @@ export const useEmotionConfirmation = () => {
         }),
       });
 
-      console.log(
-        '🎯 感情確認: APIレスポンス受信:',
-        response.status,
-        response.statusText,
-      );
-
-      if (response.ok) {
-        const responseData = await response.json();
-        console.log('🎯 感情確認: 感情記録が保存されました:', responseData);
-      } else {
+      if (!response.ok) {
         const errorData = await response.text();
         console.error(
-          '🎯 感情確認: 感情記録の保存に失敗しました:',
+          '感情記録の保存に失敗しました:',
           response.status,
           errorData,
         );
       }
     } catch (error) {
-      console.error('🎯 感情確認: 感情記録保存エラー:', error);
+      console.error('感情記録保存エラー:', error);
     }
   };
 
