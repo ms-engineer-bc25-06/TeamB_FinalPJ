@@ -19,8 +19,7 @@ TeamB_FinalPJ/
 │   └── public/         # 静的ファイル（画像・音声）
 ├── backend/            # FastAPI バックエンド
 │   ├── app/            # メインアプリ（API、サービス、モデル）
-│   ├── migrations/     # データベースマイグレーション
-│   └── alembic/        # Alembic設定
+│   └── migrations/     # データベースマイグレーション
 ├── docs/               # プロジェクトドキュメント
 └── scripts/            # 開発用スクリプト
 ```
