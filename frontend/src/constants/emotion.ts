@@ -30,8 +30,7 @@ if (!API_BASE_URL) {
 export const API_ENDPOINTS = {
   EMOTION_CARDS: `${API_BASE_URL}/emotion/cards`,
   EMOTION_INTENSITIES: `${API_BASE_URL}/emotion/intensities`,
-  EMOTION_CHILDREN: (userId: string) =>
-    `${API_BASE_URL}/emotion/children/${userId}`,
+  EMOTION_CHILDREN: (userId: string) => `${API_BASE_URL}/api/v1/children`,
   EMOTION_LOGS: `${API_BASE_URL}/emotion/logs`,
 } as const;
 
