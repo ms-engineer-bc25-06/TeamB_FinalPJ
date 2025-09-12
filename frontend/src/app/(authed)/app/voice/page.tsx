@@ -3,7 +3,11 @@
 import { AudioPlayer } from '@/components/ui';
 import { useAuth } from '@/contexts/AuthContext';
 import { borderRadius, colors, spacing } from '@/styles/theme';
-import { getAudioConstraints, getErrorMessage, selectRecorderConfig } from '@/utils/audio';
+import {
+  getAudioConstraints,
+  getErrorMessage,
+  selectRecorderConfig,
+} from '@/utils/audio';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect, useMemo, useRef, useState } from 'react';
 
@@ -25,7 +29,10 @@ type TranscriptionResult = {
   processed_at: string;
 };
 
-const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL || '';
+const API_BASE = process.env.NEXT_PUBLIC_API_BASE_URL;
+if (!API_BASE) {
+  throw new Error('NEXT_PUBLIC_API_BASE_URL が設定されていません');
+}
 
 // メインコンポーネント（Suspenseでラップ）
 export default function VoiceEntryPage() {
@@ -58,10 +65,13 @@ function VoicePageContent() {
   const [isRecording, setIsRecording] = useState(false);
   const [audioBlob, setAudioBlob] = useState<Blob | null>(null);
   const [status, setStatus] = useState<string>('');
-  const [transcription, setTranscription] = useState<TranscriptionResult | null>(null);
+  const [transcription, setTranscription] =
+    useState<TranscriptionResult | null>(null);
 
   // 完了ステップ管理
-  const [completionStep, setCompletionStep] = useState<'recording' | 'completed' | 'finished'>('recording');
+  const [completionStep, setCompletionStep] = useState<
+    'recording' | 'completed' | 'finished'
+  >('recording');
 
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<BlobPart[]>([]);
@@ -94,7 +104,8 @@ function VoicePageContent() {
       left: '50%',
       transform: 'translateX(-50%)',
       bottom: 0,
-      padding: 'max(10px, env(safe-area-inset-top)) 0 max(16px, env(safe-area-inset-bottom)) 0',
+      padding:
+        'max(10px, env(safe-area-inset-top)) 0 max(16px, env(safe-area-inset-bottom)) 0',
       zIndex: 50,
       boxSizing: 'border-box' as const,
       width: 'min(100vw, 430px)',
@@ -211,7 +222,12 @@ function VoicePageContent() {
       maxWidth: `${Math.min(LAYOUT.cardMaxWidth, LAYOUT.maxWidth)}px`,
       textAlign: 'center' as const,
     },
-    confirmTitle: { fontWeight: 700, marginBottom: 10, color: '#111827', fontSize: 18 },
+    confirmTitle: {
+      fontWeight: 700,
+      marginBottom: 10,
+      color: '#111827',
+      fontSize: 18,
+    },
     playButtonBase: {
       width: 200,
       height: 200,
@@ -334,7 +350,12 @@ function VoicePageContent() {
       maxWidth: `${Math.min(320, LAYOUT.maxWidth)}px`,
       textAlign: 'center' as const,
     },
-    bubbleTextSmall: { fontWeight: 700, fontSize: 14, lineHeight: 1.3, color: '#333' },
+    bubbleTextSmall: {
+      fontWeight: 700,
+      fontSize: 14,
+      lineHeight: 1.3,
+      color: '#333',
+    },
     characterWrap: {
       display: 'flex',
       flexDirection: 'column' as const,
@@ -388,14 +409,17 @@ function VoicePageContent() {
         const ymd = `${y}${m}${d}`;
 
         const hasToday = (data?.records ?? []).some((r: any) => {
-          if (Array.isArray(r?.created_at) && r.created_at[0]) return r.created_at[0] === ymd;
+          if (Array.isArray(r?.created_at) && r.created_at[0])
+            return r.created_at[0] === ymd;
           const name = String(r?.audio_path || '');
           const m2 = name.match(/audio_(\d{8})_/);
           return m2?.[1] === ymd;
         });
 
         if (hasToday) {
-          console.log('[INFO] 今日の記録が既に存在します。上書きモードで録音可能です。');
+          console.log(
+            '[INFO] 今日の記録が既に存在します。上書きモードで録音可能です。',
+          );
         }
       } catch (e: any) {
         setError(e?.message || '今日の記録確認に失敗しました');
@@ -405,8 +429,8 @@ function VoicePageContent() {
     };
     if (user) {
       checkToday();
-    } 
-  }, [user,router]);
+    }
+  }, [user, router]);
 
   // 録音開始
   const startRecording = async () => {
@@ -418,17 +442,26 @@ function VoicePageContent() {
       setIsPlaying(false);
       setCompletionStep('recording');
 
-      const stream = await navigator.mediaDevices.getUserMedia(getAudioConstraints());
+      const stream = await navigator.mediaDevices.getUserMedia(
+        getAudioConstraints(),
+      );
       streamRef.current = stream;
 
-      const rec = new MediaRecorder(stream, recConfig.mimeType ? { mimeType: recConfig.mimeType } : undefined);
+      const rec = new MediaRecorder(
+        stream,
+        recConfig.mimeType ? { mimeType: recConfig.mimeType } : undefined,
+      );
       mediaRecorderRef.current = rec;
       chunksRef.current = [];
 
-      rec.ondataavailable = (e) => e?.data && e.data.size > 0 && chunksRef.current.push(e.data);
-      rec.onerror = (ev) => setError(`録音エラー: ${(ev as any).error?.message || 'unknown'}`);
+      rec.ondataavailable = (e) =>
+        e?.data && e.data.size > 0 && chunksRef.current.push(e.data);
+      rec.onerror = (ev) =>
+        setError(`録音エラー: ${(ev as any).error?.message || 'unknown'}`);
       rec.onstop = () => {
-        const blob = new Blob(chunksRef.current, { type: recConfig.contentType });
+        const blob = new Blob(chunksRef.current, {
+          type: recConfig.contentType,
+        });
         setAudioBlob(blob);
         stopStream();
         setStatus('');
@@ -490,7 +523,9 @@ function VoicePageContent() {
   const uploadAndSave = async () => {
     if (!audioBlob || !user) return;
     if (!emotionId || !intensityLevel || !childId) {
-      setError('感情データが不足しています。感情選択画面から再度お試しください。');
+      setError(
+        '感情データが不足しています。感情選択画面から再度お試しください。',
+      );
       return;
     }
 
@@ -499,8 +534,12 @@ function VoicePageContent() {
     setStatus('できた！');
 
     try {
-      console.log('[UPLOAD] 開始 - パラメータ:', { emotionId, intensityLevel, childId });
-      
+      console.log('[UPLOAD] 開始 - パラメータ:', {
+        emotionId,
+        intensityLevel,
+        childId,
+      });
+
       const health = await fetch(`${API_BASE}/api/v1/voice/health`);
       if (!health.ok) throw new Error(`ヘルスチェック失敗: ${health.status}`);
 
@@ -515,9 +554,12 @@ function VoicePageContent() {
           file_format: recConfig.ext,
         }),
       });
-      if (!upRes.ok) throw new Error(`アップロードURL取得失敗: ${upRes.status} ${await upRes.text()}`);
+      if (!upRes.ok)
+        throw new Error(
+          `アップロードURL取得失敗: ${upRes.status} ${await upRes.text()}`,
+        );
       const upData: GetUploadUrlResponse = await upRes.json();
-      
+
       console.log('[UPLOAD] アップロードURL取得成功:', upData.file_path);
 
       const put = await fetch(upData.upload_url, {
@@ -525,8 +567,11 @@ function VoicePageContent() {
         headers: { 'Content-Type': upData.content_type },
         body: audioBlob,
       });
-      if (!put.ok) throw new Error(`S3アップロード失敗: ${put.status} ${await put.text()}`);
-      
+      if (!put.ok)
+        throw new Error(
+          `S3アップロード失敗: ${put.status} ${await put.text()}`,
+        );
+
       console.log('[UPLOAD] S3アップロード成功');
 
       console.log('[TRANSCRIBE] 開始 - audio_file_path:', upData.file_path);
@@ -553,10 +598,10 @@ function VoicePageContent() {
       console.log('[TRANSCRIBE] 信頼度:', trData.confidence);
 
       setTranscription(trData);
-      
+
       const audioPath = upData.file_path;
       const textPath = audioPath.replace('.webm', '.txt');
-      
+
       console.log('[SAVE] 保存開始 - パス:', { audioPath, textPath });
       console.log('[SAVE] voice_note:', trData.text || '');
 
@@ -581,12 +626,11 @@ function VoicePageContent() {
       }
 
       console.log('[SAVE] 保存成功');
-      
+
       setCompletionStep('finished');
       const redirectTo = searchParams.get('redirect') || '/app/voice/complete';
       console.log('[REDIRECT] 遷移先:', redirectTo);
       setTimeout(() => router.replace(redirectTo), 500);
-
     } catch (e: any) {
       console.error('[ERROR] upload/save', e);
       setError(e?.message || 'エラーが発生しました');
@@ -598,14 +642,28 @@ function VoicePageContent() {
   // ローディング系
   if (isLoading || !user) {
     return (
-      <main style={{ display: 'grid', placeItems: 'center', minHeight: '60vh', color: colors.text.secondary }}>
+      <main
+        style={{
+          display: 'grid',
+          placeItems: 'center',
+          minHeight: '60vh',
+          color: colors.text.secondary,
+        }}
+      >
         <p>読み込み中...</p>
       </main>
     );
   }
   if (checkingToday) {
     return (
-      <main style={{ display: 'grid', placeItems: 'center', minHeight: '60vh', color: colors.text.secondary }}>
+      <main
+        style={{
+          display: 'grid',
+          placeItems: 'center',
+          minHeight: '60vh',
+          color: colors.text.secondary,
+        }}
+      >
         <p>きょうの記録を確認中…</p>
       </main>
     );
@@ -613,15 +671,24 @@ function VoicePageContent() {
 
   if (!emotionId || !intensityLevel) {
     return (
-      <main style={{
-        maxWidth: 720,
-        margin: '0 auto',
-        padding: spacing.xl,
-        background: 'url("/images/background.webp") no-repeat center center',
-        backgroundSize: 'cover',
-        minHeight: '100vh',
-      }}>
-        <h1 style={{ fontSize: 22, fontWeight: 700, marginBottom: spacing.sm, color: colors.text.primary }}>
+      <main
+        style={{
+          maxWidth: 720,
+          margin: '0 auto',
+          padding: spacing.xl,
+          background: 'url("/images/background.webp") no-repeat center center',
+          backgroundSize: 'cover',
+          minHeight: '100vh',
+        }}
+      >
+        <h1
+          style={{
+            fontSize: 22,
+            fontWeight: 700,
+            marginBottom: spacing.sm,
+            color: colors.text.primary,
+          }}
+        >
           感情データが不足しています
         </h1>
         <p style={{ marginBottom: spacing.md, color: colors.text.secondary }}>
@@ -648,7 +715,7 @@ function VoicePageContent() {
   if (completionStep === 'completed' || completionStep === 'finished') {
     return (
       <div style={layoutStyles.page}>
-        <AudioPlayer 
+        <AudioPlayer
           src="/sounds/characterAskReason04.mp3"
           autoPlay={true}
           volume={0.8}
@@ -668,7 +735,12 @@ function VoicePageContent() {
         `}</style>
 
         <main style={layoutStyles.panel}>
-          <div style={completionStyles.overlay} role="dialog" aria-live="polite" aria-label="完了">
+          <div
+            style={completionStyles.overlay}
+            role="dialog"
+            aria-live="polite"
+            aria-label="完了"
+          >
             <div style={completionStyles.waitCard}>
               <img
                 src="/images/kokoron/kokoron_mic.webp"
@@ -676,25 +748,26 @@ function VoicePageContent() {
                 style={completionStyles.waitKokoron}
               />
               <div style={completionStyles.waitBubble}>
-                {completionStep === 'completed' 
+                {completionStep === 'completed'
                   ? 'きもちを きかせてくれて ありがとう✨'
-                  : 'こころんが よろこんでるよ！つぎの がめんにすすむよ... 🎉'
-                }
+                  : 'こころんが よろこんでるよ！つぎの がめんにすすむよ... 🎉'}
               </div>
               <div style={completionStyles.progressWrap}>
-                <div style={{
-                  ...completionStyles.progressBar,
-                  width: completionStep === 'completed' ? '60%' : '100%',
-                  background: completionStep === 'completed' 
-                    ? 'linear-gradient(90deg,rgb(250, 250, 55),rgb(222, 242, 121),rgb(132, 250, 6))'
-                    : 'linear-gradient(90deg,rgb(248, 165, 239),rgb(105, 235, 244),rgb(244, 84, 10))',
-                }} />
+                <div
+                  style={{
+                    ...completionStyles.progressBar,
+                    width: completionStep === 'completed' ? '60%' : '100%',
+                    background:
+                      completionStep === 'completed'
+                        ? 'linear-gradient(90deg,rgb(250, 250, 55),rgb(222, 242, 121),rgb(132, 250, 6))'
+                        : 'linear-gradient(90deg,rgb(248, 165, 239),rgb(105, 235, 244),rgb(244, 84, 10))',
+                  }}
+                />
               </div>
               <div style={completionStyles.waitHint}>
-                {completionStep === 'completed' 
+                {completionStep === 'completed'
                   ? 'しばらくすると つぎのがめんに すすむよ...'
-                  : 'まもなく つぎのがめんに すすむよ！'
-                }
+                  : 'まもなく つぎのがめんに すすむよ！'}
               </div>
             </div>
           </div>
@@ -706,7 +779,7 @@ function VoicePageContent() {
   // UI本体
   return (
     <div style={layoutStyles.page}>
-      <AudioPlayer 
+      <AudioPlayer
         src="/sounds/characterAskReason04.mp3"
         autoPlay={true}
         volume={0.8}
@@ -726,14 +799,22 @@ function VoicePageContent() {
       `}</style>
 
       <main style={layoutStyles.panel}>
-        <button onClick={handleBack} style={layoutStyles.backBtn}>← もどる</button>
+        <button onClick={handleBack} style={layoutStyles.backBtn}>
+          ← もどる
+        </button>
 
         <div style={commonStyles.bubbleSmall}>
-          <span style={commonStyles.bubbleTextSmall}>どうしてこのきもちになったのかな？</span>
+          <span style={commonStyles.bubbleTextSmall}>
+            どうしてこのきもちになったのかな？
+          </span>
         </div>
 
         <div style={commonStyles.characterWrap}>
-          <img src="/images/kokoron/kokoron_mic.webp" alt="マイクを持つこころん" style={commonStyles.characterImg} />
+          <img
+            src="/images/kokoron/kokoron_mic.webp"
+            alt="マイクを持つこころん"
+            style={commonStyles.characterImg}
+          />
         </div>
 
         {!audioBlob && (
@@ -744,7 +825,13 @@ function VoicePageContent() {
                 aria-label={isRecording ? '録音をとめる' : '録音をはじめる'}
                 style={recordingStyles.recordOuter}
               >
-                <div style={isRecording ? recordingStyles.recordInnerActive : recordingStyles.recordInnerIdle} />
+                <div
+                  style={
+                    isRecording
+                      ? recordingStyles.recordInnerActive
+                      : recordingStyles.recordInnerIdle
+                  }
+                />
                 {isRecording && (
                   <div style={recordingStyles.pauseIconWrap} aria-hidden="true">
                     <div style={recordingStyles.pauseBars}>
@@ -755,7 +842,9 @@ function VoicePageContent() {
                 )}
               </button>
             </div>
-            <div style={recordingStyles.recordHelper}>{isRecording ? 'とめる' : 'はなしてね'}</div>
+            <div style={recordingStyles.recordHelper}>
+              {isRecording ? 'とめる' : 'はなしてね'}
+            </div>
           </section>
         )}
 
@@ -767,7 +856,9 @@ function VoicePageContent() {
               onClick={togglePlay}
               style={{
                 ...confirmationStyles.playButtonBase,
-                ...(isPlaying ? confirmationStyles.playButtonActive : confirmationStyles.playButtonIdle),
+                ...(isPlaying
+                  ? confirmationStyles.playButtonActive
+                  : confirmationStyles.playButtonIdle),
               }}
               disabled={isBusy}
               aria-label={isPlaying ? 'とめる' : 'きく'}
@@ -782,7 +873,11 @@ function VoicePageContent() {
             />
 
             <div style={confirmationStyles.confirmButtons}>
-              <button style={confirmationStyles.btnPrimary} onClick={uploadAndSave} disabled={isBusy}>
+              <button
+                style={confirmationStyles.btnPrimary}
+                onClick={uploadAndSave}
+                disabled={isBusy}
+              >
                 ✅ いい
               </button>
               <button
@@ -816,16 +911,24 @@ function VoicePageContent() {
               textAlign: 'center' as const,
             }}
           >
-            <div style={{ fontWeight: 700, marginBottom: 6, color: '#111827' }}>文字起こし</div>
-            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6, color: '#111827' }}>
+            <div style={{ fontWeight: 700, marginBottom: 6, color: '#111827' }}>
+              文字起こし
+            </div>
+            <div
+              style={{
+                whiteSpace: 'pre-wrap',
+                lineHeight: 1.6,
+                color: '#111827',
+              }}
+            >
               {transcription.text || '—'}
             </div>
             {typeof transcription.confidence === 'number' && (
               <div style={{ fontSize: 12, color: '#6b7280', marginTop: 8 }}>
-                信頼度: {transcription.confidence >= 0 
+                信頼度:{' '}
+                {transcription.confidence >= 0
                   ? `${(transcription.confidence * 100).toFixed(1)}%`
-                  : `logprob: ${transcription.confidence.toFixed(3)}`
-                }
+                  : `logprob: ${transcription.confidence.toFixed(3)}`}
               </div>
             )}
           </div>
