@@ -519,7 +519,7 @@ function VoicePageContent() {
     return () => a.removeEventListener('ended', onEnded);
   }, [audioBlob]);
 
-  // 即座の完了画面表示 + バックグラウンド処理
+  // 高速化されたアップロード処理（並列実行 + プログレッシブ処理）
   const uploadAndSave = async () => {
     if (!audioBlob || !user) return;
     if (!emotionId || !intensityLevel || !childId) {
@@ -533,79 +533,94 @@ function VoicePageContent() {
     setCompletionStep('completed');
     setStatus('できた！');
 
+    // 即座に完了画面を表示（ユーザー体験の向上）
+    setTimeout(() => {
+      setCompletionStep('finished');
+      const redirectTo = searchParams.get('redirect') || '/app/voice/complete';
+      router.replace(redirectTo);
+    }, 2000);
+
+    // バックグラウンドで並列処理を実行
     try {
-      console.log('[UPLOAD] 開始 - パラメータ:', {
+      console.log('[UPLOAD] 高速化処理開始 - パラメータ:', {
         emotionId,
         intensityLevel,
         childId,
       });
 
-      const health = await fetch(`${API_BASE}/api/v1/voice/health`);
-      if (!health.ok) throw new Error(`ヘルスチェック失敗: ${health.status}`);
-
-      console.log('[UPLOAD] ヘルスチェック成功');
-
-      const upRes = await fetch(`${API_BASE}/api/v1/voice/get-upload-url`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user.id,
-          file_type: 'audio',
-          file_format: recConfig.ext,
+      // ヘルスチェックとアップロードURL取得を並列実行
+      const [healthRes, uploadUrlRes] = await Promise.all([
+        fetch(`${API_BASE}/api/v1/voice/health`),
+        fetch(`${API_BASE}/api/v1/voice/get-upload-url`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: user.id,
+            file_type: 'audio',
+            file_format: recConfig.ext,
+          }),
         }),
-      });
-      if (!upRes.ok)
-        throw new Error(
-          `アップロードURL取得失敗: ${upRes.status} ${await upRes.text()}`,
-        );
-      const upData: GetUploadUrlResponse = await upRes.json();
+      ]);
 
-      console.log('[UPLOAD] アップロードURL取得成功:', upData.file_path);
+      if (!healthRes.ok)
+        throw new Error(`ヘルスチェック失敗: ${healthRes.status}`);
+      if (!uploadUrlRes.ok)
+        throw new Error(`アップロードURL取得失敗: ${uploadUrlRes.status}`);
 
-      const put = await fetch(upData.upload_url, {
-        method: 'PUT',
-        headers: { 'Content-Type': upData.content_type },
-        body: audioBlob,
-      });
-      if (!put.ok)
-        throw new Error(
-          `S3アップロード失敗: ${put.status} ${await put.text()}`,
-        );
+      const upData: GetUploadUrlResponse = await uploadUrlRes.json();
+      console.log('[UPLOAD] 並列処理成功:', upData.file_path);
 
-      console.log('[UPLOAD] S3アップロード成功');
-
-      console.log('[TRANSCRIBE] 開始 - audio_file_path:', upData.file_path);
-
-      const tr = await fetch(`${API_BASE}/api/v1/voice/transcribe`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          user_id: user.id,
-          audio_file_path: upData.file_path,
-          language: 'ja',
+      // S3アップロードと文字起こしを並列実行
+      const [uploadResult, transcribeResult] = await Promise.all([
+        // S3アップロード
+        fetch(upData.upload_url, {
+          method: 'PUT',
+          headers: { 'Content-Type': upData.content_type },
+          body: audioBlob,
+        }).then(async (res) => {
+          if (!res.ok) throw new Error(`S3アップロード失敗: ${res.status}`);
+          console.log('[UPLOAD] S3アップロード成功');
+          return res;
         }),
-      });
 
-      if (!tr.ok) {
-        const errorText = await tr.text();
-        console.error('[TRANSCRIBE] エラー:', tr.status, errorText);
-        throw new Error(`音声認識失敗: ${tr.status} ${errorText}`);
-      }
+        // 文字起こし（アップロード完了を待たずに開始）
+        fetch(`${API_BASE}/api/v1/voice/transcribe`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            user_id: user.id,
+            audio_file_path: upData.file_path,
+            language: 'ja',
+          }),
+        }).then(async (res) => {
+          if (!res.ok) {
+            const errorText = await res.text();
+            console.error('[TRANSCRIBE] エラー:', res.status, errorText);
+            throw new Error(`音声認識失敗: ${res.status} ${errorText}`);
+          }
+          const data = await res.json();
+          console.log('[TRANSCRIBE] 成功 - 結果:', data);
+          return data;
+        }),
+      ]);
 
-      const trData: TranscriptionResult = await tr.json();
-      console.log('[TRANSCRIBE] 成功 - 結果:', trData);
+      const trData: TranscriptionResult = transcribeResult;
       console.log('[TRANSCRIBE] テキスト:', trData.text);
       console.log('[TRANSCRIBE] 信頼度:', trData.confidence);
 
       setTranscription(trData);
 
+      // データ保存をバックグラウンドで実行（ユーザーは既に完了画面を見ている）
       const audioPath = upData.file_path;
       const textPath = audioPath.replace('.webm', '.txt');
 
-      console.log('[SAVE] 保存開始 - パス:', { audioPath, textPath });
-      console.log('[SAVE] voice_note:', trData.text || '');
+      console.log('[SAVE] バックグラウンド保存開始 - パス:', {
+        audioPath,
+        textPath,
+      });
 
-      const save = await fetch(`${API_BASE}/api/v1/voice/save-record`, {
+      // 保存処理を非同期で実行（エラーが発生してもユーザー体験に影響しない）
+      fetch(`${API_BASE}/api/v1/voice/save-record`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -617,20 +632,19 @@ function VoicePageContent() {
           intensity_id: intensityLevel,
           child_id: childId,
         }),
-      });
-
-      if (!save.ok) {
-        const saveError = await save.text();
-        console.error('[SAVE] 保存失敗:', save.status, saveError);
-        throw new Error(`記録保存失敗: ${save.status} ${saveError}`);
-      }
-
-      console.log('[SAVE] 保存成功');
-
-      setCompletionStep('finished');
-      const redirectTo = searchParams.get('redirect') || '/app/voice/complete';
-      console.log('[REDIRECT] 遷移先:', redirectTo);
-      setTimeout(() => router.replace(redirectTo), 500);
+      })
+        .then(async (save) => {
+          if (!save.ok) {
+            const saveError = await save.text();
+            console.error('[SAVE] 保存失敗:', save.status, saveError);
+            // エラーはログに記録するが、ユーザーには表示しない
+          } else {
+            console.log('[SAVE] バックグラウンド保存成功');
+          }
+        })
+        .catch((error) => {
+          console.error('[SAVE] 保存エラー:', error);
+        });
     } catch (e: any) {
       console.error('[ERROR] upload/save', e);
       setError(e?.message || 'エラーが発生しました');
