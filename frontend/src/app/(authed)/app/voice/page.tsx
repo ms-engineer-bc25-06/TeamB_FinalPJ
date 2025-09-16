@@ -67,6 +67,9 @@ function VoicePageContent() {
   const [status, setStatus] = useState<string>('');
   const [transcription, setTranscription] =
     useState<TranscriptionResult | null>(null);
+  const [recordingStartTime, setRecordingStartTime] = useState<number | null>(
+    null,
+  );
 
   // 完了ステップ管理
   const [completionStep, setCompletionStep] = useState<
@@ -497,26 +500,106 @@ function VoicePageContent() {
 
   // 再生
   const togglePlay = async () => {
-    if (!audioRef.current) return;
+    if (!audioRef.current) {
+      console.log('[AUDIO] audioRef.current is null, waiting...');
+      return;
+    }
+
     try {
+      console.log('[AUDIO] Audio element paused:', audioRef.current.paused);
+      console.log('[AUDIO] Audio duration:', audioRef.current.duration);
+      console.log('[AUDIO] Audio currentTime:', audioRef.current.currentTime);
+
+      // 音声要素の実際の状態で判断（isPlayingではなく）
       if (audioRef.current.paused) {
-        await audioRef.current.play();
-        setIsPlaying(true);
+        // 音声が終了している場合は最初から再生
+        if (audioRef.current.currentTime >= audioRef.current.duration) {
+          audioRef.current.currentTime = 0;
+          console.log('[AUDIO] Reset to beginning');
+        }
+
+        // 子ども向け：確実に再生されるまでリトライ
+        let playAttempts = 0;
+        const maxAttempts = 3;
+
+        const attemptPlay = async () => {
+          try {
+            playAttempts++;
+            console.log(`[AUDIO] Play attempt ${playAttempts}/${maxAttempts}`);
+
+            await audioRef.current!.play();
+            setIsPlaying(true);
+            console.log('[AUDIO] Started playing successfully');
+          } catch (error: any) {
+            console.error(
+              `[AUDIO] Play attempt ${playAttempts} failed:`,
+              error,
+            );
+
+            if (playAttempts < maxAttempts) {
+              // リトライ前に少し待つ
+              await new Promise((resolve) => setTimeout(resolve, 100));
+              return attemptPlay();
+            } else {
+              // 最終的に失敗した場合は、ボタンの見た目だけ変更してユーザーに再クリックを促す
+              console.log(
+                '[AUDIO] All play attempts failed, waiting for user interaction',
+              );
+              setIsPlaying(false);
+            }
+          }
+        };
+
+        await attemptPlay();
       } else {
         audioRef.current.pause();
         setIsPlaying(false);
+        console.log('[AUDIO] Paused');
       }
     } catch (e) {
-      console.error('playback error', e);
+      console.error('[AUDIO] playback error', e);
+      setIsPlaying(false);
     }
   };
 
   useEffect(() => {
     const a = audioRef.current;
-    if (!a) return;
-    const onEnded = () => setIsPlaying(false);
+    if (!a || !audioBlob) return;
+
+    console.log(
+      '[AUDIO] Setting up audio element with blob size:',
+      audioBlob.size,
+    );
+
+    // isPlayingをリセット
+    setIsPlaying(false);
+
+    // 音声URLを明示的に設定
+    const audioUrl = URL.createObjectURL(audioBlob);
+    a.src = audioUrl;
+    console.log('[AUDIO] Audio src set to:', audioUrl);
+
+    const onEnded = () => {
+      console.log('[AUDIO] Audio ended');
+      setIsPlaying(false);
+    };
+
+    const onLoadedData = () => {
+      console.log('[AUDIO] Audio data loaded, duration:', a.duration);
+    };
+
     a.addEventListener('ended', onEnded);
-    return () => a.removeEventListener('ended', onEnded);
+    a.addEventListener('loadeddata', onLoadedData);
+
+    // 音声を事前に読み込む
+    a.load();
+
+    return () => {
+      a.removeEventListener('ended', onEnded);
+      a.removeEventListener('loadeddata', onLoadedData);
+      // URLオブジェクトを解放
+      URL.revokeObjectURL(audioUrl);
+    };
   }, [audioBlob]);
 
   // 高速化されたアップロード処理（並列実行 + プログレッシブ処理）
@@ -888,7 +971,9 @@ function VoicePageContent() {
               </button>
             </div>
             <div style={recordingStyles.recordHelper}>
-              {isRecording ? 'とめる' : 'はなしてね'}
+              {isRecording
+                ? 'とめる（3びょう いじょう はなしてね）'
+                : 'はなしてね'}
             </div>
           </section>
         )}
@@ -911,11 +996,7 @@ function VoicePageContent() {
               <span>{isPlaying ? '⏸' : '▶'}</span>
             </button>
 
-            <audio
-              ref={audioRef}
-              src={audioBlob ? URL.createObjectURL(audioBlob) : undefined}
-              style={{ display: 'none' }}
-            />
+            <audio ref={audioRef} style={{ display: 'none' }} />
 
             <div style={confirmationStyles.confirmButtons}>
               <button
